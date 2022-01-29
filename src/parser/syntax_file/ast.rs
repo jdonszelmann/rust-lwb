@@ -1,13 +1,4 @@
-
-pub struct CharacterClass {
-    /* todo */
-}
-
-impl CharacterClass {
-    pub fn contains(c: char) -> bool {
-        todo!()
-    }
-}
+use crate::parser::syntax_file::character_class::CharacterClass;
 
 pub enum Constructor {
     Identifier(String),
