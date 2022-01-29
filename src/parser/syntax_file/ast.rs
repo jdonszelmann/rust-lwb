@@ -1,5 +1,5 @@
 
-struct CharacterClass {
+pub struct CharacterClass {
     /* todo */
 }
 
@@ -9,7 +9,7 @@ impl CharacterClass {
     }
 }
 
-enum Constructor {
+pub enum Constructor {
     Identifier(String),
     Literal(String),
     Sequence(Vec<Constructor>),
@@ -25,18 +25,18 @@ enum Constructor {
     Positive(Box<Constructor>),
 }
 
-enum Annotation {
+pub enum Annotation {
     NoPrettyPrint,
     NoLayout,
 }
 
-struct Sort {
+pub struct Sort {
     name: String,
     constructors: Vec<Constructor>,
     annotations: Vec<Annotation>
 }
 
-struct SyntaxFile {
+pub struct SyntaxFileAst {
     rules: Vec<Sort>,
     starting_rule: String,
     layout: Constructor,
