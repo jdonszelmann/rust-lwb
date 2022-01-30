@@ -4,9 +4,7 @@ use crate::source_file::SourceFile;
 struct Span {
     position: usize,
     length: usize,
-    source: SourceFile
+    source: SourceFile,
 }
 
-impl Span {
-
-}
+impl Span {}

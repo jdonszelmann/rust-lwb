@@ -7,12 +7,12 @@ pub enum CharacterClass {
     /// Inclusive range. Both `from` and `to` are inclusive
     RangeInclusive {
         from: char, // inclusive!
-        to: char, // inclusive!
+        to: char,   // inclusive!
     },
     /// Exclusive range. `from` is inclusive but `to` is exclusive
     Range {
         from: char, // inclusive!
-        to: char, // exclusive!
+        to: char,   // exclusive!
     },
     /// all characters in the vec are in the character class.
     Contained(Vec<char>),
@@ -73,18 +73,13 @@ impl CharacterClass {
             CharacterClass::Range { from, to } => {
                 (c as u32) >= *from as u32 && (c as u32) < *to as u32
             }
-            CharacterClass::Choice(parts) => {
-                parts.iter()
-                    .map(|i| i.contains(c))
-                    .fold(false, |i, j| i || j)
-            }
-            CharacterClass::Not(cls) => {
-                !cls.contains(c)
-            }
+            CharacterClass::Choice(parts) => parts
+                .iter()
+                .map(|i| i.contains(c))
+                .fold(false, |i, j| i || j),
+            CharacterClass::Not(cls) => !cls.contains(c),
             CharacterClass::Nothing => false,
-            CharacterClass::Contained(chars) => {
-                chars.contains(&c)
-            }
+            CharacterClass::Contained(chars) => chars.contains(&c),
         }
     }
 
@@ -127,7 +122,7 @@ impl From<RangeInclusive<char>> for CharacterClass {
     fn from(r: RangeInclusive<char>) -> Self {
         Self::RangeInclusive {
             from: *r.start(),
-            to: *r.end()
+            to: *r.end(),
         }
     }
 }
@@ -136,17 +131,14 @@ impl From<Range<char>> for CharacterClass {
     fn from(r: Range<char>) -> Self {
         Self::Range {
             from: r.start,
-            to: r.end
+            to: r.end,
         }
     }
 }
 
 impl From<char> for CharacterClass {
     fn from(c: char) -> Self {
-        Self::RangeInclusive {
-            from: c,
-            to: c
-        }
+        Self::RangeInclusive { from: c, to: c }
     }
 }
 
