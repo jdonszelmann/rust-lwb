@@ -10,12 +10,14 @@ pub struct Span {
 }
 
 impl Span {
+    /// Creates a new span, given a file, starting position and the length that the span should be.
     pub fn from_length(source: SourceFile, position: usize, length: usize) -> Self {
         Self {
             source, position, length
         }
     }
 
+    /// Creates a new span, given a file, starting position and end position.
     pub fn from_end(source: SourceFile, position: usize, end: usize) -> Self {
         assert!(end >= position);
         Self {

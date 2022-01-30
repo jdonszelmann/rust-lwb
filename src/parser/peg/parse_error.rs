@@ -3,11 +3,14 @@ use crate::parser::syntax_file::character_class::CharacterClass;
 use crate::span::Span;
 use thiserror::Error;
 
+/// A parsing error represents a single error that occurred during parsing.
+/// The parsing error occurs at a certain position in a file, represented by the span.
+/// The parsing error consists of multiple `ParseErrorSub`, which each represent a single thing that went wrong at this position.
 #[derive(Error, Debug, Clone)]
 #[error("A parsing error occurred. Expected one of: {expected:?}")]
 pub struct ParseError {
-    span: Span,
-    expected: Vec<ParseErrorSub>,
+    pub span: Span,
+    pub expected: Vec<ParseErrorSub>,
 }
 
 impl ParseError {
@@ -25,6 +28,7 @@ impl ParseError {
 }
 
 
+/// Represents a single thing that went wrong at this position.
 #[derive(Debug, Clone)]
 pub enum ParseErrorSub {
     /// Expect a character from a certain char class to be there, but it was not.

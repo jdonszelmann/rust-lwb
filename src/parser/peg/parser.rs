@@ -212,7 +212,7 @@ impl ParserState {
                     }
                     Err(err) => {
                         Ok(ParseSuccess {
-                            result: ParsePairConstructor::Empty(err.span()),
+                            result: ParsePairConstructor::Empty(err.span),
                             best_error: None,
                             pos, //Return old position
                         })
