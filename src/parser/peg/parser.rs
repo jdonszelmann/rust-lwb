@@ -199,7 +199,7 @@ impl ParserState {
             Constructor::CharacterClass(characters) => {
                 let span = Span::from_length(self.file.clone(), pos.position(), 1);
                 //TODO clone should not be needed
-                if pos.accept(characters.clone()) {
+                if pos.accept(characters) {
                     Ok(ParseSuccess {
                         result: ParsePairConstructor::Text(span),
                         best_error: None,
