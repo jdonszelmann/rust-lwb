@@ -55,16 +55,24 @@ fn parse_file(i: &mut SourceFileIterator) -> ParseResult<SyntaxFileAst> {
 
     while let Some(_) = i.peek() {
         match parse_sort_or_meta(i)? {
-            SortOrMeta::Sort(c) => sorts.push(c),
-            SortOrMeta::StartRule(_) if starting_rule.is_some() => {
+            Some(SortOrMeta::Sort(c)) => sorts.push(c),
+            Some(SortOrMeta::StartRule(_)) if starting_rule.is_some() => {
                 return Err(DuplicateStartingRule)
             }
-            SortOrMeta::StartRule(c) => {
+            Some(SortOrMeta::StartRule(c)) => {
                 starting_rule = Some(c)
             }
-            SortOrMeta::Layout(c) => {
+            Some(SortOrMeta::Layout(c)) => {
                 layout = layout.combine(c)
             }
+            None => {
+                break
+            }
+        }
+
+        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+        if !i.accept(';') {
+            return Err(Expected("; after every rule".to_string()));
         }
     }
 
@@ -75,21 +83,25 @@ fn parse_file(i: &mut SourceFileIterator) -> ParseResult<SyntaxFileAst> {
     })
 }
 
-fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<SortOrMeta> {
+fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMeta>> {
     i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+    if i.exhausted() {
+        return Ok(None)
+    }
+
     if i.accept_str("layout") {
         i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
         if !i.accept('=') {
-            return Err(Expected("= in rule".to_string()))
+            return Err(Expected("= in layout/".to_string()))
         }
-        Ok(SortOrMeta::Layout(parse_character_class(i)?))
+        Ok(Some(SortOrMeta::Layout(parse_character_class(i)?)))
     } else if i.accept_str("start") {
         i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
         if !i.accept_str("at") {
             return Err(Expected("'at' after 'start'".to_string()))
         }
         i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
-        Ok(SortOrMeta::StartRule(parse_identifier(i)?))
+        Ok(Some(SortOrMeta::StartRule(parse_identifier(i)?)))
     } else {
         let name = parse_identifier(i)?;
         i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
@@ -108,11 +120,11 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<SortOrMeta> {
         i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
         let annotations = parse_annotations(i)?;
 
-        Ok(SortOrMeta::Sort(Sort {
+        Ok(Some(SortOrMeta::Sort(Sort {
             name,
             constructors,
             annotations
-        }))
+        })))
     }
 }
 
@@ -171,6 +183,27 @@ fn parse_number(i: &mut SourceFileIterator) -> ParseResult<u64> {
 }
 
 fn parse_constructor(i: &mut SourceFileIterator) -> ParseResult<Constructor> {
+    let mut lst = vec![parse_simple_constructor(i)?];
+
+    loop {
+        let saved = i.clone();
+        match parse_simple_constructor(i) {
+            Ok(i) => lst.push(i),
+            Err(e) => {
+                *i = saved;
+                break
+            }
+        }
+    }
+
+    if lst.len() == 1 {
+        Ok(lst.pop().unwrap())
+    } else {
+        Ok(Constructor::Sequence(lst))
+    }
+}
+
+fn parse_simple_constructor(i: &mut SourceFileIterator) -> ParseResult<Constructor> {
     i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
     let res = parse_constructor_no_suffix(i)?;
     i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
@@ -189,11 +222,17 @@ fn parse_constructor(i: &mut SourceFileIterator) -> ParseResult<Constructor> {
         })
     } else if i.accept("{") {
         let min = parse_number(i)?;
+        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
         let max = if i.accept(",") {
             Some(parse_number(i)?)
         } else {
             None
         };
+        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+
+        if !i.accept("}") {
+            return Err(Expected("closing brace after repetition specification".to_string()));
+        }
 
         Ok(Constructor::Repeat {
             c: Box::new(res),
@@ -338,6 +377,7 @@ fn parse_character_class(i: &mut SourceFileIterator) -> ParseResult<CharacterCla
 
 #[cfg(test)]
 mod tests {
+    use bnf::Grammar;
     use super::*;
 
     macro_rules! parse_test {
@@ -408,11 +448,19 @@ mod tests {
     parse_test!(repeat_x test that "a = x{3}" parses with parse_sort_or_meta);
 
     parse_test!(integration_1 test that r#"
-    char = [0-9]
-    string = "\"" char* "\""
+    char = [0-9];
+    string = "\"" char* "\"";
 
-    start at string
-    "# parses with parse_sort_or_meta);
+    start at string;
+    "# parses with parse_file);
+
+    parse_test!(integration_2 test that r#"
+C_=_ "v" _Efm{9,2}|((W5{1} (((_*)? W _) "u"+ ("c")+)*){47,4}){3888};
+
+layout = [^Q-j];
+layout = [^T-o];
+start at r8;
+    "# parses with parse_file);
 
     macro_rules! character_class_test {
         ($name: ident cc $input: literal contains $($c:literal)*) => {
@@ -456,6 +504,88 @@ mod tests {
     character_class_test!(inverted_cc_2 cc "[^a-z0-9]" contains "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
     character_class_test!(just_some_chars cc "[abc]" contains "abc");
     character_class_test!(just_some_chars_2 cc "[abc]" excludes "xyz");
+
+
+    const GRAMMAR: &str = r##"
+<program> ::= <rulelist> <starting>
+<rulelist> ::= <rule-or-meta> <rulelist> | ""
+
+<09> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+<number> ::= <09> <number> | <09>
+
+<az> ::= "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"
+<AZ> ::= "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z"
+
+<name-char> ::= <az> | <AZ> | "_"
+<name-end-char> ::= <name-char> | <09>
+
+<name-end> ::= <name-end-char> <name-end> | <name-end-char>
+<name> ::= <name-char> <name-end> | <name-char>
+
+<range> ::= <name-char> "-" <name-char>
+<charclassitem> ::= <name-char> | <range> | ""
+<charclass> ::= "[" <charclassitem> "]" | "[^" <charclassitem> "]"
+
+<starting> ::= "start at " <name> ";"
+<meta> ::= "layout = " <charclass>
+
+<literal> ::= '"' <name> '"' | "'" <name> "'"
+
+<suffix> ::= "*" | "+" | "?" | "{" <number> "}" | "{" <number> "," <number> "}"
+
+<constructor-atom> ::= <name> | <literal> | "(" <constructor> ")"
+<constructor-without-suffix> ::= <constructor-atom>
+<simple-constructor> ::= <constructor-without-suffix> | <constructor-without-suffix> <suffix>
+<constructor> ::= <simple-constructor> | <simple-constructor> " " <constructor>
+
+<rule> ::= <constructor> | <constructor> "|" <constructor>
+<sort> ::= <name> "=" <rule>
+<rule-or-meta> ::= <sort> ";" | <meta> ";"
+
+
+    "##;
+
+    fn generate_sentence(g: &Grammar) -> String {
+        loop {
+            let res = g.generate_callback(|ident, value| match ident {
+                "range" => { // make sure ranges have a left side smaller than their right side
+                    let parts: Vec<_> = value.split("-").collect();
+                    let (p1, p2) = (parts[0], parts[1]);
+                    assert_eq!(p1.chars().count(), 1);
+                    assert_eq!(p1.chars().count(), 1);
+
+                    (p1.chars().next().unwrap() as u32) < (p2.chars().next().unwrap() as u32)
+                },
+                _ => true,
+            });
+            match res {
+                Ok(i) => break i,
+                Err(bnf::Error::RecursionLimit(_)) => continue,
+                _ => panic!("aaaaa"),
+            }
+        }
+    }
+
+    #[test]
+    pub fn fuzz() {
+        let grammar: Grammar = match GRAMMAR.parse() {
+            Ok(i) => i,
+            Err(e) => {
+                panic!("{:#?}", e);
+            }
+        };
+
+        for _ in 0..1000 {
+            let sentence = generate_sentence(&grammar);
+            let file = SourceFile::new_for_test(&sentence);
+
+            if let Err(e) = parse(&file) {
+                panic!("failed on program: {sentence}: {e:?}");
+            }
+
+        }
+    }
+
 }
 
 
