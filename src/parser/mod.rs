@@ -9,7 +9,7 @@ pub mod syntax_file;
 /// Contains code related to abstract syntax
 /// trees generated from the syntax definitions
 /// for user-defined languages.
-mod ast;
+pub mod ast;
 
 /// Contains code related to the peg parser.
-mod peg;
+pub mod peg;

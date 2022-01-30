@@ -1,23 +1,25 @@
-use std::collections::HashMap;
 use crate::parser::error::ParseError;
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::syntax_file::ast::{Constructor, Sort, SyntaxFileAst};
 use crate::source_file::{SourceFile, SourceFileIterator};
 use crate::span::Span;
+use std::collections::HashMap;
 
 pub struct ParserState {
     file: SourceFile,
     rules: HashMap<String, Sort>,
 }
 
+#[allow(clippy::unit_arg)]
 impl ParserState {
-    pub fn parse_file<'a>(syntax: SyntaxFileAst, file: SourceFile) -> Result<(), ParseError> {
+    pub fn parse_file(syntax: SyntaxFileAst, file: SourceFile) -> Result<(), ParseError> {
         let mut state = ParserState {
             file: file.clone(),
             rules: HashMap::new(),
         };
-        syntax.sorts.into_iter().for_each(|rule| { state.rules.insert(rule.name.clone(), rule).unwrap(); });
-
+        syntax.sorts.into_iter().for_each(|rule| {
+            state.rules.insert(rule.name.clone(), rule).unwrap();
+        });
 
         let mut ok = state.parse_rule(&syntax.starting_rule, file.iter())?;
         if ok.pos.peek().is_none() {
@@ -32,53 +34,59 @@ impl ParserState {
                     Err(ParseError::NotEntireInput(Span {
                         position: curpos,
                         length: endpos - curpos,
-                        source: file
+                        source: file,
                     }))
                 }
             }
         }
     }
 
-    fn parse_rule<'a>(&self, rule: &str, pos: SourceFileIterator<'a>) -> Result<ParseSuccess<'a, ()>, ParseError> {
+    fn parse_rule<'a>(
+        &self,
+        rule: &str,
+        pos: SourceFileIterator<'a>,
+    ) -> Result<ParseSuccess<'a, ()>, ParseError> {
         let sort = self.rules.get(rule).unwrap(); //Safe: Names should be defined
 
         let mut best_error: Option<ParseError> = None;
         for constructor in &sort.constructors {
             match self.parse_constructor(constructor, pos.clone()) {
-                Ok(ok) => return Ok(ParseSuccess {
-                    result: (),
-                    best_error: ok.best_error.or(best_error),
-                    pos
-                }),
-                Err(err) => {
-                    best_error = Self::combine_option_parse_error(best_error, Some(err))
+                Ok(ok) => {
+                    return Ok(ParseSuccess {
+                        result: (),
+                        best_error: ok.best_error.or(best_error),
+                        pos,
+                    })
                 }
+                Err(err) => best_error = Self::combine_option_parse_error(best_error, Some(err)),
             }
         }
-        return Err(best_error.unwrap()); //Safe: Each sort has at least one constructor
+        Err(best_error.unwrap()) //Safe: Each sort has at least one constructor
     }
 
-    fn parse_constructor<'a>(&self, constructor: &Constructor, mut pos: SourceFileIterator<'a>) -> Result<ParseSuccess<'a, ()>, ParseError> {
+    fn parse_constructor<'a>(
+        &self,
+        constructor: &Constructor,
+        mut pos: SourceFileIterator<'a>,
+    ) -> Result<ParseSuccess<'a, ()>, ParseError> {
         match constructor {
-            Constructor::Identifier(rule) => {
-                self.parse_rule(rule, pos)
-            }
+            Constructor::Identifier(rule) => self.parse_rule(rule, pos),
             Constructor::Literal(lit) => {
                 if pos.accept_str(lit) {
                     Ok(ParseSuccess {
                         result: (),
                         best_error: None,
-                        pos
+                        pos,
                     })
                 } else {
                     Err(ParseError::ExpectString(
-                        Span{
+                        Span {
                             position: pos.position(),
                             length: lit.len(),
                             source: self.file.clone(),
                         },
                         lit.clone(),
-                    ) )
+                    ))
                 }
             }
             Constructor::Sequence(constructors) => {
@@ -88,19 +96,20 @@ impl ParserState {
                     match self.parse_constructor(subconstructor, pos) {
                         Ok(ok) => {
                             pos = ok.pos;
-                            best_error = Self::combine_option_parse_error(best_error, ok.best_error);
+                            best_error =
+                                Self::combine_option_parse_error(best_error, ok.best_error);
                             results.push(ok.result);
                         }
                         Err(err) => {
                             best_error = Self::combine_option_parse_error(best_error, Some(err));
-                            return Err(best_error.unwrap())
+                            return Err(best_error.unwrap());
                         }
                     }
                 }
                 Ok(ParseSuccess {
                     result: (),
                     best_error,
-                    pos
+                    pos,
                 })
             }
             Constructor::Repeat { c, min, max } => {
@@ -112,7 +121,8 @@ impl ParserState {
                         Ok(ok) => {
                             result.push(ok.result);
                             pos = ok.pos;
-                            best_error = Self::combine_option_parse_error(best_error, ok.best_error);
+                            best_error =
+                                Self::combine_option_parse_error(best_error, ok.best_error);
                         }
                         Err(err) => {
                             best_error = Self::combine_option_parse_error(best_error, Some(err));
@@ -126,7 +136,8 @@ impl ParserState {
                         Ok(ok) => {
                             result.push(ok.result);
                             pos = ok.pos;
-                            best_error = Self::combine_option_parse_error(best_error, ok.best_error);
+                            best_error =
+                                Self::combine_option_parse_error(best_error, ok.best_error);
                         }
                         Err(err) => {
                             best_error = Self::combine_option_parse_error(best_error, Some(err));
@@ -138,19 +149,20 @@ impl ParserState {
                 Ok(ParseSuccess {
                     result: (),
                     best_error,
-                    pos
+                    pos,
                 })
             }
             Constructor::CharacterClass(characters) => {
-                if pos.accept(characters.clone() ) { //TODO clone should not be needed
+                if pos.accept(characters.clone()) {
+                    //TODO clone should not be needed
                     Ok(ParseSuccess {
                         result: (),
                         best_error: None,
-                        pos
+                        pos,
                     })
                 } else {
                     Err(ParseError::ExpectCharClass(
-                        Span{
+                        Span {
                             position: pos.position(),
                             length: 1,
                             source: self.file.clone(),
@@ -159,7 +171,7 @@ impl ParserState {
                     ))
                 }
             }
-            Constructor::Choice(choices) => {
+            Constructor::Choice(_) => {
                 todo!()
             }
             Constructor::Negative(_) => {
@@ -171,12 +183,15 @@ impl ParserState {
         }
     }
 
-    fn combine_option_parse_error(a: Option<ParseError>, b: Option<ParseError>) -> Option<ParseError> {
+    fn combine_option_parse_error(
+        a: Option<ParseError>,
+        b: Option<ParseError>,
+    ) -> Option<ParseError> {
         match (a, b) {
             (None, None) => None,
             (None, Some(e)) => Some(e),
             (Some(e), None) => Some(e),
-            (Some(e1), Some(e2)) => Some(e1.combine(e2))
+            (Some(e1), Some(e2)) => Some(e1.combine(e2)),
         }
     }
 }

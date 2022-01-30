@@ -1,5 +1,5 @@
 use crate::parser::syntax_file::character_class::CharacterClass;
-use std::iter::{Enumerate, Peekable};
+use std::iter::{Peekable};
 use std::rc::Rc;
 
 #[doc(hidden)]
@@ -28,7 +28,7 @@ impl SourceFile {
     pub fn iter(&self) -> SourceFileIterator {
         SourceFileIterator {
             inner_iter: self.0.contents.chars().peekable(),
-            index: 0
+            index: 0,
         }
     }
 
@@ -258,8 +258,8 @@ impl<'a> Iterator for SourceFileIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.inner_iter.next();
-        if next.is_some() {
-            self.index += next.unwrap().len_utf8();
+        if let Some(next) = next {
+            self.index += next.len_utf8();
         }
         next
     }

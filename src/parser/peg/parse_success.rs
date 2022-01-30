@@ -7,4 +7,3 @@ pub struct ParseSuccess<'a, O> {
     pub best_error: Option<ParseError>,
     pub pos: SourceFileIterator<'a>,
 }
-

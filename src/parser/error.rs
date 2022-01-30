@@ -1,10 +1,9 @@
-use thiserror::Error;
 use crate::parser::syntax_file::character_class::CharacterClass;
 use crate::span::Span;
+use thiserror::Error;
 
 #[derive(Error, Debug, Clone)]
 pub enum ParseError {
-
     /// Expect a character from a certain char class to be there, but it was not.
     #[error("expected char class: {1:?}")]
     ExpectCharClass(Span, CharacterClass),
@@ -32,7 +31,7 @@ impl ParseError {
     ///
     /// When two errors are the same depth, they are merged into a single `CombinedError`.
     /// Otherwise, the error with the largest `self.position()` is chosen and the other is discarded.
-    pub fn combine(self, other: ParseError) -> ParseError {
+    pub fn combine(self, _other: ParseError) -> ParseError {
         todo!()
     }
 

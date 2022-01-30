@@ -6,5 +6,5 @@ use crate::source_file::SourceFile;
 pub struct Span {
     pub position: usize,
     pub length: usize,
-    pub source: SourceFile
+    pub source: SourceFile,
 }
