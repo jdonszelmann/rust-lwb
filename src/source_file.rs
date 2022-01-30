@@ -144,7 +144,7 @@ impl<'a> SourceFileIterator<'a> {
     /// assert!(sfi.accept_str("test"));
     /// ```
     pub fn skip_layout(&mut self, layout: &CharacterClass) {
-        while self.accept(&layout) {}
+        while self.accept(layout) {}
     }
 
     /// First skip any layout that can be found, then accept like [`accept`]
