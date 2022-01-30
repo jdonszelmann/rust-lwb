@@ -5,8 +5,8 @@ use crate::parser::syntax_file::character_class::CharacterClass;
 use crate::parser::syntax_file::parser::ParseError::{
     DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedEndOfFile,
 };
-use enum_iterator::IntoEnumIterator;
 use crate::source_file::{SourceFile, SourceFileIterator};
+use enum_iterator::IntoEnumIterator;
 use lazy_static::lazy_static;
 use thiserror::Error;
 
@@ -127,7 +127,6 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
             return Err(Expected("newline after sort block header".to_string()));
         }
 
-
         let mut constructors = vec![];
 
         while i.accept_str("    ") {
@@ -164,10 +163,9 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
                 if !chars.is_empty() && chars.chars().all(|i| SYNTAX_FILE_LAYOUT.contains(i)) {
                     *i = c;
                 } else {
-                    break
+                    break;
                 }
             }
-
 
             constructors.push(TopLevelConstructor {
                 name,
@@ -178,10 +176,7 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
 
         i.skip_layout(&SYNTAX_FILE_LAYOUT);
 
-        Ok(Some(SortOrMeta::Sort(Sort {
-            name,
-            constructors
-        })))
+        Ok(Some(SortOrMeta::Sort(Sort { name, constructors })))
     }
 }
 
@@ -190,7 +185,7 @@ fn parse_annotation(i: &mut SourceFileIterator) -> ParseResult<Option<Annotation
 
     for a in Annotation::into_enum_iter() {
         if i.accept_str(&a.to_string()) {
-            return Ok(Some(a))
+            return Ok(Some(a));
         }
     }
 

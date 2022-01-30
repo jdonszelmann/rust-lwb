@@ -157,11 +157,7 @@ impl<'a> SourceFileIterator<'a> {
     /// assert!(!sfi.accept(&'t'.into()));
     /// assert!(sfi.accept_skip_layout(&'t'.into(), &' '.into()));
     /// ```
-    pub fn accept_skip_layout(
-        &mut self,
-        c: &CharacterClass,
-        layout: &CharacterClass,
-    ) -> bool {
+    pub fn accept_skip_layout(&mut self, c: &CharacterClass, layout: &CharacterClass) -> bool {
         let mut self_clone = self.clone();
         self_clone.skip_layout(layout);
         if self_clone.accept(c) {
