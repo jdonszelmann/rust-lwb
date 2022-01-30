@@ -1,4 +1,6 @@
-use crate::parser::syntax_file::ast::{Annotation, Constructor, Sort, SyntaxFileAst};
+use crate::parser::syntax_file::ast::{
+    Annotation, Constructor, Sort, SyntaxFileAst, TopLevelConstructor,
+};
 use crate::parser::syntax_file::character_class::CharacterClass;
 use crate::parser::syntax_file::parser::ParseError::{
     DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedEndOfFile,
@@ -77,7 +79,7 @@ fn parse_file(i: &mut SourceFileIterator) -> ParseResult<SyntaxFileAst> {
 
     Ok(SyntaxFileAst {
         sorts,
-        starting_rule: starting_rule.ok_or(NoStartingRule)?,
+        starting_sort: starting_rule.ok_or(NoStartingRule)?,
         layout,
     })
 }
@@ -121,7 +123,13 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
 
         Ok(Some(SortOrMeta::Sort(Sort {
             name,
-            constructors,
+            constructors: constructors
+                .into_iter()
+                .map(|c| TopLevelConstructor {
+                    name: "CONSTRUCTOR NAME".to_string(),
+                    constructor: c,
+                })
+                .collect(),
             annotations,
         })))
     }
@@ -278,7 +286,7 @@ fn parse_constructor_atom(i: &mut SourceFileIterator) -> ParseResult<Constructor
     }
 
     if let Ok(i) = parse_identifier(i) {
-        return Ok(Constructor::Identifier(i));
+        return Ok(Constructor::Sort(i));
     }
 
     Err(Expected(

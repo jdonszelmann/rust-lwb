@@ -3,8 +3,14 @@ use derive_more::Display;
 use enum_iterator::IntoEnumIterator;
 
 #[derive(Debug)]
+pub struct TopLevelConstructor {
+    pub name: String,
+    pub constructor: Constructor,
+}
+
+#[derive(Debug)]
 pub enum Constructor {
-    Identifier(String),
+    Sort(String),
     Literal(String),
     Sequence(Vec<Constructor>),
     Repeat {
@@ -30,13 +36,13 @@ pub enum Annotation {
 #[derive(Debug)]
 pub struct Sort {
     pub name: String,
-    pub constructors: Vec<Constructor>,
+    pub constructors: Vec<TopLevelConstructor>,
     pub annotations: Vec<Annotation>,
 }
 
 #[derive(Debug)]
 pub struct SyntaxFileAst {
     pub sorts: Vec<Sort>,
-    pub starting_rule: String,
+    pub starting_sort: String,
     pub layout: CharacterClass,
 }
