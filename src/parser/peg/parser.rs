@@ -1,4 +1,4 @@
-use crate::parser::error::ParseError;
+use crate::parser::peg::parse_error::{ParseError};
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::syntax_file::ast::{Constructor, Sort, SyntaxFileAst};
 use crate::source_file::{SourceFile, SourceFileIterator};
@@ -40,7 +40,7 @@ pub fn parse_file(syntax: SyntaxFileAst, file: SourceFile) -> Result<ParsePairSo
                 let curpos = ok.pos.position();
                 while ok.pos.next().is_some() {}
                 let endpos = ok.pos.position();
-                Err(ParseError::NotEntireInput(Span::from_end(file.clone(), curpos, endpos)))
+                Err(ParseError::not_entire_input(Span::from_end(file.clone(), curpos, endpos)))
             }
         }
     }
@@ -90,7 +90,7 @@ impl ParserState {
                 if pos.accept_str(lit) {
                     Ok(ParseSuccess { result: ParsePairConstructor::Text(span), best_error: None, pos })
                 } else {
-                    Err(ParseError::ExpectString(span, lit.clone()))
+                    Err(ParseError::expect_string(span, lit.clone()))
                 }
             }
             //To parse a sequence, parse each constructor in the sequence.
@@ -182,7 +182,7 @@ impl ParserState {
                         pos,
                     })
                 } else {
-                    Err(ParseError::ExpectCharClass(span, characters.clone()))
+                    Err(ParseError::expect_char_class(span, characters.clone()))
                 }
             }
             //To parse a choice, try each constructor, keeping track of the best error that occurred while doing so.

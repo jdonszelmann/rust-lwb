@@ -1,4 +1,4 @@
-use crate::parser::error::ParseError;
+use crate::parser::peg::parse_error::{ParseError};
 use crate::source_file::SourceFileIterator;
 
 #[derive(Clone)]
