@@ -1,6 +1,6 @@
-use crate::parser::syntax_file::character_class::CharacterClass;
 use std::iter::Peekable;
 use std::rc::Rc;
+use crate::parser::syntax_file::character_class::CharacterClass;
 
 #[doc(hidden)]
 struct Inner {
@@ -82,12 +82,12 @@ impl<'a> SourceFileIterator<'a> {
     /// // can't accept more, iterator is exhausted
     /// assert!(!sfi.accept('x'));
     /// ```
-    pub fn accept(&mut self, c: impl Into<CharacterClass>) -> bool {
+    pub fn accept<'c>(&mut self, c: impl Into<CharacterClass<'c>>) -> bool {
         self.accept_option(c).is_some()
     }
 
     /// Like accepts but returns an option
-    pub fn accept_option(&mut self, c: impl Into<CharacterClass>) -> Option<char> {
+    pub fn accept_option<'c>(&mut self, c: impl Into<CharacterClass<'c>>) -> Option<char> {
         let c = c.into();
         if let Some(true) = self.peek().map(|&i| c.contains(i)) {
             self.next()
@@ -141,7 +141,7 @@ impl<'a> SourceFileIterator<'a> {
     /// sfi.skip_layout(' ');
     /// assert!(sfi.accept_str("test"));
     /// ```
-    pub fn skip_layout(&mut self, layout: impl Into<CharacterClass>) {
+    pub fn skip_layout<'c>(&mut self, layout: impl Into<CharacterClass<'c>>) {
         let layout = layout.into();
 
         // TODO: have accept somehow accept references so this clone is not necessary
@@ -158,10 +158,10 @@ impl<'a> SourceFileIterator<'a> {
     /// assert!(!sfi.accept('t'));
     /// assert!(sfi.accept_skip_layout('t', ' '));
     /// ```
-    pub fn accept_skip_layout(
+    pub fn accept_skip_layout<'c1, 'c2>(
         &mut self,
-        c: impl Into<CharacterClass>,
-        layout: impl Into<CharacterClass>,
+        c: impl Into<CharacterClass<'c1>>,
+        layout: impl Into<CharacterClass<'c2>>,
     ) -> bool {
         let mut self_clone = self.clone();
         self_clone.skip_layout(layout);
@@ -183,7 +183,7 @@ impl<'a> SourceFileIterator<'a> {
     /// assert!(!sfi.accept_str("test"));
     /// assert!(sfi.accept_str_skip_layout("test", ' '));
     /// ```
-    pub fn accept_str_skip_layout(&mut self, s: &str, layout: impl Into<CharacterClass>) -> bool {
+    pub fn accept_str_skip_layout<'c>(&mut self, s: &str, layout: impl Into<CharacterClass<'c>>) -> bool {
         let mut self_clone = self.clone();
         self_clone.skip_layout(layout);
         if self_clone.accept_str(s) {
@@ -203,7 +203,7 @@ impl<'a> SourceFileIterator<'a> {
     ///
     /// assert_eq!(sfi.accept_to_next(' '), "test");
     /// ```
-    pub fn accept_to_next(&mut self, target: impl Into<CharacterClass>) -> String {
+    pub fn accept_to_next<'c>(&mut self, target: impl Into<CharacterClass<'c>>) -> String {
         let target = target.into();
 
         let mut res = String::new();

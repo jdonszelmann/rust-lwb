@@ -1,6 +1,6 @@
-use crate::parser::syntax_file::character_class::CharacterClass;
 use derive_more::Display;
 use enum_iterator::IntoEnumIterator;
+use crate::parser::syntax_file::character_class::CharacterClass;
 
 #[derive(Debug)]
 pub enum Constructor {
@@ -12,7 +12,7 @@ pub enum Constructor {
         min: u64,
         max: Option<u64>,
     },
-    CharacterClass(CharacterClass),
+    CharacterClass(CharacterClass<'static>),
     Choice(Vec<Constructor>),
 
     Negative(Box<Constructor>),
@@ -38,5 +38,5 @@ pub struct Sort {
 pub struct SyntaxFileAst {
     pub sorts: Vec<Sort>,
     pub starting_rule: String,
-    pub layout: CharacterClass,
+    pub layout: CharacterClass<'static>,
 }

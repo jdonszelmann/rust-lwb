@@ -3,29 +3,33 @@ use std::ops::{Range, RangeInclusive};
 /// Represent a class of characters like in a regex
 /// such as [a-z] or [^0-9]
 #[derive(Clone, Debug)]
-pub enum CharacterClass {
+pub enum CharacterClass<'a> {
     /// Inclusive range. Both `from` and `to` are inclusive
     RangeInclusive {
-        from: char, // inclusive!
+        from: char,
+        // inclusive!
         to: char,   // inclusive!
     },
     /// Exclusive range. `from` is inclusive but `to` is exclusive
     Range {
-        from: char, // inclusive!
+        from: char,
+        // inclusive!
         to: char,   // exclusive!
     },
     /// all characters in the vec are in the character class.
     Contained(Vec<char>),
     /// True when one of the character class parts is true
-    Choice(Vec<CharacterClass>),
+    Choice(Vec<CharacterClass<'a>>),
     /// inverts the outcome of the embedded character class
-    Not(Box<CharacterClass>),
+    Not(Box<CharacterClass<'a>>),
     /// Always false. Use Not(Nothing) for always true.
     Nothing,
+
+    /// Cow-like functionality for character classes.
+    Ref(&'a CharacterClass<'a>),
 }
 
-impl CharacterClass {
-    /// Contains returns true when a character is
+impl<'a> CharacterClass<'a> {
     /// included in this character class.
     ///
     /// ```
@@ -77,6 +81,7 @@ impl CharacterClass {
             CharacterClass::Not(cls) => !cls.contains(c),
             CharacterClass::Nothing => false,
             CharacterClass::Contained(chars) => chars.contains(&c),
+            CharacterClass::Ref(cls) => cls.contains(c),
         }
     }
 
@@ -110,12 +115,42 @@ impl CharacterClass {
     /// assert!(c.contains('a'));
     /// assert!(c.contains('0'));
     /// ```
-    pub fn combine(self, other: CharacterClass) -> CharacterClass {
-        CharacterClass::Choice(vec![self, other])
+    pub fn combine(self, other: impl Into<CharacterClass<'a>>) -> CharacterClass<'a> {
+        CharacterClass::Choice(vec![self, other.into()])
+    }
+
+    pub fn combine_ref(&'a self, other: impl Into<CharacterClass<'a>>) -> CharacterClass<'a> {
+        CharacterClass::Ref(self).combine(other)
+    }
+
+    pub fn to_static(self) -> CharacterClass<'static> {
+        match self {
+            CharacterClass::Ref(cc) => {
+                cc.clone().to_static()
+            }
+            CharacterClass::RangeInclusive { from, to } => CharacterClass::RangeInclusive {from, to},
+            CharacterClass::Range { from, to } => CharacterClass::Range {from, to},
+            CharacterClass::Contained(c) => CharacterClass::Contained(c),
+            CharacterClass::Choice(c) => CharacterClass::Choice(c.into_iter().map(|i| i.to_static()).collect()),
+            CharacterClass::Not(c) => CharacterClass::Not(Box::new(c.to_static())),
+            CharacterClass::Nothing => CharacterClass::Nothing,
+        }
     }
 }
 
-impl From<RangeInclusive<char>> for CharacterClass {
+impl<'a> From<&'a CharacterClass<'a>> for CharacterClass<'a> {
+    fn from(cc: &'a CharacterClass<'a>) -> Self {
+        CharacterClass::Ref(cc)
+    }
+}
+
+impl<const N: usize> From<[char; N]> for CharacterClass<'_> {
+    fn from(chars: [char; N]) -> Self {
+        chars.as_slice().into()
+    }
+}
+
+impl From<RangeInclusive<char>> for CharacterClass<'_> {
     fn from(r: RangeInclusive<char>) -> Self {
         Self::RangeInclusive {
             from: *r.start(),
@@ -124,7 +159,7 @@ impl From<RangeInclusive<char>> for CharacterClass {
     }
 }
 
-impl From<Range<char>> for CharacterClass {
+impl From<Range<char>> for CharacterClass<'_> {
     fn from(r: Range<char>) -> Self {
         Self::Range {
             from: r.start,
@@ -133,31 +168,31 @@ impl From<Range<char>> for CharacterClass {
     }
 }
 
-impl From<char> for CharacterClass {
+impl From<char> for CharacterClass<'_> {
     fn from(c: char) -> Self {
         Self::RangeInclusive { from: c, to: c }
     }
 }
 
-impl From<&[char]> for CharacterClass {
+impl From<&[char]> for CharacterClass<'_> {
     fn from(s: &[char]) -> Self {
         Self::Contained(s.to_vec())
     }
 }
 
-impl From<Vec<char>> for CharacterClass {
+impl From<Vec<char>> for CharacterClass<'_> {
     fn from(s: Vec<char>) -> Self {
         Self::Contained(s)
     }
 }
 
-impl From<String> for CharacterClass {
+impl From<String> for CharacterClass<'_> {
     fn from(s: String) -> Self {
         Self::Contained(s.chars().collect())
     }
 }
 
-impl<'a> From<&'a str> for CharacterClass {
+impl<'a> From<&'a str> for CharacterClass<'_> {
     fn from(s: &'a str) -> Self {
         Self::Contained(s.chars().collect())
     }

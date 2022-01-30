@@ -1,11 +1,11 @@
+use lazy_static::lazy_static;
 use crate::parser::syntax_file::ast::{Annotation, Constructor, Sort, SyntaxFileAst};
-use crate::parser::syntax_file::character_class::CharacterClass;
 use crate::parser::syntax_file::parser::ParseError::{
     DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedEndOfFile,
 };
 use crate::source_file::{SourceFile, SourceFileIterator};
-use lazy_static::lazy_static;
 use thiserror::Error;
+use crate::parser::syntax_file::character_class::CharacterClass;
 
 #[derive(Debug, Error)]
 pub enum ParseError {
@@ -36,7 +36,7 @@ pub enum ParseError {
 type ParseResult<T> = Result<T, ParseError>;
 
 lazy_static! {
-    static ref SYNTAX_FILE_LAYOUT: CharacterClass =
+    static ref SYNTAX_FILE_LAYOUT: CharacterClass<'static> =
         CharacterClass::all_in_vec(vec![' ', '\n', '\t', '\r']);
 }
 
@@ -50,12 +50,12 @@ pub fn parse(f: &SourceFile) -> ParseResult<SyntaxFileAst> {
 pub enum SortOrMeta {
     Sort(Sort),
     StartRule(String),
-    Layout(CharacterClass),
+    Layout(CharacterClass<'static>),
 }
 
 fn parse_file(i: &mut SourceFileIterator) -> ParseResult<SyntaxFileAst> {
     let mut sorts = Vec::new();
-    let mut layout = CharacterClass::Nothing;
+    let mut layout: CharacterClass = CharacterClass::Nothing;
     let mut starting_rule = None;
 
     while i.peek().is_some() {
@@ -69,7 +69,7 @@ fn parse_file(i: &mut SourceFileIterator) -> ParseResult<SyntaxFileAst> {
             None => break,
         }
 
-        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+        i.skip_layout(&*SYNTAX_FILE_LAYOUT);
         if !i.accept(';') {
             return Err(Expected("; after every rule".to_string()));
         }
@@ -83,27 +83,27 @@ fn parse_file(i: &mut SourceFileIterator) -> ParseResult<SyntaxFileAst> {
 }
 
 fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMeta>> {
-    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+    i.skip_layout(&*SYNTAX_FILE_LAYOUT);
     if i.exhausted() {
         return Ok(None);
     }
 
     if i.accept_str("layout") {
-        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+        i.skip_layout(&*SYNTAX_FILE_LAYOUT);
         if !i.accept('=') {
             return Err(Expected("= in layout/".to_string()));
         }
         Ok(Some(SortOrMeta::Layout(parse_character_class(i)?)))
     } else if i.accept_str("start") {
-        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+        i.skip_layout(&*SYNTAX_FILE_LAYOUT);
         if !i.accept_str("at") {
             return Err(Expected("'at' after 'start'".to_string()));
         }
-        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+        i.skip_layout(&*SYNTAX_FILE_LAYOUT);
         Ok(Some(SortOrMeta::StartRule(parse_identifier(i)?)))
     } else {
         let name = parse_identifier(i)?;
-        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+        i.skip_layout(&*SYNTAX_FILE_LAYOUT);
 
         if !i.accept('=') {
             return Err(Expected("= in rule".to_string()));
@@ -112,11 +112,11 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
         let mut constructors = vec![parse_constructor(i)?];
 
         while i.accept('|') {
-            i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+            i.skip_layout(&*SYNTAX_FILE_LAYOUT);
             constructors.push(parse_constructor(i)?);
         }
 
-        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+        i.skip_layout(&*SYNTAX_FILE_LAYOUT);
         let annotations = parse_annotations(i)?;
 
         Ok(Some(SortOrMeta::Sort(Sort {
@@ -128,7 +128,7 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
 }
 
 fn parse_annotation(i: &mut SourceFileIterator) -> ParseResult<Option<Annotation>> {
-    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+    i.skip_layout(&*SYNTAX_FILE_LAYOUT);
 
     if i.accept_str("no-pretty-print") {
         Ok(Some(Annotation::NoPrettyPrint))
@@ -137,15 +137,14 @@ fn parse_annotation(i: &mut SourceFileIterator) -> ParseResult<Option<Annotation
     } else if i.peek() == Some(&'}') {
         Ok(None)
     } else {
-        let chars: CharacterClass = SYNTAX_FILE_LAYOUT
-            .clone()
-            .combine(CharacterClass::all_in_vec(vec!['}', ',']));
+        let chars = SYNTAX_FILE_LAYOUT
+            .combine_ref(['}', ',']);
         Err(InvalidAnnotation(i.accept_to_next(chars)))
     }
 }
 
 fn parse_annotations(i: &mut SourceFileIterator) -> ParseResult<Vec<Annotation>> {
-    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+    i.skip_layout(&*SYNTAX_FILE_LAYOUT);
 
     if i.accept('{') {
         let mut annotations = vec![];
@@ -153,7 +152,7 @@ fn parse_annotations(i: &mut SourceFileIterator) -> ParseResult<Vec<Annotation>>
         if let Some(a) = parse_annotation(i)? {
             annotations.push(a);
 
-            while i.accept_skip_layout(",", SYNTAX_FILE_LAYOUT.clone()) {
+            while i.accept_skip_layout(",", &*SYNTAX_FILE_LAYOUT) {
                 if let Some(a) = parse_annotation(i)? {
                     annotations.push(a);
                 }
@@ -171,7 +170,7 @@ fn parse_annotations(i: &mut SourceFileIterator) -> ParseResult<Vec<Annotation>>
 }
 
 fn parse_number(i: &mut SourceFileIterator) -> ParseResult<u64> {
-    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+    i.skip_layout(&*SYNTAX_FILE_LAYOUT);
     let number_char_class = CharacterClass::from('0'..='9');
     let mut res = 0;
 
@@ -205,9 +204,9 @@ fn parse_constructor(i: &mut SourceFileIterator) -> ParseResult<Constructor> {
 }
 
 fn parse_simple_constructor(i: &mut SourceFileIterator) -> ParseResult<Constructor> {
-    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+    i.skip_layout(&*SYNTAX_FILE_LAYOUT);
     let res = parse_constructor_no_suffix(i)?;
-    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+    i.skip_layout(&*SYNTAX_FILE_LAYOUT);
 
     if i.accept("*") {
         Ok(Constructor::Repeat {
@@ -223,13 +222,13 @@ fn parse_simple_constructor(i: &mut SourceFileIterator) -> ParseResult<Construct
         })
     } else if i.accept("{") {
         let min = parse_number(i)?;
-        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+        i.skip_layout(&*SYNTAX_FILE_LAYOUT);
         let max = if i.accept(",") {
             Some(parse_number(i)?)
         } else {
             None
         };
-        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+        i.skip_layout(&*SYNTAX_FILE_LAYOUT);
 
         if !i.accept("}") {
             return Err(Expected(
@@ -258,7 +257,7 @@ fn parse_constructor_no_suffix(i: &mut SourceFileIterator) -> ParseResult<Constr
 }
 
 fn parse_constructor_atom(i: &mut SourceFileIterator) -> ParseResult<Constructor> {
-    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+    i.skip_layout(&*SYNTAX_FILE_LAYOUT);
 
     if i.accept("(") {
         let res = parse_constructor(i)?;
@@ -287,7 +286,7 @@ fn parse_constructor_atom(i: &mut SourceFileIterator) -> ParseResult<Constructor
 }
 
 fn parse_literal(i: &mut SourceFileIterator) -> ParseResult<String> {
-    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+    i.skip_layout(&*SYNTAX_FILE_LAYOUT);
     let mut res = String::new();
     if let Some(c) = i.accept_option("\"'") {
         let mut escaped = false;
@@ -311,12 +310,12 @@ fn parse_literal(i: &mut SourceFileIterator) -> ParseResult<String> {
 }
 
 fn parse_identifier(i: &mut SourceFileIterator) -> ParseResult<String> {
-    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+    i.skip_layout(&*SYNTAX_FILE_LAYOUT);
     let mut res = String::new();
     if let Some(c) = i.accept_option(
         CharacterClass::from('a'..='z')
             .combine(CharacterClass::from('A'..='Z'))
-            .combine("_$".into()),
+            .combine("_$"),
     ) {
         res.push(c);
 
@@ -324,7 +323,7 @@ fn parse_identifier(i: &mut SourceFileIterator) -> ParseResult<String> {
             CharacterClass::from('a'..='z')
                 .combine(CharacterClass::from('A'..='Z'))
                 .combine(CharacterClass::from('0'..='9'))
-                .combine("_$".into()),
+                .combine("_$"),
         ) {
             res.push(c)
         }
@@ -335,8 +334,8 @@ fn parse_identifier(i: &mut SourceFileIterator) -> ParseResult<String> {
     Ok(res)
 }
 
-fn parse_character_class(i: &mut SourceFileIterator) -> ParseResult<CharacterClass> {
-    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+fn parse_character_class(i: &mut SourceFileIterator) -> ParseResult<CharacterClass<'static>> {
+    i.skip_layout(&*SYNTAX_FILE_LAYOUT);
 
     if i.accept('[') {
         let mut res = CharacterClass::Nothing;
@@ -359,14 +358,14 @@ fn parse_character_class(i: &mut SourceFileIterator) -> ParseResult<CharacterCla
                         return Err(ParseError::InvalidCharacterRange);
                     }
 
-                    res = res.combine((lower..=upper).into());
+                    res = res.combine(lower..=upper);
 
                     continue;
                 }
 
                 return Err(UnexpectedEndOfFile);
             } else {
-                res = res.combine(c.into())
+                res = res.combine(c)
             }
         }
 
