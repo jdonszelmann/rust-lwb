@@ -1,10 +1,10 @@
-use crate::parser::peg::parse_error::{ParseError};
+use crate::parser::peg::parse_error::ParseError;
+use crate::parser::peg::parse_pair::{ParsePairConstructor, ParsePairSort};
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::syntax_file::ast::{Constructor, Sort, SyntaxFileAst};
 use crate::source_file::{SourceFile, SourceFileIterator};
 use crate::span::Span;
 use std::collections::HashMap;
-use crate::parser::peg::parse_pair::{ParsePairConstructor, ParsePairSort};
 
 /// This stores the data that is used during the parsing process.
 struct ParserState {
@@ -40,7 +40,11 @@ pub fn parse_file(syntax: SyntaxFileAst, file: SourceFile) -> Result<ParsePairSo
                 let curpos = ok.pos.position();
                 while ok.pos.next().is_some() {}
                 let endpos = ok.pos.position();
-                Err(ParseError::not_entire_input(Span::from_end(file.clone(), curpos, endpos)))
+                Err(ParseError::not_entire_input(Span::from_end(
+                    file.clone(),
+                    curpos,
+                    endpos,
+                )))
             }
         }
     }
@@ -49,7 +53,11 @@ pub fn parse_file(syntax: SyntaxFileAst, file: SourceFile) -> Result<ParsePairSo
 impl ParserState {
     /// Given the name of a sort and the current position, attempts to parse this sort.
     /// The name of the provided sort must exist.
-    fn parse_sort<'a>(&self, sort: &str, pos: SourceFileIterator<'a>) -> Result<ParseSuccess<'a, ParsePairSort>, ParseError> {
+    fn parse_sort<'a>(
+        &self,
+        sort: &str,
+        pos: SourceFileIterator<'a>,
+    ) -> Result<ParseSuccess<'a, ParsePairSort>, ParseError> {
         //Obtain the sort
         let sort = self.rules.get(sort).unwrap(); //Safe: Name is guaranteed to exist.
 
@@ -71,24 +79,34 @@ impl ParserState {
                         pos,
                     });
                 }
-                Err(err) => best_error = ParseError::combine_option_parse_error(best_error, Some(err)),
+                Err(err) => {
+                    best_error = ParseError::combine_option_parse_error(best_error, Some(err))
+                }
             }
         }
         Err(best_error.unwrap()) //Safe: Each sort has at least one constructor
     }
 
     /// Given a constructor and the current position, attempts to parse this constructor.
-    fn parse_constructor<'a>(&self, constructor: &Constructor, mut pos: SourceFileIterator<'a>) -> Result<ParseSuccess<'a, ParsePairConstructor>, ParseError> {
+    fn parse_constructor<'a>(
+        &self,
+        constructor: &Constructor,
+        mut pos: SourceFileIterator<'a>,
+    ) -> Result<ParseSuccess<'a, ParsePairConstructor>, ParseError> {
         match constructor {
             //To parse a sort, call parse_sort recursively.
-            Constructor::Sort(rule) => {
-                Ok(self.parse_sort(rule, pos)?.map(|s| ParsePairConstructor::Sort(s.span(), Box::new(s))))
-            }
+            Constructor::Sort(rule) => Ok(self
+                .parse_sort(rule, pos)?
+                .map(|s| ParsePairConstructor::Sort(s.span(), Box::new(s)))),
             //To parse a literal, use accept_str to check if it parses.
             Constructor::Literal(lit) => {
                 let span = Span::from_length(self.file.clone(), pos.position(), lit.len());
                 if pos.accept_str(lit) {
-                    Ok(ParseSuccess { result: ParsePairConstructor::Text(span), best_error: None, pos })
+                    Ok(ParseSuccess {
+                        result: ParsePairConstructor::Text(span),
+                        best_error: None,
+                        pos,
+                    })
                 } else {
                     Err(ParseError::expect_string(span, lit.clone()))
                 }
@@ -106,11 +124,13 @@ impl ParserState {
                     match self.parse_constructor(subconstructor, pos) {
                         Ok(ok) => {
                             pos = ok.pos;
-                            best_error = ParseError::combine_option_parse_error(best_error, ok.best_error);
+                            best_error =
+                                ParseError::combine_option_parse_error(best_error, ok.best_error);
                             results.push(ok.result);
                         }
                         Err(err) => {
-                            best_error = ParseError::combine_option_parse_error(best_error, Some(err));
+                            best_error =
+                                ParseError::combine_option_parse_error(best_error, Some(err));
                             return Err(best_error.unwrap());
                         }
                     }
@@ -139,10 +159,12 @@ impl ParserState {
                         Ok(ok) => {
                             results.push(ok.result);
                             pos = ok.pos;
-                            best_error = ParseError::combine_option_parse_error(best_error, ok.best_error);
+                            best_error =
+                                ParseError::combine_option_parse_error(best_error, ok.best_error);
                         }
                         Err(err) => {
-                            best_error = ParseError::combine_option_parse_error(best_error, Some(err));
+                            best_error =
+                                ParseError::combine_option_parse_error(best_error, Some(err));
                             return Err(best_error.unwrap());
                         }
                     }
@@ -154,10 +176,12 @@ impl ParserState {
                         Ok(ok) => {
                             results.push(ok.result);
                             pos = ok.pos;
-                            best_error = ParseError::combine_option_parse_error(best_error, ok.best_error);
+                            best_error =
+                                ParseError::combine_option_parse_error(best_error, ok.best_error);
                         }
                         Err(err) => {
-                            best_error = ParseError::combine_option_parse_error(best_error, Some(err));
+                            best_error =
+                                ParseError::combine_option_parse_error(best_error, Some(err));
                             break;
                         }
                     }
@@ -192,11 +216,21 @@ impl ParserState {
                 for (i, subconstructor) in constructors.iter().enumerate() {
                     match self.parse_constructor(subconstructor, pos.clone()) {
                         Ok(suc) => {
-                            best_error = ParseError::combine_option_parse_error(best_error, suc.best_error);
-                            return Ok(ParseSuccess { result: ParsePairConstructor::Choice(suc.result.span(), i, Box::new(suc.result)), pos: suc.pos, best_error });
+                            best_error =
+                                ParseError::combine_option_parse_error(best_error, suc.best_error);
+                            return Ok(ParseSuccess {
+                                result: ParsePairConstructor::Choice(
+                                    suc.result.span(),
+                                    i,
+                                    Box::new(suc.result),
+                                ),
+                                pos: suc.pos,
+                                best_error,
+                            });
                         }
                         Err(err) => {
-                            best_error = ParseError::combine_option_parse_error(best_error, Some(err))
+                            best_error =
+                                ParseError::combine_option_parse_error(best_error, Some(err))
                         }
                     }
                 }
@@ -227,7 +261,7 @@ impl ParserState {
                         Ok(ParseSuccess {
                             result: ParsePairConstructor::Empty(ok.result.span()),
                             best_error: None, //If the positive passed, then we don't care about any "better" parses inside it
-                            pos, //Return old position
+                            pos,              //Return old position
                         })
                     }
                     Err(err) => Err(err),

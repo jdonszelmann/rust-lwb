@@ -121,7 +121,10 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
 
         Ok(Some(SortOrMeta::Sort(Sort {
             name,
-            constructors: constructors.into_iter().map(|c| ("CONSTRUCTOR NAME".to_string(), c)).collect(),
+            constructors: constructors
+                .into_iter()
+                .map(|c| ("CONSTRUCTOR NAME".to_string(), c))
+                .collect(),
             annotations,
         })))
     }

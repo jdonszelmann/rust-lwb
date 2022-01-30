@@ -1,6 +1,6 @@
-use std::cmp::Ordering;
 use crate::parser::syntax_file::character_class::CharacterClass;
 use crate::span::Span;
+use std::cmp::Ordering;
 use thiserror::Error;
 
 /// A parsing error represents a single error that occurred during parsing.
@@ -15,18 +15,26 @@ pub struct ParseError {
 
 impl ParseError {
     pub fn expect_char_class(span: Span, val: CharacterClass) -> Self {
-        ParseError { span, expected: vec![ParseErrorSub::ExpectCharClass(val)]}
+        ParseError {
+            span,
+            expected: vec![ParseErrorSub::ExpectCharClass(val)],
+        }
     }
 
     pub fn expect_string(span: Span, val: String) -> Self {
-        ParseError { span, expected: vec![ParseErrorSub::ExpectString(val)]}
+        ParseError {
+            span,
+            expected: vec![ParseErrorSub::ExpectString(val)],
+        }
     }
 
     pub fn not_entire_input(span: Span) -> Self {
-        ParseError { span, expected: vec![ParseErrorSub::NotEntireInput()]}
+        ParseError {
+            span,
+            expected: vec![ParseErrorSub::NotEntireInput()],
+        }
     }
 }
-
 
 /// Represents a single thing that went wrong at this position.
 #[derive(Debug, Clone)]
@@ -62,13 +70,15 @@ impl ParseError {
 
                 self
             }
-
         }
     }
 
     /// A helper that combines optional parse errors, and returns an optional parse error if either exists.
     /// If both exist, use `ParseError::combine` to combine the errors.
-    pub fn combine_option_parse_error(a: Option<ParseError>, b: Option<ParseError>) -> Option<ParseError> {
+    pub fn combine_option_parse_error(
+        a: Option<ParseError>,
+        b: Option<ParseError>,
+    ) -> Option<ParseError> {
         match (a, b) {
             (None, None) => None,
             (None, Some(e)) => Some(e),

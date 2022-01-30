@@ -42,6 +42,7 @@ impl ParsePairConstructor {
             ParsePairConstructor::Choice(span, _, _) => span,
             ParsePairConstructor::Text(span) => span,
             ParsePairConstructor::Empty(span) => span,
-        }.clone()
+        }
+        .clone()
     }
 }

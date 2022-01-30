@@ -13,7 +13,9 @@ impl Span {
     /// Creates a new span, given a file, starting position and the length that the span should be.
     pub fn from_length(source: SourceFile, position: usize, length: usize) -> Self {
         Self {
-            source, position, length
+            source,
+            position,
+            length,
         }
     }
 
@@ -21,7 +23,9 @@ impl Span {
     pub fn from_end(source: SourceFile, position: usize, end: usize) -> Self {
         assert!(end >= position);
         Self {
-            source, position, length: end - position
+            source,
+            position,
+            length: end - position,
         }
     }
 }
