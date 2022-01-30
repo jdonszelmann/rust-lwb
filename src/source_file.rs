@@ -144,8 +144,7 @@ impl<'a> SourceFileIterator<'a> {
     pub fn skip_layout<'c>(&mut self, layout: impl Into<CharacterClass<'c>>) {
         let layout = layout.into();
 
-        // TODO: have accept somehow accept references so this clone is not necessary
-        while self.accept(layout.clone()) {}
+        while self.accept(&layout) {}
     }
 
     /// First skip any layout that can be found, then accept like [`accept`]
