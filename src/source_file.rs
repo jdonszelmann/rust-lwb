@@ -73,17 +73,17 @@ impl<'a> SourceFileIterator<'a> {
     /// let sf = SourceFile::new_for_test("test");
     /// let mut sfi = sf.iter();
     ///
-    /// assert!(sfi.accept('t'.into()));
+    /// assert!(sfi.accept(&'t'.into()));
     ///
     /// // because the previous accept accepted
     /// // a 't' we will now see an e
     /// assert_eq!(sfi.peek(), Some(&'e'));
     /// assert_eq!(sfi.next(), Some('e'));
     /// sfi.advance();
-    /// assert!(sfi.accept('t'.into()));
+    /// assert!(sfi.accept(&'t'.into()));
     ///
     /// // can't accept more, iterator is exhausted
-    /// assert!(!sfi.accept('x'.into()));
+    /// assert!(!sfi.accept(&'x'.into()));
     /// ```
     pub fn accept(&mut self, c: &CharacterClass) -> bool {
         self.accept_option(c).is_some()
@@ -140,11 +140,11 @@ impl<'a> SourceFileIterator<'a> {
     /// let mut sfi = sf.iter();
     ///
     /// assert!(!sfi.accept_str("test"));
-    /// sfi.skip_layout(' '.into());
+    /// sfi.skip_layout(&' '.into());
     /// assert!(sfi.accept_str("test"));
     /// ```
     pub fn skip_layout(&mut self, layout: &CharacterClass) {
-        while self.accept(&layout) {}
+        while self.accept(layout) {}
     }
 
     /// First skip any layout that can be found, then accept like [`accept`]
@@ -154,14 +154,10 @@ impl<'a> SourceFileIterator<'a> {
     /// let sf = SourceFile::new_for_test("   t");
     /// let mut sfi = sf.iter();
     ///
-    /// assert!(!sfi.accept('t'.into()));
-    /// assert!(sfi.accept_skip_layout('t'.into(), ' '.into()));
+    /// assert!(!sfi.accept(&'t'.into()));
+    /// assert!(sfi.accept_skip_layout(&'t'.into(), &' '.into()));
     /// ```
-    pub fn accept_skip_layout(
-        &mut self,
-        c: &CharacterClass,
-        layout: &CharacterClass,
-    ) -> bool {
+    pub fn accept_skip_layout(&mut self, c: &CharacterClass, layout: &CharacterClass) -> bool {
         let mut self_clone = self.clone();
         self_clone.skip_layout(layout);
         if self_clone.accept(c) {
@@ -180,7 +176,7 @@ impl<'a> SourceFileIterator<'a> {
     /// let mut sfi = sf.iter();
     ///
     /// assert!(!sfi.accept_str("test"));
-    /// assert!(sfi.accept_str_skip_layout("test", ' '.into()));
+    /// assert!(sfi.accept_str_skip_layout("test", &' '.into()));
     /// ```
     pub fn accept_str_skip_layout(&mut self, s: &str, layout: &CharacterClass) -> bool {
         let mut self_clone = self.clone();
@@ -200,7 +196,7 @@ impl<'a> SourceFileIterator<'a> {
     /// let sf = SourceFile::new_for_test("test   ");
     /// let mut sfi = sf.iter();
     ///
-    /// assert_eq!(sfi.accept_to_next(' '.into()), "test");
+    /// assert_eq!(sfi.accept_to_next(&' '.into()), "test");
     /// ```
     pub fn accept_to_next(&mut self, target: &CharacterClass) -> String {
         let mut res = String::new();

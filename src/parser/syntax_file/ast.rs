@@ -6,6 +6,7 @@ use enum_iterator::IntoEnumIterator;
 pub struct TopLevelConstructor {
     pub name: String,
     pub constructor: Constructor,
+    pub annotations: Vec<Annotation>,
 }
 
 #[derive(Debug)]
@@ -37,7 +38,6 @@ pub enum Annotation {
 pub struct Sort {
     pub name: String,
     pub constructors: Vec<TopLevelConstructor>,
-    pub annotations: Vec<Annotation>,
 }
 
 #[derive(Debug)]
