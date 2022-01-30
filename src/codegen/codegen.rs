@@ -1,4 +1,5 @@
 use codegen::Scope;
+use crate::parser::ast::AstInfo;
 use crate::parser::syntax_file::ast::{Constructor, SyntaxFileAst};
 
 pub fn generate_language(syntax: SyntaxFileAst) {
@@ -6,34 +7,49 @@ pub fn generate_language(syntax: SyntaxFileAst) {
 
     for rule in &syntax.sorts {
         let enumm = scope.new_enum(&rule.name);
+        enumm.generic("M : AstInfo");
         for constr in &rule.constructors {
             let variant = enumm.new_variant(&constr.0);
-            variant.tuple("Span");
-            variant.tuple(&generate_constructor_type(&constr.1));
+            variant.tuple("M");
+            let typ = generate_constructor_type(&constr.1).unwrap_or("()".to_string());
+            let typ = if typ.starts_with("(") { &typ[1..typ.len() - 1] } else { &typ };
+            variant.tuple(typ);
         }
     }
     println!("{}", scope.to_string())
 }
 
-fn generate_constructor_type(constructor: &Constructor) -> String {
+fn generate_constructor_type(constructor: &Constructor) -> Option<String> {
     match constructor {
-        Constructor::Sort(sort) => String::from_iter(["Box<", sort, ">"]),
-        Constructor::Literal(_) => "()".to_string(),
+        Constructor::Sort(sort) => Some(String::from_iter(["Box<", sort, "<M>>"])),
         Constructor::Sequence(cons) => {
             let mut s = String::new();
             s.push_str("(");
             for con in cons {
-                s.push_str(&generate_constructor_type(con));
-                s.push_str(",");
+                if let Some(con_type) = generate_constructor_type(con) {
+                    s.push_str(&con_type);
+                    s.push_str(",");
+                }
             }
             s.push_str(")");
-            s
+            if s.len() > 2 {
+                Some(s)
+            } else {
+                None
+            }
         }
-        Constructor::Repeat { .. } => "".to_string(),
-        Constructor::CharacterClass(_) => "".to_string(),
-        Constructor::Choice(_) => "".to_string(),
-        Constructor::Negative(_) => "".to_string(),
-        Constructor::Positive(_) => "".to_string(),
+        Constructor::Repeat { c, min, max } => {
+            let subtype = generate_constructor_type(c.as_ref())?;
+            match (min, max) {
+                (0, Some(1)) => Some(String::from_iter(["Option<", &subtype, ">"])),
+                _ => Some(String::from_iter(["Vec<", &subtype, ">"]))
+            }
+        },
+        Constructor::Choice(_) => None, //TODO how to represent choice?
+        Constructor::CharacterClass(_) => None,
+        Constructor::Negative(_) => None,
+        Constructor::Positive(_) => None,
+        Constructor::Literal(_) => None,
     }
 }
 

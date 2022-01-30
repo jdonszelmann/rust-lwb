@@ -103,7 +103,7 @@ impl ParserState {
                 let span = Span::from_length(self.file.clone(), pos.position(), lit.len());
                 if pos.accept_str(lit) {
                     Ok(ParseSuccess {
-                        result: ParsePairConstructor::Text(span),
+                        result: ParsePairConstructor::Empty(span),
                         best_error: None,
                         pos,
                     })
@@ -201,7 +201,7 @@ impl ParserState {
                 //TODO clone should not be needed
                 if pos.accept(characters.clone()) {
                     Ok(ParseSuccess {
-                        result: ParsePairConstructor::Text(span),
+                        result: ParsePairConstructor::Empty(span),
                         best_error: None,
                         pos,
                     })
