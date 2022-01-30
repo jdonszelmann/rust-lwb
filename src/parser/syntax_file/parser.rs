@@ -108,30 +108,51 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
         let name = parse_identifier(i)?;
         i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
 
-        if !i.accept('=') {
-            return Err(Expected("= in rule".to_string()));
+        if !i.accept(':') {
+            return Err(Expected(": after sort block header".to_string()));
         }
 
-        let mut constructors = vec![parse_constructor(i)?];
+        if !i.accept('\n') {
+            return Err(Expected("newline after sort block header".to_string()));
+        }
 
-        while i.accept('|') {
+
+        let mut constructors = vec![];
+
+        while i.accept_str("    ") {
+            let name = parse_identifier(i)?;
             i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
-            constructors.push(parse_constructor(i)?);
+            if !i.accept('=') {
+                return Err(Expected("= after constructor name".to_string()));
+            }
+            i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+
+            let constructor = parse_constructor(i)?;
+
+            i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+            if !i.accept(';') {
+                return Err(Expected(": after sort block header".to_string()));
+            }
+
+            let annotations = parse_annotations(i)?;
+
+            i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+            if !i.accept('\n') {
+                return Err(Expected("newline after sort block header".to_string()));
+            }
+
+            constructors.push(TopLevelConstructor {
+                name,
+                constructor,
+                annotations,
+            })
         }
 
         i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
-        let annotations = parse_annotations(i)?;
 
         Ok(Some(SortOrMeta::Sort(Sort {
             name,
-            constructors: constructors
-                .into_iter()
-                .map(|c| TopLevelConstructor {
-                    name: "CONSTRUCTOR NAME".to_string(),
-                    constructor: c,
-                })
-                .collect(),
-            annotations,
+            constructors
         })))
     }
 }
@@ -458,7 +479,8 @@ mod tests {
 
     parse_test!(simple_sort test that "a = 'test'" parses with parse_sort_or_meta);
     parse_test!(two_constructor_sort test that "a = 'test' | 'test'" parses with parse_sort_or_meta);
-    parse_test!(repeat_0_n test that "a = x*" parses with parse_sort_or_meta);
+    parse_test!(repeat_0_n test that "a:
+    a = x*;" parses with parse_sort_or_meta);
     parse_test!(repeat_1_n test that "a = x+" parses with parse_sort_or_meta);
     parse_test!(repeat_0_1 test that "a = x?" parses with parse_sort_or_meta);
     parse_test!(repeat_x_y test that "a = x{3, 5}" parses with parse_sort_or_meta);
@@ -532,6 +554,10 @@ start at r8;
 <az> ::= "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"
 <AZ> ::= "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z"
 
+<annotation-element> ::= "no-layout" | "no-pretty-print"
+<annotation-elements> ::= <annotation-element> <annotation-elemens> | ""
+<anotation> ::= "{" <annotation-elements> "}"
+
 <name-char> ::= <az> | <AZ> | "_"
 <name-end-char> ::= <name-char> | <09>
 
@@ -542,22 +568,24 @@ start at r8;
 <charclassitem> ::= <name-char> | <range> | ""
 <charclass> ::= "[" <charclassitem> "]" | "[^" <charclassitem> "]"
 
-<starting> ::= "start at " <name> ";"
-<meta> ::= "layout = " <charclass>
+<starting> ::= "start at " <name> ";\n"
+<meta> ::= "layout = " <charclass> "\n"
 
 <literal> ::= '"' <name> '"' | "'" <name> "'"
 
 <suffix> ::= "*" | "+" | "?" | "{" <number> "}" | "{" <number> "," <number> "}"
 
 <constructor-atom> ::= <name> | <literal> | "(" <constructor> ")"
-<constructor-without-suffix> ::= <constructor-atom>
-<simple-constructor> ::= <constructor-without-suffix> | <constructor-without-suffix> <suffix>
+<simple-constructor> ::= <constructor-without-atom> | <constructor-without-atom> <suffix>
 <constructor> ::= <simple-constructor> | <simple-constructor> " " <constructor>
 
-<rule> ::= <constructor> | <constructor> "|" <constructor>
-<sort> ::= <name> "=" <rule>
-<rule-or-meta> ::= <sort> ";" | <meta> ";"
+<inner-constructor> ::= <name> "=" <constructor-expression> ";"
+<constructor> ::= "    " <inner-constructor> "\n" | "    " <inner-constructor> <annotation> "\n"
 
+<constructors> = <constructor> | <constructor> <constructors>
+
+<sort> ::= <name> ":\n" <constructors>
+<rule-or-meta> ::= <sort> | <meta> ";"
 
     "##;
 
@@ -576,7 +604,7 @@ start at r8;
                 _ => true,
             });
             match res {
-                Ok(i) => break i,
+                Ok(i) => break i.replace("\\n", "\n"),
                 Err(bnf::Error::RecursionLimit(_)) => continue,
                 _ => panic!("aaaaa"),
             }
