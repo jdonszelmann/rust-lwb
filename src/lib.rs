@@ -15,3 +15,8 @@ pub mod transform;
 pub mod source_file;
 /// Code spans (which reference to a source file)
 pub mod span;
+
+/// Code related to generating rust source files
+/// from language definitions. Usually used from
+/// build.rs files.
+pub mod codegen;
