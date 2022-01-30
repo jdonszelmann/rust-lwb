@@ -16,6 +16,10 @@ pub enum ParseError {
     #[error("not the entire input was parsed.")]
     NotEntireInput(Span),
 
+    /// This happens when a negative condition does not hold.
+    #[error(".")]
+    Negative(Span),
+
     /// Combined errors represent a single position on which multiple errors occurred.
     /// They have strict rules, which should be enforced by the code constructing this variant:
     /// - All errors must occur in the same file.

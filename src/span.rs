@@ -8,3 +8,18 @@ pub struct Span {
     pub length: usize,
     pub source: SourceFile,
 }
+
+impl Span {
+    pub fn from_length(source: SourceFile, position: usize, length: usize) -> Self {
+        Self {
+            source, position, length
+        }
+    }
+
+    pub fn from_end(source: SourceFile, position: usize, end: usize) -> Self {
+        assert!(end >= position);
+        Self {
+            source, position, length: end - position
+        }
+    }
+}

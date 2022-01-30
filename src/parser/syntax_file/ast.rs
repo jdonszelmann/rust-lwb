@@ -30,7 +30,7 @@ pub enum Annotation {
 #[derive(Debug)]
 pub struct Sort {
     pub name: String,
-    pub constructors: Vec<Constructor>,
+    pub constructors: Vec<(String, Constructor)>,
     pub annotations: Vec<Annotation>,
 }
 
