@@ -2,8 +2,11 @@ use codegen::Scope;
 use crate::parser::ast::AstInfo;
 use crate::parser::syntax_file::ast::{Constructor, SyntaxFileAst};
 
-pub fn generate_language(syntax: SyntaxFileAst) {
+pub fn generate_language(syntax: SyntaxFileAst) -> String {
     let mut scope = Scope::new();
+
+
+    scope.import("rust_lwb_parser::prelude", "*");
 
     for rule in &syntax.sorts {
         let enumm = scope.new_enum(&rule.name);
@@ -16,7 +19,8 @@ pub fn generate_language(syntax: SyntaxFileAst) {
             variant.tuple(typ);
         }
     }
-    println!("{}", scope.to_string())
+
+    scope.to_string()
 }
 
 fn generate_constructor_type(constructor: &Constructor) -> Option<String> {
