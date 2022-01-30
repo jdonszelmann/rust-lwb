@@ -98,7 +98,6 @@ impl<'a> SourceFileIterator<'a> {
         } else {
             None
         }
-
     }
 
     /// accept an entire string. Returns true  only

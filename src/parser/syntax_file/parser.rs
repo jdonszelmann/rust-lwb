@@ -2,7 +2,7 @@ use crate::parser::syntax_file::ast::{Annotation, Constructor, Sort, SyntaxFileA
 use crate::source_file::{SourceFile, SourceFileIterator};
 use thiserror::Error;
 use crate::parser::syntax_file::character_class::CharacterClass;
-use crate::parser::syntax_file::parser::ParseError::{DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedCharacter, UnexpectedEndOfFile};
+use crate::parser::syntax_file::parser::ParseError::{DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedEndOfFile};
 use lazy_static::lazy_static;
 
 #[derive(Debug, Error)]
@@ -41,6 +41,7 @@ pub fn parse(f: &SourceFile) -> ParseResult<SyntaxFileAst> {
     parse_file(&mut iterator)
 }
 
+#[derive(Debug)]
 pub enum SortOrMeta {
     Sort(Sort),
     StartRule(String),
@@ -75,18 +76,36 @@ fn parse_file(i: &mut SourceFileIterator) -> ParseResult<SyntaxFileAst> {
 }
 
 fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<SortOrMeta> {
+    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
     if i.accept_str("layout") {
+        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+        if !i.accept('=') {
+            return Err(Expected("= in rule".to_string()))
+        }
         Ok(SortOrMeta::Layout(parse_character_class(i)?))
     } else if i.accept_str("start") {
+        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+        if !i.accept_str("at") {
+            return Err(Expected("'at' after 'start'".to_string()))
+        }
+        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
         Ok(SortOrMeta::StartRule(parse_identifier(i)?))
     } else {
         let name = parse_identifier(i)?;
+        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+
+        if !i.accept('=') {
+            return Err(Expected("= in rule".to_string()))
+        }
+
         let mut constructors = vec![parse_constructor(i)?];
 
         while i.accept('|') {
+            i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
             constructors.push(parse_constructor(i)?);
         }
 
+        i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
         let annotations = parse_annotations(i)?;
 
         Ok(SortOrMeta::Sort(Sort {
@@ -138,8 +157,113 @@ fn parse_annotations(i: &mut SourceFileIterator) -> ParseResult<Vec<Annotation>>
     }
 }
 
+fn parse_number(i: &mut SourceFileIterator) -> ParseResult<u64> {
+    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+    let number_char_class = CharacterClass::from('0'..='9');
+    let mut res = 0;
+
+    while let Some(i) = i.accept_option(number_char_class.clone()) {
+        res *= 10;
+        res += i.to_digit(10).expect("must parse") as u64;
+    }
+
+    Ok(res)
+}
+
 fn parse_constructor(i: &mut SourceFileIterator) -> ParseResult<Constructor> {
-    todo!()
+    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+    let res = parse_constructor_no_suffix(i)?;
+    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+
+    if i.accept("*") {
+        Ok(Constructor::Repeat {
+            c: Box::new(res),
+            min: 0,
+            max: None,
+        })
+    } else if i.accept("+") {
+        Ok(Constructor::Repeat {
+            c: Box::new(res),
+            min: 1,
+            max: None,
+        })
+    } else if i.accept("{") {
+        let min = parse_number(i)?;
+        let max = if i.accept(",") {
+            Some(parse_number(i)?)
+        } else {
+            None
+        };
+
+        Ok(Constructor::Repeat {
+            c: Box::new(res),
+            min,
+            max,
+        })
+    } else if i.accept("?") {
+        Ok(Constructor::Repeat {
+            c: Box::new(res),
+            min: 0,
+            max: Some(1),
+        })
+    } else {
+        Ok(res)
+    }
+}
+
+fn parse_constructor_no_suffix(i: &mut SourceFileIterator) -> ParseResult<Constructor> {
+    parse_constructor_atom(i)
+}
+
+fn parse_constructor_atom(i: &mut SourceFileIterator) -> ParseResult<Constructor> {
+    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+
+    if i.accept("(") {
+        let res = parse_constructor(i)?;
+        if !i.accept(")") {
+            return Err(Expected("closing parenthesis".to_string()));
+        } else {
+            return Ok(res);
+        }
+    }
+
+    if let Some(true) = i.peek().map(|c| ['\'', '"'].contains(c)) {
+        return Ok(Constructor::Literal(parse_literal(i)?))
+    }
+
+    if let Some(true) = i.peek().map(|c| ['['].contains(c)) {
+        return Ok(Constructor::CharacterClass(parse_character_class(i)?))
+    }
+
+    if let Ok(i) = parse_identifier(i) {
+        return Ok(Constructor::Identifier(i));
+    }
+
+    Err(Expected("literal, identifier or parenthesized expression".to_string()))
+}
+
+fn parse_literal(i: &mut SourceFileIterator) -> ParseResult<String> {
+    i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
+    let mut res =  String::new();
+    if let Some(c) = i.accept_option("\"'") {
+        let mut escaped = false;
+
+        loop {
+            let mut next_escaped = false;
+            match i.next() {
+                None => return Err(Expected(format!("closing quote: {c} to end string"))),
+                Some('\\') if !escaped => next_escaped = true,
+                Some(x) if x == c && !escaped => break,
+                Some(v) => res.push(v),
+            }
+
+            escaped = next_escaped;
+        }
+    } else {
+        return Err(Expected("literal".to_string()))
+    }
+
+    Ok(res)
 }
 
 fn parse_identifier(i: &mut SourceFileIterator) -> ParseResult<String> {
@@ -158,6 +282,8 @@ fn parse_identifier(i: &mut SourceFileIterator) -> ParseResult<String> {
         ){
             res.push(c)
         }
+    } else {
+        return Err(Expected("identifier".to_string()))
     }
 
     Ok(res)
@@ -205,7 +331,6 @@ fn parse_character_class(i: &mut SourceFileIterator) -> ParseResult<CharacterCla
         } else {
             Ok(res)
         }
-
     } else {
         Err(Expected("[ for character class".to_string()))
     }
@@ -238,6 +363,18 @@ mod tests {
                 assert!(res.is_err(), "{:?}", res);
             }
         };
+        ($name: ident test that $input: literal parses with $parse_func: ident to $($tt: tt)*) => {
+            #[test]
+            fn $name () {
+                let sf = SourceFile::new_for_test($input);
+                let mut sfi = sf.iter();
+                let res = $parse_func(&mut sfi);
+                assert!(res.is_ok(), "{:?}", res);
+
+                let res = res.unwrap();
+                assert_eq!(res, $($tt)*);
+            }
+        };
     }
     parse_test!(empty_annotation test that "{}" parses with parse_annotations);
     parse_test!(single_annotation test that "{no-layout}" parses with parse_annotations);
@@ -255,6 +392,27 @@ mod tests {
     parse_test!(with_ranges_cc test that "[a-z0-9]" parses with parse_character_class);
     parse_test!(no_end_range_cc test that "[a-]" fails to parse with parse_character_class);
     parse_test!(inverted_range_cc test that "[z-a]" fails to parse with parse_character_class);
+
+    parse_test!(string test that "'test'" parses with parse_literal to "test");
+    parse_test!(string_dq test that "\"test\"" parses with parse_literal to "test");
+    parse_test!(string_backslash test that "\"te\\\\st\"" parses with parse_literal to "te\\st");
+    parse_test!(string_escaped_quote test that "\"te\\\"st\"" parses with parse_literal to "te\"st");
+    parse_test!(string_no_matching_quotes test that "\"test'" fails to parse with parse_literal);
+
+    parse_test!(simple_sort test that "a = 'test'" parses with parse_sort_or_meta);
+    parse_test!(two_constructor_sort test that "a = 'test' | 'test'" parses with parse_sort_or_meta);
+    parse_test!(repeat_0_n test that "a = x*" parses with parse_sort_or_meta);
+    parse_test!(repeat_1_n test that "a = x+" parses with parse_sort_or_meta);
+    parse_test!(repeat_0_1 test that "a = x?" parses with parse_sort_or_meta);
+    parse_test!(repeat_x_y test that "a = x{3, 5}" parses with parse_sort_or_meta);
+    parse_test!(repeat_x test that "a = x{3}" parses with parse_sort_or_meta);
+
+    parse_test!(integration_1 test that r#"
+    char = [0-9]
+    string = "\"" char* "\""
+
+    start at string
+    "# parses with parse_sort_or_meta);
 
     macro_rules! character_class_test {
         ($name: ident cc $input: literal contains $($c:literal)*) => {

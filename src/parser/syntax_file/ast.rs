@@ -9,8 +9,8 @@ pub enum Constructor {
     Sequence(Vec<Constructor>),
     Repeat{
         c: Box<Constructor>,
-        min: usize,
-        max: usize
+        min: u64,
+        max: Option<u64>
     },
     CharacterClass(CharacterClass),
     Choice(Vec<Constructor>),
