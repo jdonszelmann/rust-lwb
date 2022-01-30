@@ -5,7 +5,7 @@ use enum_iterator::IntoEnumIterator;
 #[derive(Debug)]
 pub struct TopLevelConstructor {
     pub name: String,
-    pub constructor: Constructor
+    pub constructor: Constructor,
 }
 
 #[derive(Debug)]
