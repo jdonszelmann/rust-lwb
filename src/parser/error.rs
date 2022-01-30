@@ -22,7 +22,7 @@ pub enum ParseError {
     /// - All errors must occur in the same file.
     /// - All errors must be at the same `self.position()`
     #[error("multiple errors occurred: {0:?}")]
-    CombinedError(Vec<ParseError>)
+    CombinedError(Vec<ParseError>),
 }
 
 impl ParseError {
@@ -41,4 +41,3 @@ impl ParseError {
         todo!()
     }
 }
-

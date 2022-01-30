@@ -1,12 +1,12 @@
+use crate::parser::syntax_file::character_class::CharacterClass;
 use std::iter::{Enumerate, Peekable};
 use std::rc::Rc;
-use crate::parser::syntax_file::character_class::CharacterClass;
 
 #[doc(hidden)]
 #[derive(Debug)]
 struct Inner {
     contents: String,
-    name: String
+    name: String,
 }
 
 /// SourceFile represents a source into which spans
@@ -18,10 +18,7 @@ pub struct SourceFile(Rc<Inner>);
 impl SourceFile {
     /// Create a new SourceFile
     pub fn new(contents: String, name: String) -> Self {
-        Self(Rc::new(Inner {
-            contents,
-            name
-        }))
+        Self(Rc::new(Inner { contents, name }))
     }
 
     pub fn new_for_test(s: &str) -> Self {
@@ -91,7 +88,6 @@ impl<'a> SourceFileIterator<'a> {
     pub fn accept(&mut self, c: impl Into<CharacterClass>) -> bool {
         self.accept_option(c).is_some()
     }
-
 
     /// Like accepts but returns an option
     pub fn accept_option(&mut self, c: impl Into<CharacterClass>) -> Option<char> {
@@ -165,7 +161,11 @@ impl<'a> SourceFileIterator<'a> {
     /// assert!(!sfi.accept('t'));
     /// assert!(sfi.accept_skip_layout('t', ' '));
     /// ```
-    pub fn accept_skip_layout(&mut self, c: impl Into<CharacterClass>, layout: impl Into<CharacterClass>) -> bool {
+    pub fn accept_skip_layout(
+        &mut self,
+        c: impl Into<CharacterClass>,
+        layout: impl Into<CharacterClass>,
+    ) -> bool {
         let mut self_clone = self.clone();
         self_clone.skip_layout(layout);
         if self_clone.accept(c) {
@@ -213,7 +213,7 @@ impl<'a> SourceFileIterator<'a> {
 
         while let Some(&i) = self.peek() {
             if target.contains(i) {
-                break
+                break;
             } else {
                 res.push(i);
                 self.advance();
@@ -222,7 +222,6 @@ impl<'a> SourceFileIterator<'a> {
 
         res
     }
-
 
     /// Returns true if this iter won't return more
     /// ```
