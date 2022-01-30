@@ -6,108 +6,117 @@ use crate::span::Span;
 use std::collections::HashMap;
 use crate::parser::peg::parse_pair::{ParsePairConstructor, ParsePairSort};
 
-pub struct ParserState {
+/// This stores the data that is used during the parsing process.
+struct ParserState {
     file: SourceFile,
     rules: HashMap<String, Sort>,
 }
 
-impl ParserState {
-    pub fn parse_file(syntax: SyntaxFileAst, file: SourceFile) -> Result<ParsePairSort, ParseError> {
-        let mut state = ParserState {
-            file: file.clone(),
-            rules: HashMap::new(),
-        };
-        syntax.sorts.into_iter().for_each(|rule| {
-            state.rules.insert(rule.name.clone(), rule).unwrap();
-        });
+/// Parses a file, given the syntax to parse it with, and the file.
+/// When successful, it returns a `ParsePairSort`.
+/// When unsuccessful, it returns a `ParseError`.
+pub fn parse_file(syntax: SyntaxFileAst, file: SourceFile) -> Result<ParsePairSort, ParseError> {
+    //Create a new parser state
+    let mut state = ParserState {
+        file: file.clone(),
+        rules: HashMap::new(),
+    };
+    syntax.sorts.into_iter().for_each(|rule| {
+        state.rules.insert(rule.name.clone(), rule).unwrap();
+    });
 
-        let mut ok = state.parse_sort(&syntax.starting_rule, file.iter())?;
-        if ok.pos.peek().is_none() {
-            Ok(ok.result)
-        } else {
-            match ok.best_error {
-                Some(err) => Err(err),
-                None => {
-                    let curpos = ok.pos.position();
-                    while ok.pos.next().is_some() {}
-                    let endpos = ok.pos.position();
-                    Err(ParseError::NotEntireInput(Span {
-                        position: curpos,
-                        length: endpos - curpos,
-                        source: file,
-                    }))
-                }
+    //Parse the starting sort
+    let mut ok = state.parse_sort(&syntax.starting_sort, file.iter())?;
+
+    //If there is no input left, return Ok.
+    if ok.pos.peek().is_none() {
+        Ok(ok.result)
+    } else {
+        //If any occurred during the parsing, return it. Otherwise, return a generic NotEntireInput error.
+        //I'm not entirely sure this logic always returns relevant errors. Maybe we should inform the user the parse was actually fine, but didn't parse enough?
+        match ok.best_error {
+            Some(err) => Err(err),
+            None => {
+                let curpos = ok.pos.position();
+                while ok.pos.next().is_some() {}
+                let endpos = ok.pos.position();
+                Err(ParseError::NotEntireInput(Span::from_end(file.clone(), curpos, endpos)))
             }
         }
     }
+}
 
-    fn parse_sort<'a>(
-        &self,
-        rule: &str,
-        pos: SourceFileIterator<'a>,
-    ) -> Result<ParseSuccess<'a, ParsePairSort>, ParseError> {
-        let sort = self.rules.get(rule).unwrap(); //Safe: Names should be defined
+impl ParserState {
+    /// Given the name of a sort and the current position, attempts to parse this sort.
+    /// The name of the provided sort must exist.
+    fn parse_sort<'a>(&self, sort: &str, pos: SourceFileIterator<'a>) -> Result<ParseSuccess<'a, ParsePairSort>, ParseError> {
+        //Obtain the sort
+        let sort = self.rules.get(sort).unwrap(); //Safe: Name is guaranteed to exist.
 
+        //Try each constructor, keeping track of the best error that occurred while doing so.
+        //If none of the constructors succeed, we will return this error.
         let mut best_error: Option<ParseError> = None;
         for (cname, constructor) in &sort.constructors {
             match self.parse_constructor(constructor, pos.clone()) {
                 Ok(ok) => {
                     return Ok(ParseSuccess {
+                        //TODO should be a bit smarter and avoid these clones
                         result: ParsePairSort {
                             sort: sort.name.clone(),
                             constructor_name: cname.clone(),
                             constructor_value: ok.result,
                         },
+                        //If one of the previous constructors had a better error, we should return that one
                         best_error: ok.best_error.or(best_error),
                         pos,
                     });
                 }
-                Err(err) => best_error = Self::combine_option_parse_error(best_error, Some(err)),
+                Err(err) => best_error = ParseError::combine_option_parse_error(best_error, Some(err)),
             }
         }
         Err(best_error.unwrap()) //Safe: Each sort has at least one constructor
     }
 
-    fn parse_constructor<'a>(
-        &self,
-        constructor: &Constructor,
-        mut pos: SourceFileIterator<'a>,
-    ) -> Result<ParseSuccess<'a, ParsePairConstructor>, ParseError> {
+    /// Given a constructor and the current position, attempts to parse this constructor.
+    fn parse_constructor<'a>(&self, constructor: &Constructor, mut pos: SourceFileIterator<'a>) -> Result<ParseSuccess<'a, ParsePairConstructor>, ParseError> {
         match constructor {
-            Constructor::Identifier(rule) => {
-                //Parse the sort, wrap it in a Sort constructor
+            //To parse a sort, call parse_sort recursively.
+            Constructor::Sort(rule) => {
                 Ok(self.parse_sort(rule, pos)?.map(|s| ParsePairConstructor::Sort(s.span(), Box::new(s))))
             }
+            //To parse a literal, use accept_str to check if it parses.
             Constructor::Literal(lit) => {
                 let span = Span::from_length(self.file.clone(), pos.position(), lit.len());
                 if pos.accept_str(lit) {
-                    Ok(ParseSuccess {
-                        result: ParsePairConstructor::Text(span),
-                        best_error: None,
-                        pos,
-                    })
+                    Ok(ParseSuccess { result: ParsePairConstructor::Text(span), best_error: None, pos })
                 } else {
                     Err(ParseError::ExpectString(span, lit.clone()))
                 }
             }
+            //To parse a sequence, parse each constructor in the sequence.
+            //The results are added to `results`, and the best error and position are updated each time.
+            //Finally, construct a `ParsePairConstructor::List` with the results.
             Constructor::Sequence(constructors) => {
                 let mut results = vec![];
                 let mut best_error = None;
                 let start_pos = pos.position();
 
+                //Parse all subconstructors in sequence
                 for subconstructor in constructors {
                     match self.parse_constructor(subconstructor, pos) {
                         Ok(ok) => {
                             pos = ok.pos;
-                            best_error = Self::combine_option_parse_error(best_error, ok.best_error);
+                            best_error = ParseError::combine_option_parse_error(best_error, ok.best_error);
                             results.push(ok.result);
                         }
                         Err(err) => {
-                            best_error = Self::combine_option_parse_error(best_error, Some(err));
+                            best_error = ParseError::combine_option_parse_error(best_error, Some(err));
                             return Err(best_error.unwrap());
                         }
                     }
                 }
+
+                //Construct result
                 let span = Span::from_end(self.file.clone(), start_pos, pos.position());
                 Ok(ParseSuccess {
                     result: ParsePairConstructor::List(span, results),
@@ -115,41 +124,46 @@ impl ParserState {
                     pos,
                 })
             }
+            //To parse a sequence, first parse the minimum amount that is needed.
+            //Then keep trying to parse the constructor until the maximum is reached.
+            //The results are added to `results`, and the best error and position are updated each time.
+            //Finally, construct a `ParsePairConstructor::List` with the results.
             Constructor::Repeat { c, min, max } => {
                 let mut results = vec![];
                 let mut best_error = None;
                 let start_pos = pos.position();
 
+                //Parse minimum amount that is needed
                 for _ in 0..*min {
                     match self.parse_constructor(c.as_ref(), pos) {
                         Ok(ok) => {
                             results.push(ok.result);
                             pos = ok.pos;
-                            best_error =
-                                Self::combine_option_parse_error(best_error, ok.best_error);
+                            best_error = ParseError::combine_option_parse_error(best_error, ok.best_error);
                         }
                         Err(err) => {
-                            best_error = Self::combine_option_parse_error(best_error, Some(err));
+                            best_error = ParseError::combine_option_parse_error(best_error, Some(err));
                             return Err(best_error.unwrap());
                         }
                     }
                 }
 
+                //Parse until maximum amount is reached
                 for _ in *min..max.unwrap_or(u64::MAX) {
                     match self.parse_constructor(c.as_ref(), pos.clone()) {
                         Ok(ok) => {
                             results.push(ok.result);
                             pos = ok.pos;
-                            best_error =
-                                Self::combine_option_parse_error(best_error, ok.best_error);
+                            best_error = ParseError::combine_option_parse_error(best_error, ok.best_error);
                         }
                         Err(err) => {
-                            best_error = Self::combine_option_parse_error(best_error, Some(err));
+                            best_error = ParseError::combine_option_parse_error(best_error, Some(err));
                             break;
                         }
                     }
                 }
 
+                //Construct result
                 let span = Span::from_end(self.file.clone(), start_pos, pos.position());
                 Ok(ParseSuccess {
                     result: ParsePairConstructor::List(span, results),
@@ -157,6 +171,7 @@ impl ParserState {
                     pos,
                 })
             }
+            //To parse a character class, check if the character is accepted, and make an ok/error based on that.
             Constructor::CharacterClass(characters) => {
                 let span = Span::from_length(self.file.clone(), pos.position(), 1);
                 //TODO clone should not be needed
@@ -170,26 +185,31 @@ impl ParserState {
                     Err(ParseError::ExpectCharClass(span, characters.clone()))
                 }
             }
+            //To parse a choice, try each constructor, keeping track of the best error that occurred while doing so.
+            //If none of the constructors succeed, we will return this error.
             Constructor::Choice(constructors) => {
                 let mut best_error = None;
-                for (i, subconstructor) in constructors.into_iter().enumerate() {
+                for (i, subconstructor) in constructors.iter().enumerate() {
                     match self.parse_constructor(subconstructor, pos.clone()) {
                         Ok(suc) => {
-                            best_error = Self::combine_option_parse_error(best_error, suc.best_error);
+                            best_error = ParseError::combine_option_parse_error(best_error, suc.best_error);
                             return Ok(ParseSuccess { result: ParsePairConstructor::Choice(suc.result.span(), i, Box::new(suc.result)), pos: suc.pos, best_error });
                         }
                         Err(err) => {
-                            best_error = Self::combine_option_parse_error(best_error, Some(err))
+                            best_error = ParseError::combine_option_parse_error(best_error, Some(err))
                         }
                     }
                 }
-                return Err(best_error.unwrap());
+                Err(best_error.unwrap())
             }
+            //To parse a negative, try parsing the constructor.
+            //If it succeeds, we need to make an error, not sure how
+            //If it fails, we return ok.
             Constructor::Negative(constructor) => {
                 match self.parse_constructor(constructor.as_ref(), pos.clone()) {
                     Ok(_) => {
                         todo!() //Negatives are complicated with errors
-                    },
+                    }
                     Err(err) => {
                         Ok(ParseSuccess {
                             result: ParsePairConstructor::Empty(err.span()),
@@ -198,8 +218,9 @@ impl ParserState {
                         })
                     }
                 }
-
             }
+            //To parse a positive, try parsing the constructor.
+            //If it succeeds, we return ok. Otherwise, we return the error.
             Constructor::Positive(constructor) => {
                 match self.parse_constructor(constructor.as_ref(), pos.clone()) {
                     Ok(ok) => {
@@ -212,18 +233,6 @@ impl ParserState {
                     Err(err) => Err(err),
                 }
             }
-        }
-    }
-
-    fn combine_option_parse_error(
-        a: Option<ParseError>,
-        b: Option<ParseError>,
-    ) -> Option<ParseError> {
-        match (a, b) {
-            (None, None) => None,
-            (None, Some(e)) => Some(e),
-            (Some(e), None) => Some(e),
-            (Some(e1), Some(e2)) => Some(e1.combine(e2)),
         }
     }
 }

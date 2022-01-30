@@ -43,4 +43,15 @@ impl ParseError {
     pub fn span(&self) -> Span {
         todo!()
     }
+
+    /// A helper that combines optional parse errors, and returns an optional parse error if either exists.
+    /// If both exist, use `ParseError::combine` to combine the errors.
+    pub fn combine_option_parse_error(a: Option<ParseError>, b: Option<ParseError>) -> Option<ParseError> {
+        match (a, b) {
+            (None, None) => None,
+            (None, Some(e)) => Some(e),
+            (Some(e), None) => Some(e),
+            (Some(e1), Some(e2)) => Some(e1.combine(e2)),
+        }
+    }
 }

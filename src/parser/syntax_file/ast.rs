@@ -4,7 +4,7 @@ use enum_iterator::IntoEnumIterator;
 
 #[derive(Debug)]
 pub enum Constructor {
-    Identifier(String),
+    Sort(String),
     Literal(String),
     Sequence(Vec<Constructor>),
     Repeat {
@@ -37,6 +37,6 @@ pub struct Sort {
 #[derive(Debug)]
 pub struct SyntaxFileAst {
     pub sorts: Vec<Sort>,
-    pub starting_rule: String,
+    pub starting_sort: String,
     pub layout: CharacterClass,
 }
