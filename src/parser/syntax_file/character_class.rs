@@ -73,10 +73,7 @@ impl CharacterClass {
             CharacterClass::Range { from, to } => {
                 (c as u32) >= *from as u32 && (c as u32) < *to as u32
             }
-            CharacterClass::Choice(parts) => parts
-                .iter()
-                .map(|i| i.contains(c))
-                .any(|i| i),
+            CharacterClass::Choice(parts) => parts.iter().map(|i| i.contains(c)).any(|i| i),
             CharacterClass::Not(cls) => !cls.contains(c),
             CharacterClass::Nothing => false,
             CharacterClass::Contained(chars) => chars.contains(&c),
