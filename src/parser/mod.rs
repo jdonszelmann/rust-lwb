@@ -11,3 +11,6 @@ pub mod syntax_file;
 /// trees generated from the syntax definitions
 /// for user-defined languages.
 mod ast;
+
+/// Contains code related to the peg parser.
+mod peg;
