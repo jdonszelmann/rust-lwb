@@ -64,14 +64,14 @@ impl ParserState {
         //Try each constructor, keeping track of the best error that occurred while doing so.
         //If none of the constructors succeed, we will return this error.
         let mut best_error: Option<ParseError> = None;
-        for (cname, constructor) in &sort.constructors {
-            match self.parse_constructor(constructor, pos.clone()) {
+        for constructor in &sort.constructors {
+            match self.parse_constructor(&constructor.constructor, pos.clone()) {
                 Ok(ok) => {
                     return Ok(ParseSuccess {
                         //TODO should be a bit smarter and avoid these clones
                         result: ParsePairSort {
                             sort: sort.name.clone(),
-                            constructor_name: cname.clone(),
+                            constructor_name: constructor.name.clone(),
                             constructor_value: ok.result,
                         },
                         //If one of the previous constructors had a better error, we should return that one

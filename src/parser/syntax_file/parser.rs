@@ -1,4 +1,4 @@
-use crate::parser::syntax_file::ast::{Annotation, Constructor, Sort, SyntaxFileAst};
+use crate::parser::syntax_file::ast::{Annotation, Constructor, Sort, SyntaxFileAst, TopLevelConstructor};
 use crate::parser::syntax_file::character_class::CharacterClass;
 use crate::parser::syntax_file::parser::ParseError::{
     DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedEndOfFile,
@@ -123,7 +123,7 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
             name,
             constructors: constructors
                 .into_iter()
-                .map(|c| ("CONSTRUCTOR NAME".to_string(), c))
+                .map(|c| TopLevelConstructor{name: "CONSTRUCTOR NAME".to_string(), constructor: c})
                 .collect(),
             annotations,
         })))

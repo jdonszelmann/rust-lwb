@@ -3,6 +3,12 @@ use derive_more::Display;
 use enum_iterator::IntoEnumIterator;
 
 #[derive(Debug)]
+pub struct TopLevelConstructor {
+    pub name: String,
+    pub constructor: Constructor
+}
+
+#[derive(Debug)]
 pub enum Constructor {
     Sort(String),
     Literal(String),
@@ -30,7 +36,7 @@ pub enum Annotation {
 #[derive(Debug)]
 pub struct Sort {
     pub name: String,
-    pub constructors: Vec<(String, Constructor)>,
+    pub constructors: Vec<TopLevelConstructor>,
     pub annotations: Vec<Annotation>,
 }
 
