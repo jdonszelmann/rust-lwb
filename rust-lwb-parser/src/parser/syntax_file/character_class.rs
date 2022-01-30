@@ -29,7 +29,7 @@ impl CharacterClass {
     /// included in this character class.
     ///
     /// ```
-    /// # use rust_lwb::parser::syntax_file::character_class::CharacterClass;
+    /// # use rust_lwb_parser::parser::syntax_file::character_class::CharacterClass;
     ///
     /// let c = CharacterClass::from('a'..='z');
     /// assert!(c.contains('a'));
@@ -38,7 +38,7 @@ impl CharacterClass {
     /// ```
     ///
     /// ```
-    /// # use rust_lwb::parser::syntax_file::character_class::CharacterClass;
+    /// # use rust_lwb_parser::parser::syntax_file::character_class::CharacterClass;
     ///
     /// // exclusive range so does not contain 'z'
     /// let c = CharacterClass::from('a'..'z');
@@ -49,7 +49,7 @@ impl CharacterClass {
     /// ```
     ///
     /// ```
-    /// # use rust_lwb::parser::syntax_file::character_class::CharacterClass;
+    /// # use rust_lwb_parser::parser::syntax_file::character_class::CharacterClass;
     ///
     /// // always return false
     /// let c = CharacterClass::Nothing;
@@ -58,7 +58,7 @@ impl CharacterClass {
     /// ```
     ///
     /// ```
-    /// # use rust_lwb::parser::syntax_file::character_class::CharacterClass;
+    /// # use rust_lwb_parser::parser::syntax_file::character_class::CharacterClass;
     ///
     /// // always return true
     /// let c = CharacterClass::Nothing.invert();
@@ -97,7 +97,7 @@ impl CharacterClass {
     /// class sets.
     ///
     /// ```
-    /// use rust_lwb::parser::syntax_file::character_class::CharacterClass;
+    /// use rust_lwb_parser::parser::syntax_file::character_class::CharacterClass;
     ///
     /// let a = CharacterClass::from('a'..'z');
     /// let b = CharacterClass::from('0'..'9');
