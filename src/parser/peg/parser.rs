@@ -198,7 +198,6 @@ impl ParserState {
             //To parse a character class, check if the character is accepted, and make an ok/error based on that.
             Constructor::CharacterClass(characters) => {
                 let span = Span::from_length(self.file.clone(), pos.position(), 1);
-                //TODO clone should not be needed
                 if pos.accept(characters) {
                     Ok(ParseSuccess {
                         result: ParsePairConstructor::Text(span),
