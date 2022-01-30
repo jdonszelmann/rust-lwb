@@ -58,7 +58,7 @@ fn parse_file(i: &mut SourceFileIterator) -> ParseResult<SyntaxFileAst> {
     let mut layout = CharacterClass::Nothing;
     let mut starting_rule = None;
 
-    while let Some(_) = i.peek() {
+    while i.peek().is_some() {
         match parse_sort_or_meta(i)? {
             Some(SortOrMeta::Sort(c)) => sorts.push(c),
             Some(SortOrMeta::StartRule(_)) if starting_rule.is_some() => {
@@ -190,7 +190,7 @@ fn parse_constructor(i: &mut SourceFileIterator) -> ParseResult<Constructor> {
         let saved = i.clone();
         match parse_simple_constructor(i) {
             Ok(i) => lst.push(i),
-            Err(e) => {
+            Err(_) => {
                 *i = saved;
                 break;
             }

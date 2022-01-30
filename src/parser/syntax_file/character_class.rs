@@ -76,7 +76,7 @@ impl CharacterClass {
             CharacterClass::Choice(parts) => parts
                 .iter()
                 .map(|i| i.contains(c))
-                .fold(false, |i, j| i || j),
+                .any(|i| i),
             CharacterClass::Not(cls) => !cls.contains(c),
             CharacterClass::Nothing => false,
             CharacterClass::Contained(chars) => chars.contains(&c),
