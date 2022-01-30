@@ -1,6 +1,6 @@
+use crate::parser::syntax_file::character_class::CharacterClass;
 use std::iter::Peekable;
 use std::rc::Rc;
-use crate::parser::syntax_file::character_class::CharacterClass;
 
 #[doc(hidden)]
 struct Inner {
@@ -182,7 +182,11 @@ impl<'a> SourceFileIterator<'a> {
     /// assert!(!sfi.accept_str("test"));
     /// assert!(sfi.accept_str_skip_layout("test", ' '));
     /// ```
-    pub fn accept_str_skip_layout<'c>(&mut self, s: &str, layout: impl Into<CharacterClass<'c>>) -> bool {
+    pub fn accept_str_skip_layout<'c>(
+        &mut self,
+        s: &str,
+        layout: impl Into<CharacterClass<'c>>,
+    ) -> bool {
         let mut self_clone = self.clone();
         self_clone.skip_layout(layout);
         if self_clone.accept_str(s) {

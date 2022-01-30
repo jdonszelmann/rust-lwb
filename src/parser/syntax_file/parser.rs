@@ -1,11 +1,11 @@
-use lazy_static::lazy_static;
 use crate::parser::syntax_file::ast::{Annotation, Constructor, Sort, SyntaxFileAst};
+use crate::parser::syntax_file::character_class::CharacterClass;
 use crate::parser::syntax_file::parser::ParseError::{
     DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedEndOfFile,
 };
 use crate::source_file::{SourceFile, SourceFileIterator};
+use lazy_static::lazy_static;
 use thiserror::Error;
-use crate::parser::syntax_file::character_class::CharacterClass;
 
 #[derive(Debug, Error)]
 pub enum ParseError {
@@ -137,8 +137,7 @@ fn parse_annotation(i: &mut SourceFileIterator) -> ParseResult<Option<Annotation
     } else if i.peek() == Some(&'}') {
         Ok(None)
     } else {
-        let chars = SYNTAX_FILE_LAYOUT
-            .combine_ref(['}', ',']);
+        let chars = SYNTAX_FILE_LAYOUT.combine_ref(['}', ',']);
         Err(InvalidAnnotation(i.accept_to_next(chars)))
     }
 }

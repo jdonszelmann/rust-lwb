@@ -8,13 +8,13 @@ pub enum CharacterClass<'a> {
     RangeInclusive {
         from: char,
         // inclusive!
-        to: char,   // inclusive!
+        to: char, // inclusive!
     },
     /// Exclusive range. `from` is inclusive but `to` is exclusive
     Range {
         from: char,
         // inclusive!
-        to: char,   // exclusive!
+        to: char, // exclusive!
     },
     /// all characters in the vec are in the character class.
     Contained(Vec<char>),
@@ -125,13 +125,15 @@ impl<'a> CharacterClass<'a> {
 
     pub fn to_static(self) -> CharacterClass<'static> {
         match self {
-            CharacterClass::Ref(cc) => {
-                cc.clone().to_static()
+            CharacterClass::Ref(cc) => cc.clone().to_static(),
+            CharacterClass::RangeInclusive { from, to } => {
+                CharacterClass::RangeInclusive { from, to }
             }
-            CharacterClass::RangeInclusive { from, to } => CharacterClass::RangeInclusive {from, to},
-            CharacterClass::Range { from, to } => CharacterClass::Range {from, to},
+            CharacterClass::Range { from, to } => CharacterClass::Range { from, to },
             CharacterClass::Contained(c) => CharacterClass::Contained(c),
-            CharacterClass::Choice(c) => CharacterClass::Choice(c.into_iter().map(|i| i.to_static()).collect()),
+            CharacterClass::Choice(c) => {
+                CharacterClass::Choice(c.into_iter().map(|i| i.to_static()).collect())
+            }
             CharacterClass::Not(c) => CharacterClass::Not(Box::new(c.to_static())),
             CharacterClass::Nothing => CharacterClass::Nothing,
         }
