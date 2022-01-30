@@ -4,6 +4,14 @@ pub trait SpannedAstInfo: AstInfo {
     fn span(&self) -> Span;
 }
 
+impl AstInfo for Span {}
+
+impl SpannedAstInfo for Span {
+    fn span(&self) -> Span {
+        self.clone()
+    }
+}
+
 pub trait AstInfo {}
 
 pub trait AstNode<I: AstInfo> {

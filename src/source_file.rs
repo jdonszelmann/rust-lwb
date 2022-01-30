@@ -3,6 +3,7 @@ use std::iter::Peekable;
 use std::rc::Rc;
 
 #[doc(hidden)]
+#[derive(Debug)]
 struct Inner {
     contents: String,
     name: String,
@@ -11,7 +12,7 @@ struct Inner {
 /// SourceFile represents a source into which spans
 /// point. Source files can be cheaply cloned as the
 /// actual contents of them live behind an `Rc`.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SourceFile(Rc<Inner>);
 
 impl SourceFile {
@@ -27,6 +28,7 @@ impl SourceFile {
     pub fn iter(&self) -> SourceFileIterator {
         SourceFileIterator {
             inner_iter: self.0.contents.chars().peekable(),
+            index: 0,
         }
     }
 
@@ -47,6 +49,7 @@ impl SourceFile {
 #[derive(Clone)]
 pub struct SourceFileIterator<'a> {
     inner_iter: Peekable<std::str::Chars<'a>>,
+    index: usize,
 }
 
 impl<'a> SourceFileIterator<'a> {
@@ -59,7 +62,7 @@ impl<'a> SourceFileIterator<'a> {
     /// Advance to the next character, discarding any
     /// character or error that is encountered.
     pub fn advance(&mut self) {
-        let _ = self.inner_iter.next();
+        self.next();
     }
 
     /// When the next value in the iterator is `c`, advance
@@ -231,12 +234,33 @@ impl<'a> SourceFileIterator<'a> {
     pub fn exhausted(&mut self) -> bool {
         self.peek().is_none()
     }
+
+    /// Returns the position of the character that is next.
+    /// ```
+    /// # use rust_lwb::source_file::SourceFile;
+    /// let sf = SourceFile::new_for_test("test");
+    /// let mut sfi = sf.iter();
+    ///
+    /// assert_eq!(sfi.position(), 0);
+    /// assert!(sfi.accept_str("tes"));
+    /// assert_eq!(sfi.position(), 3);
+    /// sfi.advance();
+    /// assert_eq!(sfi.position(), 4);
+    /// sfi.advance(); //Already at the end, so it has no effect on position
+    /// assert_eq!(sfi.position(), 4);
+    pub fn position(&mut self) -> usize {
+        self.index
+    }
 }
 
 impl<'a> Iterator for SourceFileIterator<'a> {
     type Item = char;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner_iter.next()
+        let next = self.inner_iter.next();
+        if let Some(next) = next {
+            self.index += next.len_utf8();
+        }
+        next
     }
 }
