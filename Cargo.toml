@@ -7,3 +7,6 @@ edition = "2021"
 [dependencies]
 thiserror = "1.0.30"
 miette = "3.3.0"
+lazy_static = "1.4.0"
+enum-iterator = "0.7.0"
+derive_more = "0.99.17"

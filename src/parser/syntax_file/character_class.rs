@@ -2,7 +2,7 @@ use std::ops::{Range, RangeInclusive};
 
 /// Represent a class of characters like in a regex
 /// such as [a-z] or [^0-9]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum CharacterClass {
     /// Inclusive range. Both `from` and `to` are inclusive
     RangeInclusive {
@@ -14,6 +14,8 @@ pub enum CharacterClass {
         from: char, // inclusive!
         to: char, // exclusive!
     },
+    /// all characters in the vec are in the character class.
+    Contained(Vec<char>),
     /// True when one of the character class parts is true
     Choice(Vec<CharacterClass>),
     /// inverts the outcome of the embedded character class
@@ -66,10 +68,10 @@ impl CharacterClass {
     pub fn contains(&self, c: char) -> bool {
         match self {
             CharacterClass::RangeInclusive { from, to } => {
-                c >= *from && c <= *to
+                c as u32 >= *from as u32 && c as u32 <= *to as u32
             }
             CharacterClass::Range { from, to } => {
-                c >= *from && c < *to
+                (c as u32) >= *from as u32 && (c as u32) < *to as u32
             }
             CharacterClass::Choice(parts) => {
                 parts.iter()
@@ -80,10 +82,20 @@ impl CharacterClass {
                 !cls.contains(c)
             }
             CharacterClass::Nothing => false,
+            CharacterClass::Contained(chars) => {
+                chars.contains(&c)
+            }
         }
     }
 
+    /// returns a character class that contains all elements
+    /// of the slice.
+    pub const fn all_in_vec(chars: Vec<char>) -> Self {
+        Self::Contained(chars)
+    }
 
+    /// Invert this character class. The new class accepts any character
+    /// not in the original character class
     pub fn invert(self) -> Self {
         Self::Not(Box::new(self))
     }
@@ -131,9 +143,33 @@ impl From<Range<char>> for CharacterClass {
 
 impl From<char> for CharacterClass {
     fn from(c: char) -> Self {
-        Self::Range {
+        Self::RangeInclusive {
             from: c,
             to: c
         }
+    }
+}
+
+impl From<&[char]> for CharacterClass {
+    fn from(s: &[char]) -> Self {
+        Self::Contained(s.to_vec())
+    }
+}
+
+impl From<Vec<char>> for CharacterClass {
+    fn from(s: Vec<char>) -> Self {
+        Self::Contained(s)
+    }
+}
+
+impl From<String> for CharacterClass {
+    fn from(s: String) -> Self {
+        Self::Contained(s.chars().collect())
+    }
+}
+
+impl<'a> From<&'a str> for CharacterClass {
+    fn from(s: &'a str) -> Self {
+        Self::Contained(s.chars().collect())
     }
 }
