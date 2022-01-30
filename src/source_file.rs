@@ -1,5 +1,5 @@
 use crate::parser::syntax_file::character_class::CharacterClass;
-use std::iter::{Peekable};
+use std::iter::Peekable;
 use std::rc::Rc;
 
 #[doc(hidden)]
