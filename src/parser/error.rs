@@ -2,14 +2,12 @@ use thiserror::Error;
 
 #[derive(Error, Debug, Clone)]
 pub enum ParseError {
-
-
     /// Combined errors represent a single position on which multiple errors occurred.
     /// They have strict rules, which should be enforced by the code constructing this variant:
     /// - All errors must occur in the same file.
     /// - All errors must be at the same `self.position()`
     #[error("multiple errors occurred: {0:?}")]
-    CombinedError(Vec<ParseError>)
+    CombinedError(Vec<ParseError>),
 }
 
 impl ParseError {
@@ -28,4 +26,3 @@ impl ParseError {
         todo!()
     }
 }
-

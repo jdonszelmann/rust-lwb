@@ -1,4 +1,3 @@
-
 /// Contains parse errors and methods for
 /// dealing with them.
 pub mod error;
