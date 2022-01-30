@@ -69,10 +69,11 @@ mod tests {
                         TopLevelConstructor{ name: "More".to_string(), constructor: Constructor::Sequence(vec![
                             Constructor::Literal("a".to_string()),
                             Constructor::Sort("AS".to_string()),
-                        ])},
-                        TopLevelConstructor{ name: "NoMore".to_string(), constructor: Constructor::Sequence(vec![])}
+                        ]),
+                            annotations: vec![]
+                        },
+                        TopLevelConstructor{ name: "NoMore".to_string(), constructor: Constructor::Sequence(vec![]), annotations: vec![] }
                     ],
-                    annotations: vec![]
                 }
             ],
             starting_sort: "A".to_string(),
