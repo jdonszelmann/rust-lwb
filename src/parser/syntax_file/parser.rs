@@ -3,6 +3,7 @@ use crate::parser::syntax_file::character_class::CharacterClass;
 use crate::parser::syntax_file::parser::ParseError::{
     DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedEndOfFile,
 };
+use enum_iterator::IntoEnumIterator;
 use crate::source_file::{SourceFile, SourceFileIterator};
 use lazy_static::lazy_static;
 use thiserror::Error;
@@ -130,11 +131,13 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
 fn parse_annotation(i: &mut SourceFileIterator) -> ParseResult<Option<Annotation>> {
     i.skip_layout(SYNTAX_FILE_LAYOUT.clone());
 
-    if i.accept_str("no-pretty-print") {
-        Ok(Some(Annotation::NoPrettyPrint))
-    } else if i.accept_str("no-layout") {
-        Ok(Some(Annotation::NoLayout))
-    } else if i.peek() == Some(&'}') {
+    for a in Annotation::into_enum_iter() {
+        if i.accept_str(&a.to_string()) {
+            return Ok(Some(a))
+        }
+    }
+
+    if i.peek() == Some(&'}') {
         Ok(None)
     } else {
         let chars: CharacterClass = SYNTAX_FILE_LAYOUT
