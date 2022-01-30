@@ -3,7 +3,7 @@ use crate::parser::syntax_file::character_class::CharacterClass;
 use crate::parser::syntax_file::parser::ParseError::{
     DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedEndOfFile,
 };
-use crate::source_file::{SourceFile, SourceFileIterator};
+use crate::source::source_file::{SourceFile, SourceFileIterator};
 use lazy_static::lazy_static;
 use thiserror::Error;
 

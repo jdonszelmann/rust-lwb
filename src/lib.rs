@@ -11,10 +11,10 @@ pub mod types;
 /// Helpers for code generation
 pub mod transform;
 
-/// Source files (stored together with a name).
-pub mod source_file;
-/// Code spans (which reference to a source file)
-pub mod span;
+/// Code to deal with source files (both used
+/// internally and for source of custom defined
+/// languages). Contains [`Span`] and [`SourceFile`]
+pub mod source;
 
 /// Code related to generating rust source files
 /// from language definitions. Usually used from

@@ -1,4 +1,4 @@
-use crate::span::Span;
+use crate::source::span::Span;
 
 pub trait SpannedAstInfo: AstInfo {
     fn span(&self) -> Span;
