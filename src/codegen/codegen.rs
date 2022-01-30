@@ -9,9 +9,9 @@ pub fn generate_language(syntax: SyntaxFileAst) {
         let enumm = scope.new_enum(&rule.name);
         enumm.generic("M : AstInfo");
         for constr in &rule.constructors {
-            let variant = enumm.new_variant(&constr.0);
+            let variant = enumm.new_variant(&constr.name);
             variant.tuple("M");
-            let typ = generate_constructor_type(&constr.1).unwrap_or("()".to_string());
+            let typ = generate_constructor_type(&constr.constructor).unwrap_or("()".to_string());
             let typ = if typ.starts_with("(") { &typ[1..typ.len() - 1] } else { &typ };
             variant.tuple(typ);
         }
@@ -56,7 +56,7 @@ fn generate_constructor_type(constructor: &Constructor) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use crate::codegen::codegen::generate_language;
-    use crate::parser::syntax_file::ast::{Constructor, Sort, SyntaxFileAst};
+    use crate::parser::syntax_file::ast::{Constructor, Sort, SyntaxFileAst, TopLevelConstructor};
     use crate::parser::syntax_file::character_class::CharacterClass;
 
     #[test]
@@ -66,11 +66,11 @@ mod tests {
                 Sort {
                     name: "AS".to_string(),
                     constructors: vec![
-                        ("More".to_string(), Constructor::Sequence(vec![
+                        TopLevelConstructor{ name: "More".to_string(), constructor: Constructor::Sequence(vec![
                             Constructor::Literal("a".to_string()),
                             Constructor::Sort("AS".to_string()),
-                        ])),
-                        ("NoMore".to_string(), Constructor::Sequence(vec![]))
+                        ])},
+                        TopLevelConstructor{ name: "NoMore".to_string(), constructor: Constructor::Sequence(vec![])}
                     ],
                     annotations: vec![]
                 }
