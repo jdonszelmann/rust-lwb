@@ -1,15 +1,11 @@
-use crate::parser::bootstrap::ast::{Constructor, Sort, SyntaxFileAst};
-use crate::parser::peg::parser_error::ParseError;
-use crate::parser::peg::parser_pair::{ParsePairExpression, ParsePairSort};
-use crate::parser::peg::parser_success::ParseSuccess;
-use crate::parser::bootstrap::ast::{Expression, Sort, SyntaxFileAst};
-use crate::parser::peg::parse_error::ParseError;
-use crate::parser::peg::parse_pair::{ParsePairConstructor, ParsePairSort};
-use crate::parser::peg::parse_success::ParseSuccess;
 use crate::sources::source_file::SourceFile;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
 use std::collections::HashMap;
+use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
+use crate::parser::bootstrap::ast::{Expression, Sort, SyntaxFileAst};
+use crate::parser::peg::parser_error::ParseError;
+use crate::parser::peg::parser_success::ParseSuccess;
 
 /// This stores the immutable data that is used during the parsing process.
 struct ParserState<'src> {
@@ -140,15 +136,15 @@ fn parse_sort_sub<'src>(
 fn parse_constructor<'src>(
     state: &ParserState<'src>,
     cache: &mut ParserCache<'src>,
-    constructor: &'src Constructor,
+    constructor: &'src Expression,
     mut pos: SourceFileIterator<'src>,
 ) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ParseError<'src>> {
     match constructor {
         //To parse a sort, call parse_sort recursively.
-        Constructor::Sort(rule) => Ok(parse_sort(state, cache, rule, pos)?
+        Expression::Sort(rule) => Ok(parse_sort(state, cache, rule, pos)?
             .map(|s: ParsePairSort<'src>| ParsePairExpression::Sort(s.span(), Box::new(s)))),
         //To parse a literal, use accept_str to check if it parses.
-        Constructor::Literal(lit) => {
+        Expression::Literal(lit) => {
             let span = Span::from_length(&state.file, pos.position(), lit.len());
             if pos.accept_str(lit) {
                 Ok(ParseSuccess {
@@ -163,7 +159,7 @@ fn parse_constructor<'src>(
         //To parse a sequence, parse each constructor in the sequence.
         //The results are added to `results`, and the best error and position are updated each time.
         //Finally, construct a `ParsePairConstructor::List` with the results.
-        Constructor::Sequence(constructors) => {
+        Expression::Sequence(constructors) => {
             let mut results = vec![];
             let mut best_error = None;
             let start_pos = pos.position();
@@ -196,7 +192,7 @@ fn parse_constructor<'src>(
         //Then keep trying to parse the constructor until the maximum is reached.
         //The results are added to `results`, and the best error and position are updated each time.
         //Finally, construct a `ParsePairConstructor::List` with the results.
-        Constructor::Repeat { c, min, max } => {
+        Expression::Repeat { c, min, max } => {
             let mut results = vec![];
             let mut best_error = None;
             let start_pos = pos.position();
@@ -242,7 +238,7 @@ fn parse_constructor<'src>(
             })
         }
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
-        Constructor::CharacterClass(characters) => {
+        Expression::CharacterClass(characters) => {
             let span = Span::from_length(&state.file, pos.position(), 1);
             if pos.accept(characters) {
                 Ok(ParseSuccess {
@@ -256,7 +252,7 @@ fn parse_constructor<'src>(
         }
         //To parse a choice, try each constructor, keeping track of the best error that occurred while doing so.
         //If none of the constructors succeed, we will return this error.
-        Constructor::Choice(constructors) => {
+        Expression::Choice(constructors) => {
             let mut best_error = None;
             for (i, subconstructor) in constructors.iter().enumerate() {
                 match parse_constructor(state, cache, subconstructor, pos.clone()) {
@@ -283,7 +279,7 @@ fn parse_constructor<'src>(
         //To parse a negative, try parsing the constructor.
         //If it succeeds, we need to make an error, not sure how
         //If it fails, we return ok.
-        Constructor::Negative(constructor) => {
+        Expression::Negative(constructor) => {
             match parse_constructor(state, cache, constructor.as_ref(), pos.clone()) {
                 Ok(_) => {
                     todo!() //Negatives are complicated with errors
@@ -299,7 +295,7 @@ fn parse_constructor<'src>(
         }
         //To parse a positive, try parsing the constructor.
         //If it succeeds, we return ok. Otherwise, we return the error.
-        Constructor::Positive(constructor) => {
+        Expression::Positive(constructor) => {
             match parse_constructor(state, cache, constructor.as_ref(), pos.clone()) {
                 Ok(ok) => {
                     Ok(ParseSuccess {

@@ -1,6 +1,6 @@
 use thiserror::Error;
 use crate::parser::ast::AstInfo;
-use crate::parser::peg::parse_pair::ParsePairSort;
+use crate::parser::peg::parser_pair::ParsePairSort;
 
 pub trait GenerateAstInfo {
     type Result: AstInfo;
