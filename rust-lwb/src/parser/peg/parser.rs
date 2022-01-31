@@ -1,7 +1,7 @@
 use crate::parser::bootstrap::ast::{Constructor, Sort, SyntaxFileAst};
-use crate::parser::peg::parse_error::ParseError;
-use crate::parser::peg::parse_pair::{ParsePairConstructor, ParsePairSort};
-use crate::parser::peg::parse_success::ParseSuccess;
+use crate::parser::peg::parser_error::ParseError;
+use crate::parser::peg::parser_pair::{ParsePairExpression, ParsePairSort};
+use crate::parser::peg::parser_success::ParseSuccess;
 use crate::sources::source_file::SourceFile;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
@@ -15,13 +15,19 @@ struct ParserState<'src> {
 
 /// This stores the mutable data that is used during the parsing process.
 struct ParserCache<'src> {
-    cache: HashMap<(usize, &'src str), Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>>>,
+    cache: HashMap<
+        (usize, &'src str),
+        Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>>,
+    >,
 }
 
 /// Parses a file, given the syntax to parse it with, and the file.
 /// When successful, it returns a `ParsePairSort`.
 /// When unsuccessful, it returns a `ParseError`.
-pub fn parse_file<'src>(syntax: &'src SyntaxFileAst, file: &'src SourceFile) -> Result<ParsePairSort<'src>, ParseError<'src>> {
+pub fn parse_file<'src>(
+    syntax: &'src SyntaxFileAst,
+    file: &'src SourceFile,
+) -> Result<ParsePairSort<'src>, ParseError<'src>> {
     //Create a new parser state
     let mut state = ParserState {
         file,
@@ -36,7 +42,8 @@ pub fn parse_file<'src>(syntax: &'src SyntaxFileAst, file: &'src SourceFile) -> 
     };
 
     //Parse the starting sort
-    let mut ok: ParseSuccess<ParsePairSort<'src>> = parse_sort(&state, &mut cache, &syntax.starting_sort, file.iter())?;
+    let mut ok: ParseSuccess<ParsePairSort<'src>> =
+        parse_sort(&state, &mut cache, &syntax.starting_sort, file.iter())?;
 
     //If there is no input left, return Ok.
     if ok.pos.peek().is_none() {
@@ -51,9 +58,7 @@ pub fn parse_file<'src>(syntax: &'src SyntaxFileAst, file: &'src SourceFile) -> 
                 while ok.pos.next().is_some() {}
                 let endpos = ok.pos.position();
                 Err(ParseError::not_entire_input(Span::from_end(
-                    &file,
-                    curpos,
-                    endpos,
+                    &file, curpos, endpos,
                 )))
             }
         }
@@ -133,17 +138,17 @@ fn parse_constructor<'src>(
     cache: &mut ParserCache<'src>,
     constructor: &'src Constructor,
     mut pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairConstructor<'src>>, ParseError<'src>> {
+) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ParseError<'src>> {
     match constructor {
         //To parse a sort, call parse_sort recursively.
         Constructor::Sort(rule) => Ok(parse_sort(state, cache, rule, pos)?
-            .map(|s: ParsePairSort<'src>| ParsePairConstructor::Sort(s.span(), Box::new(s)))),
+            .map(|s: ParsePairSort<'src>| ParsePairExpression::Sort(s.span(), Box::new(s)))),
         //To parse a literal, use accept_str to check if it parses.
         Constructor::Literal(lit) => {
             let span = Span::from_length(&state.file, pos.position(), lit.len());
             if pos.accept_str(lit) {
                 Ok(ParseSuccess {
-                    result: ParsePairConstructor::Empty(span),
+                    result: ParsePairExpression::Empty(span),
                     best_error: None,
                     pos,
                 })
@@ -178,7 +183,7 @@ fn parse_constructor<'src>(
             //Construct result
             let span = Span::from_end(&state.file, start_pos, pos.position());
             Ok(ParseSuccess {
-                result: ParsePairConstructor::List(span, results),
+                result: ParsePairExpression::List(span, results),
                 best_error,
                 pos,
             })
@@ -227,7 +232,7 @@ fn parse_constructor<'src>(
             //Construct result
             let span = Span::from_end(&state.file, start_pos, pos.position());
             Ok(ParseSuccess {
-                result: ParsePairConstructor::List(span, results),
+                result: ParsePairExpression::List(span, results),
                 best_error,
                 pos,
             })
@@ -237,7 +242,7 @@ fn parse_constructor<'src>(
             let span = Span::from_length(&state.file, pos.position(), 1);
             if pos.accept(characters) {
                 Ok(ParseSuccess {
-                    result: ParsePairConstructor::Empty(span),
+                    result: ParsePairExpression::Empty(span),
                     best_error: None,
                     pos,
                 })
@@ -255,7 +260,7 @@ fn parse_constructor<'src>(
                         best_error =
                             ParseError::combine_option_parse_error(best_error, suc.best_error);
                         return Ok(ParseSuccess {
-                            result: ParsePairConstructor::Choice(
+                            result: ParsePairExpression::Choice(
                                 suc.result.span(),
                                 i,
                                 Box::new(suc.result),
@@ -281,7 +286,7 @@ fn parse_constructor<'src>(
                 }
                 Err(err) => {
                     Ok(ParseSuccess {
-                        result: ParsePairConstructor::Empty(err.span),
+                        result: ParsePairExpression::Empty(err.span),
                         best_error: None,
                         pos, //Return old position
                     })
@@ -294,7 +299,7 @@ fn parse_constructor<'src>(
             match parse_constructor(state, cache, constructor.as_ref(), pos.clone()) {
                 Ok(ok) => {
                     Ok(ParseSuccess {
-                        result: ParsePairConstructor::Empty(ok.result.span()),
+                        result: ParsePairExpression::Empty(ok.result.span()),
                         best_error: None, //If the positive passed, then we don't care about any "better" parses inside it
                         pos,              //Return old position
                     })
