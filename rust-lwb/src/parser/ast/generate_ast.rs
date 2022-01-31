@@ -3,36 +3,31 @@ use crate::codegen_prelude::{AstInfo, GenerateAstInfo, ParsePairExpression, Pars
 use crate::parser::ast::{AstNode, SpannedAstInfo};
 use crate::sources::span::Span;
 
-pub struct BasicAstInfo<'src> {
-    span: Span<'src>
+pub struct BasicAstInfo {
+    span: Span
 }
 
-impl<'src> AstInfo<'src> for BasicAstInfo<'src> {}
-impl<'src> SpannedAstInfo<'src> for BasicAstInfo<'src> {
-    fn span(&self) -> &Span<'src> {
+impl AstInfo for BasicAstInfo {}
+impl SpannedAstInfo for BasicAstInfo {
+    fn span(&self) -> &Span {
         &self.span
     }
 }
 
-struct AstInfoGenerator<'src>(PhantomData<&'src ()>);
-impl AstInfoGenerator<'_> {
-    pub fn new() -> Self {
-        Self(Default::default())
-    }
-}
+struct AstInfoGenerator;
 
-impl<'src> GenerateAstInfo<'src> for AstInfoGenerator<'src> {
-    type Result = BasicAstInfo<'src>;
+impl GenerateAstInfo for AstInfoGenerator {
+    type Result = BasicAstInfo;
 
-    fn generate(&mut self, pair: &ParsePairSort<'src>) -> Self::Result {
+    fn generate(&mut self, pair: &ParsePairSort) -> Self::Result {
         BasicAstInfo {
             span: pair.span()
         }
     }
 }
 
-pub fn generate_ast<'src, AST>(pairs: &ParsePairSort<'src>) -> AST
-    where AST: AstNode<BasicAstInfo<'src>> {
+pub fn generate_ast<AST>(pairs: &ParsePairSort) -> AST
+    where AST: AstNode<BasicAstInfo> {
 
-    AST::from_pairs(pairs, &mut AstInfoGenerator::new())
+    AST::from_pairs(pairs, &mut AstInfoGenerator)
 }

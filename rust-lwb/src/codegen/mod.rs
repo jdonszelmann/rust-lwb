@@ -140,9 +140,8 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str) -> String
     // TODO: put these definition in a different file
     for rule in &syntax.sorts {
         let mut f = Function::new("from_pairs");
-        f.generic("'src");
-        f.generic("G: GenerateAstInfo<'src, Result = M>");
-        f.arg("pair", "&ParsePairSort<'src>");
+        f.generic("G: GenerateAstInfo<Result = M>");
+        f.arg("pair", "&ParsePairSort");
         f.arg("generator", "&mut G");
         f.ret("Self");
         f.line(format!(r#"assert_eq!(pair.sort, "{}");"#, rule.name));

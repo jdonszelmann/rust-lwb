@@ -17,7 +17,7 @@ struct ParserState<'src> {
 struct ParserCache<'src> {
     cache: HashMap<
         (usize, &'src str),
-        Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>>,
+        Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError>,
     >,
 }
 
@@ -27,7 +27,7 @@ struct ParserCache<'src> {
 pub fn parse_file<'src>(
     syntax: &'src SyntaxFileAst,
     file: &'src SourceFile,
-) -> Result<ParsePairSort<'src>, ParseError<'src>> {
+) -> Result<ParsePairSort<'src>, ParseError> {
     //Create a new parser state
     let mut state = ParserState {
         file,
@@ -72,7 +72,7 @@ fn parse_sort<'src>(
     cache: &mut ParserCache<'src>,
     sort: &'src str,
     pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>> {
+) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
     //Check if this result is cached
     let key = (pos.position(), sort);
     if let Some(cached) = cache.cache.get(&key) {
@@ -104,7 +104,7 @@ fn parse_sort_sub<'src>(
     cache: &mut ParserCache<'src>,
     sort: &'src str,
     pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>> {
+) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
     //Obtain the sort
     let sort: &'src Sort = state.rules.get(sort).expect("Name is guaranteed to exist");
 
@@ -138,7 +138,7 @@ fn parse_constructor<'src>(
     cache: &mut ParserCache<'src>,
     constructor: &'src Expression,
     mut pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ParseError<'src>> {
+) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ParseError> {
     match constructor {
         //To parse a sort, call parse_sort recursively.
         Expression::Sort(rule) => Ok(parse_sort(state, cache, rule, pos)?

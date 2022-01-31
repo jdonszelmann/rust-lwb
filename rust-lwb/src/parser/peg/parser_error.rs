@@ -11,13 +11,13 @@ use thiserror::Error;
 /// The parsing error consists of multiple `ParseErrorSub`, which each represent a single thing that went wrong at this position.
 #[derive(Debug, Clone, Error)]
 #[error("A parse error occured!")]
-pub struct ParseError<'src> {
-    pub span: Span<'src>,
+pub struct ParseError {
+    pub span: Span,
     pub expected: Vec<ParseErrorSub>,
     pub left_rec: bool,
 }
 
-impl Diagnostic for ParseError<'_> {
+impl Diagnostic for ParseError {
     /// Diagnostic severity. This may be used by [ReportHandler]s to change the
     /// display format of this diagnostic.
     ///
@@ -58,8 +58,8 @@ impl Diagnostic for ParseError<'_> {
     }
 }
 
-impl<'src> ParseError<'src> {
-    pub fn expect_char_class(span: Span<'src>, val: CharacterClass) -> Self {
+impl ParseError {
+    pub fn expect_char_class(span: Span, val: CharacterClass) -> Self {
         ParseError {
             span,
             expected: vec![ParseErrorSub::ExpectCharClass(val)],
@@ -67,7 +67,7 @@ impl<'src> ParseError<'src> {
         }
     }
 
-    pub fn expect_string(span: Span<'src>, val: String) -> Self {
+    pub fn expect_string(span: Span, val: String) -> Self {
         ParseError {
             span,
             expected: vec![ParseErrorSub::ExpectString(val)],
@@ -75,7 +75,7 @@ impl<'src> ParseError<'src> {
         }
     }
 
-    pub fn not_entire_input(span: Span<'src>) -> Self {
+    pub fn not_entire_input(span: Span) -> Self {
         ParseError {
             span,
             expected: vec![ParseErrorSub::NotEntireInput()],
@@ -83,7 +83,7 @@ impl<'src> ParseError<'src> {
         }
     }
 
-    pub fn left_recursion(span: Span<'src>) -> Self {
+    pub fn left_recursion(span: Span) -> Self {
         ParseError {
             span,
             expected: vec![],
@@ -121,13 +121,13 @@ impl Display for ParseErrorSub {
     }
 }
 
-impl<'src> ParseError<'src> {
+impl ParseError {
     /// Combine multiple parse errors. When one has precedence over
     /// another, the highest precedence error is kept and the other
     /// is discarded.
     ///
     /// Highest precedence is defined as furthest starting position for now. This might be changed later.
-    pub fn combine(mut self, mut other: ParseError<'src>) -> ParseError<'src> {
+    pub fn combine(mut self, mut other: ParseError) -> ParseError {
         assert_eq!(self.span.source.name(), other.span.source.name());
 
         //Compare the starting positions of the span
@@ -150,9 +150,9 @@ impl<'src> ParseError<'src> {
     /// A helper that combines optional parse errors, and returns an optional parse error if either exists.
     /// If both exist, use `ParseError::combine` to combine the errors.
     pub fn combine_option_parse_error(
-        a: Option<ParseError<'src>>,
-        b: Option<ParseError<'src>>,
-    ) -> Option<ParseError<'src>> {
+        a: Option<ParseError>,
+        b: Option<ParseError>,
+    ) -> Option<ParseError> {
         match (a, b) {
             (None, None) => None,
             (None, Some(e)) => Some(e),

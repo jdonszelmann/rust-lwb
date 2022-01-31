@@ -7,7 +7,7 @@ use crate::sources::source_file::SourceFileIterator;
 #[derive(Clone)]
 pub struct ParseSuccess<'src, O: Clone> {
     pub result: O,
-    pub best_error: Option<ParseError<'src>>,
+    pub best_error: Option<ParseError>,
     pub pos: SourceFileIterator<'src>,
 }
 

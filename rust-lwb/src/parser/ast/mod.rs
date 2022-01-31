@@ -4,21 +4,21 @@ use crate::sources::span::Span;
 pub mod from_pairs;
 pub mod generate_ast;
 
-pub trait SpannedAstInfo<'src>: AstInfo<'src> {
-    fn span(&self) -> &Span<'src>;
+pub trait SpannedAstInfo: AstInfo {
+    fn span(&self) -> &Span;
 }
 
-impl<'src> AstInfo<'src> for Span<'src> {}
+impl AstInfo for Span {}
 
-impl<'src> SpannedAstInfo<'src> for Span<'src> {
-    fn span(&self) -> &Span<'src> {
+impl SpannedAstInfo for Span {
+    fn span(&self) -> &Span {
         &self
     }
 }
 
-pub trait AstInfo<'src> {}
+pub trait AstInfo {}
 
-pub trait AstNode<'src, M: AstInfo<'src>>: FromPairs<M> {
+pub trait AstNode<M: AstInfo>: FromPairs<M> {
     fn ast_info(&self) -> &M;
 
     fn traverse<F>(&self, _f: F)
