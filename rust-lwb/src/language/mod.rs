@@ -1,7 +1,3 @@
-use crate::codegen_prelude::AstInfo;
-use crate::parser::ast::AstNode;
-use crate::sources::source_file::SourceFile;
-
 #[macro_export]
 macro_rules! language {
     ($name: ident at mod $path: path) => {
@@ -10,14 +6,15 @@ macro_rules! language {
         use $path as AST;
 
         impl $name {
-            fn parse(source: & $crate::sources::source_file::SourceFile) -> AST::AST_ROOT<$crate::parser::ast::generate_ast::BasicAstInfo> {
-
+            fn parse(
+                source: &$crate::sources::source_file::SourceFile,
+            ) -> AST::AST_ROOT<$crate::parser::ast::generate_ast::BasicAstInfo> {
             }
         }
     };
 
     ($name: ident at path $path: literal) => {
-        paste!{
+        paste! {
             #[path = $path]
             mod [<$name _MODULE>];
 
@@ -25,4 +22,3 @@ macro_rules! language {
         }
     };
 }
-

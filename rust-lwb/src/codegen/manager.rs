@@ -32,7 +32,7 @@ impl CodeGenJob {
         Self {
             location: p,
             destination,
-            import_location: "rust_lwb".to_string()
+            import_location: "rust_lwb".to_string(),
         }
     }
 

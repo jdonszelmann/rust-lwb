@@ -1,11 +1,8 @@
-#[macro_use]
 extern crate paste;
-
 
 /// Code describing languages created with rust-lwb
 #[macro_use]
 pub mod language;
-
 
 /// Helpers for type checking
 pub mod typechecker;
@@ -33,6 +30,3 @@ pub mod sources;
 /// files (to avoid listing many imports in them). Should
 /// not generally be used directly by users of rust-lwb
 pub mod codegen_prelude;
-
-
-

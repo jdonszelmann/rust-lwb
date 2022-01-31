@@ -101,7 +101,7 @@ impl ParseError {
         }
     }
 
-    pub fn fail_loop(span: Span<'src>) -> Self {
+    pub fn fail_loop(span: Span) -> Self {
         ParseError {
             span,
             expected: vec![],
