@@ -5,19 +5,20 @@ pub mod types;
 /// Helpers for code generation
 pub mod transform;
 
-pub mod syntax_file;
+/// Contains code related to syntax definitions
+/// and parsing target languages based on these
+/// definitions. Also contains sort/constructor
+/// related code and code generation for these.
+/// Contains the PEG parser.
+pub mod parser;
 
+/// Source files (stored together with a name).
+pub mod source_file;
+/// Code spans (which reference to a source file)
+pub mod span;
 
-mod tests {
-    use rust_lwb_parser::parser::syntax_file::parse;
-    use rust_lwb_parser::source_file::SourceFile;
+/// Code related to generating rust source files
+/// from language definitions. Usually used from
+/// build.rs files.
+pub mod codegen;
 
-    #[test]
-    fn test_parse() {
-        let sf = SourceFile::open("src/syntax-file.syntax").unwrap();
-
-
-        let ast = parse(&sf).unwrap();
-
-    }
-}

@@ -1,5 +1,4 @@
 use codegen::Scope;
-use crate::parser::ast::AstInfo;
 use crate::parser::syntax_file::ast::{Constructor, SyntaxFileAst};
 
 pub fn generate_language(syntax: SyntaxFileAst) -> String {
