@@ -3,7 +3,7 @@ use std::io;
 use std::io::Read;
 use std::iter::Peekable;
 use std::path::Path;
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[doc(hidden)]
 #[derive(Debug)]
@@ -16,7 +16,7 @@ struct Inner {
 /// point. Source files can be cheaply cloned as the
 /// actual contents of them live behind an `Rc`.
 #[derive(Clone, Debug)]
-pub struct SourceFile(Rc<Inner>);
+pub struct SourceFile(Arc<Inner>);
 
 impl SourceFile {
     pub fn open(name: impl AsRef<Path>) -> io::Result<Self> {
@@ -25,7 +25,7 @@ impl SourceFile {
 
         f.read_to_string(&mut contents)?;
 
-        Ok(Self(Rc::new(Inner {
+        Ok(Self(Arc::new(Inner {
             contents,
             name: name.as_ref().to_string_lossy().to_string(),
         })))
@@ -33,7 +33,7 @@ impl SourceFile {
 
     /// Create a new SourceFile
     pub fn new(contents: String, name: String) -> Self {
-        Self(Rc::new(Inner { contents, name }))
+        Self(Arc::new(Inner { contents, name }))
     }
 
     pub fn new_for_test(s: &str) -> Self {
@@ -253,7 +253,7 @@ impl<'a> SourceFileIterator<'a> {
     /// assert_eq!(sfi.position(), 4);
     /// sfi.advance(); //Already at the end, so it has no effect on position
     /// assert_eq!(sfi.position(), 4);
-    pub fn position(&mut self) -> usize {
+    pub fn position(&self) -> usize {
         self.index
     }
 }

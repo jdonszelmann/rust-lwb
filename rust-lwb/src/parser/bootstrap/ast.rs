@@ -2,14 +2,14 @@ use crate::sources::character_class::CharacterClass;
 use derive_more::Display;
 use enum_iterator::IntoEnumIterator;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Constructor {
     pub name: String,
     pub constructor: Expression,
     pub annotations: Vec<Annotation>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     Sort(String),
     Literal(String),
@@ -26,7 +26,7 @@ pub enum Expression {
     Positive(Box<Expression>),
 }
 
-#[derive(Debug, IntoEnumIterator, Display)]
+#[derive(Debug, Clone, IntoEnumIterator, Display)]
 pub enum Annotation {
     #[display(fmt = "no-pretty-print")]
     NoPrettyPrint,
@@ -36,7 +36,7 @@ pub enum Annotation {
     Injection
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Sort {
     pub name: String,
     pub constructors: Vec<Constructor>,
