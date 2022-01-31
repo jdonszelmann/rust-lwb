@@ -32,10 +32,7 @@ impl<'src> ParserCache<'src> {
         }
     }
 
-    fn is_read(
-        &self,
-        key: &(usize, &'src str),
-    ) -> Option<bool> {
+    fn is_read(&self, key: &(usize, &'src str)) -> Option<bool> {
         self.cache.get(key).map(|v| v.read)
     }
 
@@ -160,13 +157,19 @@ fn parse_sort<'src>(
                     match parse_sort_sub(state, cache, sort, pos.clone()) {
                         Ok(new_ok) => {
                             if new_ok.pos.position() <= ok.pos.position() {
-                                ok.best_error = ParseError::combine_option_parse_error(ok.best_error, new_ok.best_error);
-                                break
+                                ok.best_error = ParseError::combine_option_parse_error(
+                                    ok.best_error,
+                                    new_ok.best_error,
+                                );
+                                break;
                             }
                             ok = new_ok;
                         }
                         Err(new_err) => {
-                            ok.best_error = ParseError::combine_option_parse_error(ok.best_error, Some(new_err));
+                            ok.best_error = ParseError::combine_option_parse_error(
+                                ok.best_error,
+                                Some(new_err),
+                            );
                             break;
                         }
                     }

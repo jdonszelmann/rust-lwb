@@ -15,7 +15,7 @@ pub struct ParseError<'src> {
     pub span: Span<'src>,
     pub expected: Vec<ParseErrorSub>,
     pub fail_left_rec: bool,
-    pub fail_loop: bool
+    pub fail_loop: bool,
 }
 
 impl Diagnostic for ParseError<'_> {
