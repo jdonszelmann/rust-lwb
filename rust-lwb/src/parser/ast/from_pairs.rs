@@ -2,19 +2,19 @@ use crate::parser::ast::AstInfo;
 use crate::parser::peg::parser_pair::ParsePairSort;
 use thiserror::Error;
 
-pub trait GenerateAstInfo {
+pub trait GenerateAstInfo<'src> {
     type Result: AstInfo;
 
-    fn generate(&mut self, pair: &ParsePairSort) -> Self::Result;
+    fn generate(&mut self, pair: &ParsePairSort<'src>) -> Self::Result;
 }
 
-impl<F, M: AstInfo> GenerateAstInfo for F
+impl<'src, F, M: AstInfo> GenerateAstInfo<'src> for F
 where
-    F: FnMut(&ParsePairSort) -> M,
+    F: FnMut(&ParsePairSort<'src>) -> M,
 {
     type Result = M;
 
-    fn generate(&mut self, pair: &ParsePairSort) -> Self::Result {
+    fn generate(&mut self, pair: &ParsePairSort<'src>) -> Self::Result {
         (self)(pair)
     }
 }
@@ -22,8 +22,8 @@ where
 #[derive(Debug, Error)]
 pub enum FromPairsError {}
 
-pub trait FromPairs<M: AstInfo> {
-    fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self
+pub trait FromPairs<'src, M: AstInfo<'src>> {
+    fn from_pairs<G: GenerateAstInfo<'src, Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self
     where
         Self: Sized;
 }

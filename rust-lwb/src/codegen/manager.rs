@@ -18,15 +18,21 @@ pub enum CodegenError {
 pub struct CodeGenJob {
     location: PathBuf,
     destination: PathBuf,
+    import_location: String,
 }
 
 impl CodeGenJob {
     pub fn from_path(p: PathBuf) -> CodeGenJob {
         let mut destination = p.clone();
-        destination.set_extension(".rs");
+        destination.set_extension("rs");
+        let name = destination.file_name().expect("no file name in path");
+        let new_filename = name.to_string_lossy().replace('-', "_");
+        destination.set_file_name(new_filename);
+
         Self {
             location: p,
             destination,
+            import_location: "rust_lwb".to_string()
         }
     }
 
@@ -35,11 +41,16 @@ impl CodeGenJob {
         self
     }
 
+    pub fn import_location(&mut self, path: impl AsRef<str>) -> &mut Self {
+        self.import_location = path.as_ref().to_string();
+        self
+    }
+
     pub fn codegen(self) -> Result<(), CodegenError> {
         let sf = SourceFile::open(self.location)?;
         let ast = parse(&sf)?;
 
-        let res = generate_language(ast);
+        let res = generate_language(ast, &self.import_location);
 
         let mut res_file = std::fs::File::create(self.destination)?;
         res_file.write_all(res.as_bytes())?;

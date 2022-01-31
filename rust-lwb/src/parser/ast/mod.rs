@@ -2,22 +2,23 @@ use crate::parser::ast::from_pairs::FromPairs;
 use crate::sources::span::Span;
 
 pub mod from_pairs;
+pub mod generate_ast;
 
-pub trait SpannedAstInfo: AstInfo {
-    fn span(&self) -> Span;
+pub trait SpannedAstInfo<'src>: AstInfo<'src> {
+    fn span(&self) -> &Span<'src>;
 }
 
-impl AstInfo for Span<'_> {}
+impl<'src> AstInfo<'src> for Span<'src> {}
 
-impl SpannedAstInfo for Span<'_> {
-    fn span(&self) -> Span {
-        self.clone()
+impl<'src> SpannedAstInfo<'src> for Span<'src> {
+    fn span(&self) -> &Span<'src> {
+        &self
     }
 }
 
-pub trait AstInfo {}
+pub trait AstInfo<'src> {}
 
-pub trait AstNode<M: AstInfo>: FromPairs<M> {
+pub trait AstNode<'src, M: AstInfo<'src>>: FromPairs<M> {
     fn ast_info(&self) -> &M;
 
     fn traverse<F>(&self, _f: F)
@@ -28,3 +29,4 @@ pub trait AstNode<M: AstInfo>: FromPairs<M> {
         todo!()
     }
 }
+
