@@ -13,7 +13,7 @@ pub fn parse_expression<'src>(
     cache: &mut ParserCache<'src>,
     constructor: &'src Expression,
     mut pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ParseError<'src>> {
+) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ParseError> {
     match constructor {
         //To parse a sort, call parse_sort recursively.
         Expression::Sort(rule) => Ok(parse_sort(state, cache, rule, pos)?

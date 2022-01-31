@@ -14,7 +14,7 @@ pub fn parse_sort<'src>(
     cache: &mut ParserCache<'src>,
     sort: &'src str,
     pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>> {
+) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
     //Check if this result is cached
     let key = (pos.position(), sort);
     if let Some(cached) = cache.get_mut(&key) {
@@ -92,7 +92,7 @@ fn parse_sort_sub<'src>(
     cache: &mut ParserCache<'src>,
     sort: &'src str,
     pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>> {
+) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
     //Obtain the sort
     let sort: &'src Sort = state.rules.get(sort).expect("Name is guaranteed to exist");
 

@@ -113,3 +113,25 @@ failing tests:
     "aaaa"
     ""
 }
+
+peg_test! {
+name: recovery,
+syntax: r#"
+X:
+    X = 'x'+ ';';
+XS:
+    XS = X*;
+start at XS;
+"#,
+passing tests:
+    "x;"
+    "xx;"
+    "xx;x;"
+    "x;xx;x;xxx;"
+failing tests:
+    "x"
+    "xx"
+    "x;x"
+    "xx;;"
+    ";"
+}
