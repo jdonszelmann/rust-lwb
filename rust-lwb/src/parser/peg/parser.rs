@@ -14,12 +14,15 @@ struct ParserState<'src> {
 }
 
 /// This stores the mutable data that is used during the parsing process.
+/// It contains a cache of the results of each (source position, rule).
+/// It also has a stack which contains information about the order in which the keys were inserted, so they can be removed in order when needed.
 struct ParserCache<'src> {
     cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
     cache_stack: VecDeque<(usize, &'src str)>,
 }
 
 impl<'src> ParserCache<'src> {
+    /// Get a mutable reference to an entry
     fn get_mut(
         &mut self,
         key: &(usize, &'src str),
@@ -32,10 +35,12 @@ impl<'src> ParserCache<'src> {
         }
     }
 
+    /// Check if an entry has been read
     fn is_read(&self, key: &(usize, &'src str)) -> Option<bool> {
         self.cache.get(key).map(|v| v.read)
     }
 
+    /// Insert a new entry into the cache
     fn insert(
         &mut self,
         key: (usize, &'src str),
@@ -46,10 +51,12 @@ impl<'src> ParserCache<'src> {
         self.cache_stack.push_back(key);
     }
 
+    /// Check how many items are currently in the stack
     fn state_current(&self) -> usize {
         self.cache_stack.len()
     }
 
+    /// Remove all the items that were inserted after the given stack marker
     fn state_revert(&mut self, state: usize) {
         self.cache_stack.drain(state..).for_each(|key| {
             self.cache.remove(&key);
@@ -57,6 +64,7 @@ impl<'src> ParserCache<'src> {
     }
 }
 
+/// A single entry in the cache. Contains the value, and a flag whether it has been read.
 struct ParserCacheEntry<'src> {
     read: bool,
     value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>>,
