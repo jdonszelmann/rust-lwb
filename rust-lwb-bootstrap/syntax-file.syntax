@@ -1,7 +1,57 @@
 
+identifier:
+    identifier = [A-Za-z_][A-Za-z0-9-_]*; {no-layout}
 
+escape-closing-bracket:
+    unescaped = [^\]];
+    escaped = "\\" [\]];
+
+character-class-item:
+    single-char = escape-closing-bracket; {injection}
+    range = escape-closing-bracket  "-" escape-closing-bracket;
+
+
+string-char:
+    normal = [^"];
+    escape = "\\" [nrt\\];
+
+number:
+    number = [0-9]+;
+
+expression:
+    paren = "(" expression ")"; {injection}
+
+    literal = "\"" "^"? string-char* "\""; {no-layout}
+    sort = identifier;
+    class = "[" character-class-item "]"; {no-layout}
+
+    star = expression "*";
+    plus = expression "+";
+    maybe = expression "?";
+    repeat-exact = expression "{" number "," number? "}";
+
+    sequence = expression expression;
+
+constructor:
+    constructor = "    " identifier "=" expression ";";
+
+newline:
+    unix = "\n";
+    windows = "\r\n";
+
+sort:
+    sort = identifier ":" newline constructor*;
+
+meta:
+    layout = "layout" "=" constructor;
+
+sort-or-meta:
+    meta = meta;
+    sort = sort;
 
 program:
-    a = b*;
+    program = sort-or-meta*;
+
+layout = [\n\r\t ];
 
 start at program;

@@ -3,27 +3,27 @@ use derive_more::Display;
 use enum_iterator::IntoEnumIterator;
 
 #[derive(Debug)]
-pub struct TopLevelConstructor {
+pub struct Constructor {
     pub name: String,
-    pub constructor: Constructor,
+    pub constructor: Expression,
     pub annotations: Vec<Annotation>,
 }
 
 #[derive(Debug)]
-pub enum Constructor {
+pub enum Expression {
     Sort(String),
     Literal(String),
-    Sequence(Vec<Constructor>),
+    Sequence(Vec<Expression>),
     Repeat {
-        c: Box<Constructor>,
+        c: Box<Expression>,
         min: u64,
         max: Option<u64>,
     },
     CharacterClass(CharacterClass),
-    Choice(Vec<Constructor>),
+    Choice(Vec<Expression>),
 
-    Negative(Box<Constructor>),
-    Positive(Box<Constructor>),
+    Negative(Box<Expression>),
+    Positive(Box<Expression>),
 }
 
 #[derive(Debug, IntoEnumIterator, Display)]
@@ -32,12 +32,14 @@ pub enum Annotation {
     NoPrettyPrint,
     #[display(fmt = "no-layout")]
     NoLayout,
+    #[display(fmt = "injection")]
+    Injection
 }
 
 #[derive(Debug)]
 pub struct Sort {
     pub name: String,
-    pub constructors: Vec<TopLevelConstructor>,
+    pub constructors: Vec<Constructor>,
 }
 
 #[derive(Debug)]

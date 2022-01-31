@@ -1,20 +1,14 @@
-use rust_lwb::codegen::generate_language;
-use rust_lwb::parser::bootstrap::parse;
-use rust_lwb::sources::source_file::SourceFile;
-use std::error::Error;
-use std::io::Write;
+mod syntax_file;
 
-/// Contains code related to parsing syntax
-/// definition files
+use std::error::Error;
+use rust_lwb::codegen::manager::CodegenManager;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let sf = SourceFile::open("src/syntax-file.syntax")?;
-    let ast = parse(&sf)?;
+    let mut m = CodegenManager::new();
+    m.add_syntax_file("rust-lwb-bootstrap/syntax-file.syntax")
+        .destination("rust-lwb-bootstrap/src/syntax_file.rs");
 
-    let res = generate_language(ast);
-
-    let mut res_file = std::fs::File::create("src/syntax_file.rs")?;
-    res_file.write_all(res.as_bytes())?;
+    m.codegen()?;
 
     Ok(())
 }

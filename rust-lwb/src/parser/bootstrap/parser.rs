@@ -1,5 +1,5 @@
 use crate::parser::bootstrap::ast::{
-    Annotation, Constructor, Sort, SyntaxFileAst, TopLevelConstructor,
+    Annotation, Expression, Sort, SyntaxFileAst, Constructor,
 };
 use crate::parser::bootstrap::parser::ParseError::{
     DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedEndOfFile,
@@ -167,7 +167,7 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
                 }
             }
 
-            constructors.push(TopLevelConstructor {
+            constructors.push(Constructor {
                 name,
                 constructor,
                 annotations,
@@ -238,7 +238,7 @@ fn parse_number(i: &mut SourceFileIterator) -> ParseResult<u64> {
     Ok(res)
 }
 
-fn parse_constructor(i: &mut SourceFileIterator) -> ParseResult<Constructor> {
+fn parse_constructor(i: &mut SourceFileIterator) -> ParseResult<Expression> {
     let mut lst = vec![parse_simple_constructor(i)?];
 
     loop {
@@ -255,23 +255,23 @@ fn parse_constructor(i: &mut SourceFileIterator) -> ParseResult<Constructor> {
     if lst.len() == 1 {
         Ok(lst.pop().unwrap())
     } else {
-        Ok(Constructor::Sequence(lst))
+        Ok(Expression::Sequence(lst))
     }
 }
 
-fn parse_simple_constructor(i: &mut SourceFileIterator) -> ParseResult<Constructor> {
+fn parse_simple_constructor(i: &mut SourceFileIterator) -> ParseResult<Expression> {
     i.skip_layout(&SYNTAX_FILE_LAYOUT);
     let res = parse_constructor_atom(i)?;
     i.skip_layout(&SYNTAX_FILE_LAYOUT);
 
     if i.accept(&'*'.into()) {
-        Ok(Constructor::Repeat {
+        Ok(Expression::Repeat {
             c: Box::new(res),
             min: 0,
             max: None,
         })
     } else if i.accept(&'+'.into()) {
-        Ok(Constructor::Repeat {
+        Ok(Expression::Repeat {
             c: Box::new(res),
             min: 1,
             max: None,
@@ -292,13 +292,13 @@ fn parse_simple_constructor(i: &mut SourceFileIterator) -> ParseResult<Construct
             ));
         }
 
-        Ok(Constructor::Repeat {
+        Ok(Expression::Repeat {
             c: Box::new(res),
             min,
             max,
         })
     } else if i.accept(&'?'.into()) {
-        Ok(Constructor::Repeat {
+        Ok(Expression::Repeat {
             c: Box::new(res),
             min: 0,
             max: Some(1),
@@ -308,7 +308,7 @@ fn parse_simple_constructor(i: &mut SourceFileIterator) -> ParseResult<Construct
     }
 }
 
-fn parse_constructor_atom(i: &mut SourceFileIterator) -> ParseResult<Constructor> {
+fn parse_constructor_atom(i: &mut SourceFileIterator) -> ParseResult<Expression> {
     i.skip_layout(&SYNTAX_FILE_LAYOUT);
 
     if i.accept(&'('.into()) {
@@ -321,15 +321,15 @@ fn parse_constructor_atom(i: &mut SourceFileIterator) -> ParseResult<Constructor
     }
 
     if let Some(true) = i.peek().map(|c| ['\'', '"'].contains(c)) {
-        return Ok(Constructor::Literal(parse_literal(i)?));
+        return Ok(Expression::Literal(parse_literal(i)?));
     }
 
     if let Some(true) = i.peek().map(|c| ['['].contains(c)) {
-        return Ok(Constructor::CharacterClass(parse_character_class(i)?));
+        return Ok(Expression::CharacterClass(parse_character_class(i)?));
     }
 
     if let Ok(i) = parse_identifier(i) {
-        return Ok(Constructor::Sort(i));
+        return Ok(Expression::Sort(i));
     }
 
     Err(Expected(
@@ -375,7 +375,7 @@ fn parse_identifier(i: &mut SourceFileIterator) -> ParseResult<String> {
             &CharacterClass::from('a'..='z')
                 .combine(CharacterClass::from('A'..='Z'))
                 .combine(CharacterClass::from('0'..='9'))
-                .combine("_$".into()),
+                .combine("_$-".into()),
         ) {
             res.push(c)
         }
@@ -397,10 +397,16 @@ fn parse_character_class(i: &mut SourceFileIterator) -> ParseResult<CharacterCla
             invert = true;
         }
 
-        while let Some(&c) = i.peek() {
-            if c == ']' {
+        while let Some(c) = i.peek() {
+            let mut c = *c;
+            if c == '\\' {
+                i.advance();
+                c = *i.peek().ok_or(UnexpectedEndOfFile)?
+            } else if c == ']' {
                 break;
             }
+
+
             i.advance();
             if i.peek() == Some(&'-') {
                 let lower = c;
