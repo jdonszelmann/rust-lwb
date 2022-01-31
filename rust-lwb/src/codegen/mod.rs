@@ -1,5 +1,5 @@
 use crate::parser::bootstrap::ast::{Expression, SyntaxFileAst};
-use codegen::{Block, Function, Scope};
+use codegen::{Function, Scope};
 use convert_case::{Case, Casing};
 
 pub mod manager;
@@ -41,13 +41,15 @@ pub fn generate_language(syntax: SyntaxFileAst) -> String {
         // f.line("assert_eq!(f.sort);");
         // f.line("match pair.");
 
-        scope.new_impl(&format!("{}<M>", sanitize_identifier(&rule.name)))
+        scope
+            .new_impl(&format!("{}<M>", sanitize_identifier(&rule.name)))
             .impl_trait("FromPairs<M>")
             .generic("M: AstInfo")
             .push_fn(f);
     }
 
-    format!("#![allow(unused)]
+    format!(
+        "#![allow(unused)]
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 // |==========================================================|
@@ -57,12 +59,18 @@ pub fn generate_language(syntax: SyntaxFileAst) -> String {
 // |==========================================================|
 
 
-{}", scope.to_string())
+{}",
+        scope.to_string()
+    )
 }
 
 fn generate_constructor_type(constructor: &Expression) -> Option<String> {
     match constructor {
-        Expression::Sort(sort) => Some(String::from_iter(["Box<", &sanitize_identifier(sort), "<M>>"])),
+        Expression::Sort(sort) => Some(String::from_iter([
+            "Box<",
+            &sanitize_identifier(sort),
+            "<M>>",
+        ])),
         Expression::Sequence(cons) => {
             let mut s = String::new();
             s.push('(');

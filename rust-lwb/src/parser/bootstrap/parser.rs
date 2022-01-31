@@ -1,6 +1,4 @@
-use crate::parser::bootstrap::ast::{
-    Annotation, Expression, Sort, SyntaxFileAst, Constructor,
-};
+use crate::parser::bootstrap::ast::{Annotation, Constructor, Expression, Sort, SyntaxFileAst};
 use crate::parser::bootstrap::parser::ParseError::{
     DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedEndOfFile,
 };
@@ -405,7 +403,6 @@ fn parse_character_class(i: &mut SourceFileIterator) -> ParseResult<CharacterCla
             } else if c == ']' {
                 break;
             }
-
 
             i.advance();
             if i.peek() == Some(&'-') {

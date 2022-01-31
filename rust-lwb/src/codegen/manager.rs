@@ -1,10 +1,10 @@
-use std::io::Write;
-use std::path::{Path, PathBuf};
 use crate::codegen::generate_language;
 use crate::parser::bootstrap::parse;
-use crate::sources::source_file::SourceFile;
-use thiserror::Error;
 use crate::parser::bootstrap::ParseError;
+use crate::sources::source_file::SourceFile;
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum CodegenError {
@@ -14,7 +14,6 @@ pub enum CodegenError {
     #[error("a parse error occurred: {0}")]
     ParseError(#[from] ParseError),
 }
-
 
 pub struct CodeGenJob {
     location: PathBuf,
@@ -27,7 +26,7 @@ impl CodeGenJob {
         destination.set_extension(".rs");
         Self {
             location: p,
-            destination
+            destination,
         }
     }
 
@@ -50,22 +49,22 @@ impl CodeGenJob {
 }
 
 pub struct CodegenManager {
-    jobs: Vec<CodeGenJob>
+    jobs: Vec<CodeGenJob>,
 }
 
 impl CodegenManager {
     pub fn new() -> Self {
-       Self {
-           jobs: vec![]
-       }
+        Self { jobs: vec![] }
     }
 
     pub fn add_syntax_file(&mut self, path: impl AsRef<Path>) -> &mut CodeGenJob {
-        self.jobs.push(CodeGenJob::from_path(path.as_ref().to_path_buf()));
+        self.jobs
+            .push(CodeGenJob::from_path(path.as_ref().to_path_buf()));
 
-        self.jobs.last_mut().expect("must always be a last item since we just pushed something")
+        self.jobs
+            .last_mut()
+            .expect("must always be a last item since we just pushed something")
     }
-
 
     pub fn codegen(self) -> Result<(), CodegenError> {
         for job in self.jobs {
@@ -76,3 +75,8 @@ impl CodegenManager {
     }
 }
 
+impl Default for CodegenManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}

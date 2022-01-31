@@ -33,7 +33,7 @@ pub enum Annotation {
     #[display(fmt = "no-layout")]
     NoLayout,
     #[display(fmt = "injection")]
-    Injection
+    Injection,
 }
 
 #[derive(Debug, Clone)]

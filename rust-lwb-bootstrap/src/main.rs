@@ -1,7 +1,7 @@
 mod syntax_file;
 
-use std::error::Error;
 use rust_lwb::codegen::manager::CodegenManager;
+use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut m = CodegenManager::new();
