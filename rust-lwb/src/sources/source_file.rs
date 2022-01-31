@@ -1,9 +1,9 @@
+use crate::sources::character_class::CharacterClass;
 use std::io;
 use std::io::Read;
 use std::iter::Peekable;
 use std::path::Path;
 use std::rc::Rc;
-use crate::sources::character_class::CharacterClass;
 
 #[doc(hidden)]
 #[derive(Debug)]
@@ -19,20 +19,16 @@ struct Inner {
 pub struct SourceFile(Rc<Inner>);
 
 impl SourceFile {
-
     pub fn open(name: impl AsRef<Path>) -> io::Result<Self> {
-
         let mut f = std::fs::File::open(&name)?;
         let mut contents = String::new();
 
         f.read_to_string(&mut contents)?;
 
-        Ok(Self(
-            Rc::new(Inner {
-                contents,
-                name: name.as_ref().to_string_lossy().to_string()
-            })
-        ))
+        Ok(Self(Rc::new(Inner {
+            contents,
+            name: name.as_ref().to_string_lossy().to_string(),
+        })))
     }
 
     /// Create a new SourceFile

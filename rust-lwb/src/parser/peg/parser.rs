@@ -1,3 +1,4 @@
+use crate::parser::bootstrap::ast::{Constructor, Sort, SyntaxFileAst};
 use crate::parser::peg::parse_error::ParseError;
 use crate::parser::peg::parse_pair::{ParsePairConstructor, ParsePairSort};
 use crate::parser::peg::parse_success::ParseSuccess;
@@ -5,7 +6,6 @@ use crate::sources::source_file::SourceFile;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
 use std::collections::HashMap;
-use crate::parser::bootstrap::ast::{Constructor, Sort, SyntaxFileAst};
 
 /// This stores the data that is used during the parsing process.
 struct ParserState {

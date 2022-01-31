@@ -1,10 +1,14 @@
+use crate::parser::bootstrap::ast::{
+    Annotation, Constructor, Sort, SyntaxFileAst, TopLevelConstructor,
+};
+use crate::parser::bootstrap::parser::ParseError::{
+    DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedEndOfFile,
+};
+use crate::sources::character_class::CharacterClass;
+use crate::sources::source_file::{SourceFile, SourceFileIterator};
 use enum_iterator::IntoEnumIterator;
 use lazy_static::lazy_static;
 use thiserror::Error;
-use crate::parser::bootstrap::ast::{Annotation, Constructor, Sort, SyntaxFileAst, TopLevelConstructor};
-use crate::parser::bootstrap::parser::ParseError::{DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedEndOfFile};
-use crate::sources::character_class::CharacterClass;
-use crate::sources::source_file::{SourceFile, SourceFileIterator};
 
 #[derive(Debug, Error)]
 pub enum ParseError {
@@ -432,8 +436,8 @@ fn parse_character_class(i: &mut SourceFileIterator) -> ParseResult<CharacterCla
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bnf::Grammar;
     use crate::sources::source_file::SourceFile;
+    use bnf::Grammar;
 
     macro_rules! parse_test {
         ($name: ident test that $input: literal parses) => {

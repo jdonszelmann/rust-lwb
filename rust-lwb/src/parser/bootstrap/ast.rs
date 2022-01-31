@@ -1,6 +1,6 @@
+use crate::sources::character_class::CharacterClass;
 use derive_more::Display;
 use enum_iterator::IntoEnumIterator;
-use crate::sources::character_class::CharacterClass;
 
 #[derive(Debug)]
 pub struct TopLevelConstructor {
