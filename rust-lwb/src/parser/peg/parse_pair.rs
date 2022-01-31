@@ -2,6 +2,7 @@ use crate::sources::span::Span;
 
 /// A parse pair is a way of representing an AST, without actually using any datatypes that depend on the language definition.
 /// This represents a parse pair for a sort. It stores which constructor was chosen.
+#[derive(Debug)]
 pub struct ParsePairSort {
     pub sort: String,
     pub constructor_name: String,
@@ -17,6 +18,7 @@ impl ParsePairSort {
 
 /// A parse pair is a way of representing an AST, without actually using any datatypes that depend on the language definition.
 /// This represents a parse pair for a constructor. Each constructor generates one of the variants of this enum.
+#[derive(Debug)]
 pub enum ParsePairConstructor {
     /// This is generated when another sort is mentioned in the definition of this sort.
     /// That sort is parsed and the result is stored here.

@@ -1,3 +1,5 @@
+use itertools::Itertools;
+use std::fmt::{Display, Formatter};
 use std::ops::{Range, RangeInclusive};
 
 /// Represent a class of characters like in a regex
@@ -22,6 +24,32 @@ pub enum CharacterClass {
     Not(Box<CharacterClass>),
     /// Always false. Use Not(Nothing) for always true.
     Nothing,
+}
+
+/// This display trait is very heavily improvised, should be improved in the future!
+impl Display for CharacterClass {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CharacterClass::RangeInclusive { from, to } => {
+                write!(f, "[{}-={}]", from, to)
+            }
+            CharacterClass::Range { from, to } => {
+                write!(f, "[{}-{}]", from, to)
+            }
+            CharacterClass::Contained(list) => {
+                write!(f, "{}", list.iter().join(""))
+            }
+            CharacterClass::Choice(ccs) => {
+                write!(f, "{}", ccs.iter().map(|cc| cc.to_string()).join(" or "))
+            }
+            CharacterClass::Not(not) => {
+                write!(f, "not {}", not)
+            }
+            CharacterClass::Nothing => {
+                write!(f, "")
+            }
+        }
+    }
 }
 
 impl CharacterClass {

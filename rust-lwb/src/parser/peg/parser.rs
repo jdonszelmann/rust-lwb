@@ -23,7 +23,7 @@ pub fn parse_file(syntax: SyntaxFileAst, file: SourceFile) -> Result<ParsePairSo
         rules: HashMap::new(),
     };
     syntax.sorts.into_iter().for_each(|rule| {
-        state.rules.insert(rule.name.clone(), rule).unwrap();
+        state.rules.insert(rule.name.clone(), rule);
     });
 
     //Parse the starting sort
@@ -77,7 +77,7 @@ impl ParserState {
                         },
                         //If one of the previous constructors had a better error, we should return that one
                         best_error: ok.best_error.or(best_error),
-                        pos,
+                        pos: ok.pos,
                     });
                 }
                 Err(err) => {
@@ -266,6 +266,55 @@ impl ParserState {
                     }
                     Err(err) => Err(err),
                 }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::parser::bootstrap::ast::{Constructor, Sort, SyntaxFileAst, TopLevelConstructor};
+    use crate::parser::peg::parser::parse_file;
+    use crate::sources::character_class::CharacterClass;
+    use crate::sources::source_file::SourceFile;
+    use miette::GraphicalReportHandler;
+
+    #[test]
+    pub fn run_example() {
+        let ast = SyntaxFileAst {
+            sorts: vec![Sort {
+                name: "AS".to_string(),
+                constructors: vec![
+                    TopLevelConstructor {
+                        name: "More".to_string(),
+                        constructor: Constructor::Sequence(vec![
+                            Constructor::Literal("a".to_string()),
+                            Constructor::Sort("AS".to_string()),
+                        ]),
+                        annotations: vec![],
+                    },
+                    TopLevelConstructor {
+                        name: "NoMore".to_string(),
+                        constructor: Constructor::Sequence(vec![]),
+                        annotations: vec![],
+                    },
+                ],
+            }],
+            starting_sort: "AS".to_string(),
+            layout: CharacterClass::Nothing,
+        };
+        let sf = SourceFile::new("ab".to_string(), "".to_string());
+        match parse_file(ast, sf) {
+            Ok(ok) => {
+                println!("{:?}", ok);
+            }
+            Err(err) => {
+                let mut s = String::new();
+                GraphicalReportHandler::new()
+                    .with_links(true)
+                    .render_report(&mut s, &err)
+                    .unwrap();
+                print!("{}", s);
             }
         }
     }

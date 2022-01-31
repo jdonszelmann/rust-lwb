@@ -1,16 +1,47 @@
 use crate::sources::character_class::CharacterClass;
 use crate::sources::span::Span;
+use itertools::Itertools;
+use miette::{Diagnostic, LabeledSpan, Severity, SourceCode};
 use std::cmp::Ordering;
+use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
 /// A parsing error represents a single error that occurred during parsing.
 /// The parsing error occurs at a certain position in a file, represented by the span.
 /// The parsing error consists of multiple `ParseErrorSub`, which each represent a single thing that went wrong at this position.
-#[derive(Error, Debug, Clone)]
-#[error("A parsing error occurred. Expected one of: {expected:?}")]
+#[derive(Debug, Clone, Error)]
+#[error("A parse error occured!")]
 pub struct ParseError {
     pub span: Span,
     pub expected: Vec<ParseErrorSub>,
+}
+
+impl Diagnostic for ParseError {
+    /// Diagnostic severity. This may be used by [ReportHandler]s to change the
+    /// display format of this diagnostic.
+    ///
+    /// If `None`, reporters should treat this as [Severity::Error]
+    fn severity(&self) -> Option<Severity> {
+        Some(Severity::Error)
+    }
+
+    /// Source code to apply this Diagnostic's [Diagnostic::labels] to.
+    fn source_code(&self) -> Option<&dyn SourceCode> {
+        Some(&self.span)
+    }
+
+    /// Labels to apply to this Diagnostic's [Diagnostic::source_code]
+    fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
+        let expect_str = self.expected.iter().map(|exp| exp.to_string()).join(", ");
+        let label = if self.expected.len() == 1 {
+            format!("Expected {} here", expect_str)
+        } else {
+            format!("Expected one of {} here", expect_str)
+        };
+        Some(Box::new(
+            [LabeledSpan::new_with_span(Some(label), self.span.clone())].into_iter(),
+        ))
+    }
 }
 
 impl ParseError {
@@ -47,6 +78,22 @@ pub enum ParseErrorSub {
 
     /// This happens when not the entire input was parsed, but also no errors occurred during parsing.
     NotEntireInput(),
+}
+
+impl Display for ParseErrorSub {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParseErrorSub::ExpectCharClass(cc) => {
+                write!(f, "{}", cc)
+            }
+            ParseErrorSub::ExpectString(s) => {
+                write!(f, "\'{}\'", s)
+            }
+            ParseErrorSub::NotEntireInput() => {
+                write!(f, "more input")
+            }
+        }
+    }
 }
 
 impl ParseError {

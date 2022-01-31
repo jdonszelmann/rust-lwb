@@ -1,4 +1,5 @@
 use crate::sources::source_file::SourceFile;
+use miette::{MietteError, SourceCode, SourceSpan, SpanContents};
 
 /// Represents a certain range of a file. This is useful for marking the locations that certain tokens or errors occur.
 /// The position and length are both in BYTES. The byte offsets provided should be valid.
@@ -27,5 +28,27 @@ impl Span {
             position,
             length: end - position,
         }
+    }
+}
+
+impl SourceCode for Span {
+    fn read_span<'a>(
+        &'a self,
+        span: &SourceSpan,
+        context_lines_before: usize,
+        context_lines_after: usize,
+    ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
+        <str as SourceCode>::read_span(
+            self.source.contents(),
+            span,
+            context_lines_before,
+            context_lines_after,
+        )
+    }
+}
+
+impl From<Span> for SourceSpan {
+    fn from(span: Span) -> Self {
+        SourceSpan::from((span.position, span.length))
     }
 }
