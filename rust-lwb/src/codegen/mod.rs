@@ -12,7 +12,8 @@ pub fn generate_language(syntax: SyntaxFileAst) -> String {
         for constr in &rule.constructors {
             let variant = enumm.new_variant(&constr.name);
             variant.tuple("M");
-            let typ = generate_constructor_type(&constr.constructor).unwrap_or_else(||"()".to_string());
+            let typ =
+                generate_constructor_type(&constr.constructor).unwrap_or_else(|| "()".to_string());
             let typ = if typ.starts_with('(') {
                 &typ[1..typ.len() - 1]
             } else {
@@ -61,7 +62,7 @@ fn generate_constructor_type(constructor: &Constructor) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::codegen::codegen::generate_language;
+    use crate::codegen::generate_language;
     use crate::parser::bootstrap::ast::{Constructor, Sort, SyntaxFileAst, TopLevelConstructor};
     use crate::sources::character_class::CharacterClass;
 
@@ -92,4 +93,3 @@ mod tests {
         generate_language(ast);
     }
 }
-
