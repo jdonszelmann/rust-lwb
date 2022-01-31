@@ -9,3 +9,5 @@ pub mod peg;
 /// Simple version of the syntax file parser
 /// used for bootstrapping.
 pub mod bootstrap;
+
+pub mod syntax_file;

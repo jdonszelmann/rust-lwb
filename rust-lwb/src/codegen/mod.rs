@@ -113,10 +113,10 @@ fn generate_unpack(f: &mut Function, sort: &str, constructor: &str, expression: 
     }
 }
 
-pub fn generate_language(syntax: SyntaxFileAst) -> String {
+pub fn generate_language(syntax: SyntaxFileAst, import_location: &str) -> String {
     let mut scope = Scope::new();
 
-    scope.import("rust_lwb::codegen_prelude", "*");
+    scope.import(&format!("{}::codegen_prelude", import_location), "*");
 
     for rule in &syntax.sorts {
         let enumm = scope.new_enum(&sanitize_identifier(&rule.name));
@@ -134,6 +134,8 @@ pub fn generate_language(syntax: SyntaxFileAst) -> String {
             variant.tuple(typ);
         }
     }
+
+    scope.raw(&format!("pub type AST_ROOT<M> = {}<M>;", sanitize_identifier(&syntax.starting_sort)));
 
     // TODO: put these definition in a different file
     for rule in &syntax.sorts {
@@ -225,39 +227,5 @@ fn generate_constructor_type(constructor: &Expression) -> Option<String> {
         Expression::Negative(_) => None,
         Expression::Positive(_) => None,
         Expression::Literal(_) => None,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::codegen::generate_language;
-    use crate::parser::bootstrap::ast::{Constructor, Expression, Sort, SyntaxFileAst};
-    use crate::sources::character_class::CharacterClass;
-
-    #[test]
-    pub fn run_example() {
-        let ast = SyntaxFileAst {
-            sorts: vec![Sort {
-                name: "AS".to_string(),
-                constructors: vec![
-                    Constructor {
-                        name: "More".to_string(),
-                        constructor: Expression::Sequence(vec![
-                            Expression::Literal("a".to_string()),
-                            Expression::Sort("AS".to_string()),
-                        ]),
-                        annotations: vec![],
-                    },
-                    Constructor {
-                        name: "NoMore".to_string(),
-                        constructor: Expression::Sequence(vec![]),
-                        annotations: vec![],
-                    },
-                ],
-            }],
-            starting_sort: "A".to_string(),
-            layout: CharacterClass::Nothing,
-        };
-        generate_language(ast);
     }
 }
