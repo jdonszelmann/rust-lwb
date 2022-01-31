@@ -14,6 +14,7 @@ use thiserror::Error;
 pub struct ParseError {
     pub span: Span,
     pub expected: Vec<ParseErrorSub>,
+    pub left_rec: bool,
 }
 
 impl Diagnostic for ParseError {
@@ -33,13 +34,24 @@ impl Diagnostic for ParseError {
     /// Labels to apply to this Diagnostic's [Diagnostic::source_code]
     fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
         let expect_str = self.expected.iter().map(|exp| exp.to_string()).join(", ");
-        let label = if self.expected.len() == 1 {
-            format!("Expected {} here", expect_str)
-        } else {
-            format!("Expected one of {} here", expect_str)
-        };
+        let mut labels = vec![];
+
+        //Leftrec label
+        if self.left_rec {
+            labels.push(LabeledSpan::new_with_span(Some(format!("Encountered left recursion here. This is a problem with the grammar, and may hide other errors.")), self.span.clone()));
+        }
+
+        //Expected label
+        if self.expected.len() == 1 {
+            labels.push(LabeledSpan::new_with_span(Some(format!("Expected {} here", expect_str)), self.span.clone()));
+        } else if self.expected.len() >= 1 {
+            labels.push(LabeledSpan::new_with_span(Some(format!("Expected one of {} here", expect_str)), self.span.clone()));
+        }
+
+
+
         Some(Box::new(
-            [LabeledSpan::new_with_span(Some(label), self.span.clone())].into_iter(),
+            labels.into_iter(),
         ))
     }
 }
@@ -49,6 +61,7 @@ impl ParseError {
         ParseError {
             span,
             expected: vec![ParseErrorSub::ExpectCharClass(val)],
+            left_rec: false
         }
     }
 
@@ -56,6 +69,7 @@ impl ParseError {
         ParseError {
             span,
             expected: vec![ParseErrorSub::ExpectString(val)],
+            left_rec: false
         }
     }
 
@@ -63,6 +77,15 @@ impl ParseError {
         ParseError {
             span,
             expected: vec![ParseErrorSub::NotEntireInput()],
+            left_rec: false
+        }
+    }
+
+    pub fn left_recursion(span: Span) -> Self {
+        ParseError {
+            span,
+            expected: vec![],
+            left_rec: true
         }
     }
 }
@@ -114,6 +137,8 @@ impl ParseError {
                 self.span.length = self.span.length.max(other.span.length);
                 //Merge the expected tokens
                 self.expected.append(&mut other.expected);
+                //Left recursion
+                self.left_rec |= other.left_rec;
 
                 self
             }

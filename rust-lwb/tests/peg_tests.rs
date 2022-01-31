@@ -24,7 +24,7 @@ macro_rules! peg_test {
                     assert!(false);
                 }
             }
-            )+
+            )*
 
             $(
             let sf2 = SourceFile::new($input_fail.to_string(), "input.language".to_string());
@@ -37,13 +37,13 @@ macro_rules! peg_test {
                 }
                 Err(_) => {}
             }
-            )+
+            )*
         }
     };
 }
 
 peg_test! {
-name: language_of_as,
+name: language_of_as_rightrec,
 syntax: r#"
 As:
     More = 'a' As;
@@ -60,4 +60,40 @@ failing tests:
     "ab"
     "ba"
     "aac"
+}
+
+peg_test! {
+name: language_of_as_leftrec,
+syntax: r#"
+As:
+    More = As 'a';
+    NoMore = '';
+start at As;
+"#,
+passing tests:
+    ""
+    "a"
+    "aa"
+    "aaa"
+failing tests:
+    "b"
+    "ab"
+    "ba"
+    "aac"
+}
+
+peg_test! {
+name: language_of_actual_leftrec,
+syntax: r#"
+X:
+    Fail = X;
+start at X;
+"#,
+passing tests:
+failing tests:
+    ""
+    "a"
+    "aa"
+    "aaa"
+    "aaaa"
 }

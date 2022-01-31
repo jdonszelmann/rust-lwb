@@ -253,7 +253,7 @@ impl<'a> SourceFileIterator<'a> {
     /// assert_eq!(sfi.position(), 4);
     /// sfi.advance(); //Already at the end, so it has no effect on position
     /// assert_eq!(sfi.position(), 4);
-    pub fn position(&mut self) -> usize {
+    pub fn position(&self) -> usize {
         self.index
     }
 }
