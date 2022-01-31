@@ -34,7 +34,7 @@ pub fn parse_file<'src>(
         rules: HashMap::new(),
     };
     syntax.sorts.iter().for_each(|rule| {
-        state.rules.insert(&rule.name, &rule);
+        state.rules.insert(&rule.name, rule);
     });
 
     let mut cache = ParserCache {
@@ -58,7 +58,7 @@ pub fn parse_file<'src>(
                 while ok.pos.next().is_some() {}
                 let endpos = ok.pos.position();
                 Err(ParseError::not_entire_input(Span::from_end(
-                    &file, curpos, endpos,
+                    file, curpos, endpos,
                 )))
             }
         }
@@ -84,7 +84,7 @@ fn parse_sort<'src>(
     cache.cache.insert(
         key,
         Err(ParseError::left_recursion(Span::from_length(
-            &state.file,
+            state.file,
             pos.position(),
             0,
         ))),
@@ -136,16 +136,16 @@ fn parse_sort_sub<'src>(
 fn parse_constructor<'src>(
     state: &ParserState<'src>,
     cache: &mut ParserCache<'src>,
-    constructor: &'src Expression,
+    constructor: &'src Constructor,
     mut pos: SourceFileIterator<'src>,
 ) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ParseError<'src>> {
     match constructor {
         //To parse a sort, call parse_sort recursively.
-        Expression::Sort(rule) => Ok(parse_sort(state, cache, rule, pos)?
+        Constructor::Sort(rule) => Ok(parse_sort(state, cache, rule, pos)?
             .map(|s: ParsePairSort<'src>| ParsePairExpression::Sort(s.span(), Box::new(s)))),
         //To parse a literal, use accept_str to check if it parses.
-        Expression::Literal(lit) => {
-            let span = Span::from_length(&state.file, pos.position(), lit.len());
+        Constructor::Literal(lit) => {
+            let span = Span::from_length(state.file, pos.position(), lit.len());
             if pos.accept_str(lit) {
                 Ok(ParseSuccess {
                     result: ParsePairExpression::Empty(span),
@@ -159,7 +159,7 @@ fn parse_constructor<'src>(
         //To parse a sequence, parse each constructor in the sequence.
         //The results are added to `results`, and the best error and position are updated each time.
         //Finally, construct a `ParsePairConstructor::List` with the results.
-        Expression::Sequence(constructors) => {
+        Constructor::Sequence(constructors) => {
             let mut results = vec![];
             let mut best_error = None;
             let start_pos = pos.position();
@@ -181,7 +181,7 @@ fn parse_constructor<'src>(
             }
 
             //Construct result
-            let span = Span::from_end(&state.file, start_pos, pos.position());
+            let span = Span::from_end(state.file, start_pos, pos.position());
             Ok(ParseSuccess {
                 result: ParsePairExpression::List(span, results),
                 best_error,
@@ -192,7 +192,7 @@ fn parse_constructor<'src>(
         //Then keep trying to parse the constructor until the maximum is reached.
         //The results are added to `results`, and the best error and position are updated each time.
         //Finally, construct a `ParsePairConstructor::List` with the results.
-        Expression::Repeat { c, min, max } => {
+        Constructor::Repeat { c, min, max } => {
             let mut results = vec![];
             let mut best_error = None;
             let start_pos = pos.position();
@@ -230,7 +230,7 @@ fn parse_constructor<'src>(
             }
 
             //Construct result
-            let span = Span::from_end(&state.file, start_pos, pos.position());
+            let span = Span::from_end(state.file, start_pos, pos.position());
             Ok(ParseSuccess {
                 result: ParsePairExpression::List(span, results),
                 best_error,
@@ -238,8 +238,8 @@ fn parse_constructor<'src>(
             })
         }
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
-        Expression::CharacterClass(characters) => {
-            let span = Span::from_length(&state.file, pos.position(), 1);
+        Constructor::CharacterClass(characters) => {
+            let span = Span::from_length(state.file, pos.position(), 1);
             if pos.accept(characters) {
                 Ok(ParseSuccess {
                     result: ParsePairExpression::Empty(span),
@@ -252,7 +252,7 @@ fn parse_constructor<'src>(
         }
         //To parse a choice, try each constructor, keeping track of the best error that occurred while doing so.
         //If none of the constructors succeed, we will return this error.
-        Expression::Choice(constructors) => {
+        Constructor::Choice(constructors) => {
             let mut best_error = None;
             for (i, subconstructor) in constructors.iter().enumerate() {
                 match parse_constructor(state, cache, subconstructor, pos.clone()) {
@@ -279,7 +279,7 @@ fn parse_constructor<'src>(
         //To parse a negative, try parsing the constructor.
         //If it succeeds, we need to make an error, not sure how
         //If it fails, we return ok.
-        Expression::Negative(constructor) => {
+        Constructor::Negative(constructor) => {
             match parse_constructor(state, cache, constructor.as_ref(), pos.clone()) {
                 Ok(_) => {
                     todo!() //Negatives are complicated with errors

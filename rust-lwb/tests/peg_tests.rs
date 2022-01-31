@@ -62,25 +62,25 @@ failing tests:
     "aac"
 }
 
-peg_test! {
-name: as_leftrec,
-syntax: r#"
-As:
-    More = As 'a';
-    NoMore = '';
-start at As;
-"#,
-passing tests:
-    ""
-    "a"
-    "aa"
-    "aaa"
-failing tests:
-    "b"
-    "ab"
-    "ba"
-    "aac"
-}
+// peg_test! {
+// name: as_leftrec,
+// syntax: r#"
+// As:
+//     More = As 'a';
+//     NoMore = '';
+// start at As;
+// "#,
+// passing tests:
+//     ""
+//     "a"
+//     "aa"
+//     "aaa"
+// failing tests:
+//     "b"
+//     "ab"
+//     "ba"
+//     "aac"
+// }
 
 peg_test! {
 name: actual_leftrec,
