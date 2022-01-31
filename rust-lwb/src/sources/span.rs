@@ -29,6 +29,10 @@ impl<'src> Span<'src> {
             length: end - position,
         }
     }
+
+    pub fn as_str(&'src self) -> &'src str {
+        &self.source.contents()[self.position..self.position + self.length]
+    }
 }
 
 impl SourceCode for Span<'_> {

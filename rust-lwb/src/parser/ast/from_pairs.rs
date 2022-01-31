@@ -23,7 +23,7 @@ where
 pub enum FromPairsError {}
 
 pub trait FromPairs<M: AstInfo> {
-    fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: ParsePairSort, generator: G) -> Self
+    fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self
     where
         Self: Sized;
 }
