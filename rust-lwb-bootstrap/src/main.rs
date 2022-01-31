@@ -1,4 +1,4 @@
-mod syntax_file;
+// mod syntax_file;
 
 use rust_lwb::codegen::manager::CodegenManager;
 use std::error::Error;
