@@ -34,7 +34,7 @@ pub fn parse_file<'src>(
         rules: HashMap::new(),
     };
     syntax.sorts.iter().for_each(|rule| {
-        state.rules.insert(&rule.name, &rule);
+        state.rules.insert(&rule.name, rule);
     });
 
     let mut cache = ParserCache {
@@ -58,7 +58,7 @@ pub fn parse_file<'src>(
                 while ok.pos.next().is_some() {}
                 let endpos = ok.pos.position();
                 Err(ParseError::not_entire_input(Span::from_end(
-                    &file, curpos, endpos,
+                    file, curpos, endpos,
                 )))
             }
         }
@@ -84,7 +84,7 @@ fn parse_sort<'src>(
     cache.cache.insert(
         key,
         Err(ParseError::left_recursion(Span::from_length(
-            &state.file,
+            state.file,
             pos.position(),
             0,
         ))),
@@ -145,7 +145,7 @@ fn parse_constructor<'src>(
             .map(|s: ParsePairSort<'src>| ParsePairExpression::Sort(s.span(), Box::new(s)))),
         //To parse a literal, use accept_str to check if it parses.
         Constructor::Literal(lit) => {
-            let span = Span::from_length(&state.file, pos.position(), lit.len());
+            let span = Span::from_length(state.file, pos.position(), lit.len());
             if pos.accept_str(lit) {
                 Ok(ParseSuccess {
                     result: ParsePairExpression::Empty(span),
@@ -181,7 +181,7 @@ fn parse_constructor<'src>(
             }
 
             //Construct result
-            let span = Span::from_end(&state.file, start_pos, pos.position());
+            let span = Span::from_end(state.file, start_pos, pos.position());
             Ok(ParseSuccess {
                 result: ParsePairExpression::List(span, results),
                 best_error,
@@ -230,7 +230,7 @@ fn parse_constructor<'src>(
             }
 
             //Construct result
-            let span = Span::from_end(&state.file, start_pos, pos.position());
+            let span = Span::from_end(state.file, start_pos, pos.position());
             Ok(ParseSuccess {
                 result: ParsePairExpression::List(span, results),
                 best_error,
@@ -239,7 +239,7 @@ fn parse_constructor<'src>(
         }
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
         Constructor::CharacterClass(characters) => {
-            let span = Span::from_length(&state.file, pos.position(), 1);
+            let span = Span::from_length(state.file, pos.position(), 1);
             if pos.accept(characters) {
                 Ok(ParseSuccess {
                     result: ParsePairExpression::Empty(span),
