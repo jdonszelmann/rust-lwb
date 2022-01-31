@@ -120,6 +120,8 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str) -> String
 
     for rule in &syntax.sorts {
         let enumm = scope.new_enum(&sanitize_identifier(&rule.name));
+        enumm.vis("pub");
+
         enumm.generic("M : AstInfo");
         for constr in &rule.constructors {
             let variant = enumm.new_variant(&sanitize_identifier(&constr.name));
@@ -135,7 +137,10 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str) -> String
         }
     }
 
-    scope.raw(&format!("pub type AST_ROOT<M> = {}<M>;", sanitize_identifier(&syntax.starting_sort)));
+    scope.raw(&format!(
+        "pub type AST_ROOT<M> = {}<M>;",
+        sanitize_identifier(&syntax.starting_sort)
+    ));
 
     // TODO: put these definition in a different file
     for rule in &syntax.sorts {

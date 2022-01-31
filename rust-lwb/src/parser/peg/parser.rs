@@ -26,7 +26,7 @@ impl<'src> ParserCache<'src> {
     fn get_mut(
         &mut self,
         key: &(usize, &'src str),
-    ) -> Option<&mut Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>>> {
+    ) -> Option<&mut Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError>> {
         if let Some(v) = self.cache.get_mut(key) {
             v.read = true;
             Some(&mut v.value)
@@ -44,7 +44,7 @@ impl<'src> ParserCache<'src> {
     fn insert(
         &mut self,
         key: (usize, &'src str),
-        value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>>,
+        value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError>,
     ) {
         self.cache
             .insert(key, ParserCacheEntry { read: false, value });
@@ -67,7 +67,7 @@ impl<'src> ParserCache<'src> {
 /// A single entry in the cache. Contains the value, and a flag whether it has been read.
 struct ParserCacheEntry<'src> {
     read: bool,
-    value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>>,
+    value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError>,
 }
 
 /// Parses a file, given the syntax to parse it with, and the file.

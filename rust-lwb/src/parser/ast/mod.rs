@@ -12,7 +12,7 @@ impl AstInfo for Span {}
 
 impl SpannedAstInfo for Span {
     fn span(&self) -> &Span {
-        &self
+        self
     }
 }
 
@@ -29,4 +29,3 @@ pub trait AstNode<M: AstInfo>: FromPairs<M> {
         todo!()
     }
 }
-
