@@ -1,5 +1,5 @@
 use codegen::Scope;
-use crate::parser::syntax_file::ast::{Constructor, SyntaxFileAst};
+use crate::parser::bootstrap::ast::{Constructor, SyntaxFileAst};
 
 pub fn generate_language(syntax: SyntaxFileAst) -> String {
     let mut scope = Scope::new();
@@ -59,8 +59,8 @@ fn generate_constructor_type(constructor: &Constructor) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use crate::codegen::codegen::generate_language;
-    use crate::parser::syntax_file::ast::{Constructor, Sort, SyntaxFileAst, TopLevelConstructor};
-    use crate::parser::syntax_file::character_class::CharacterClass;
+    use crate::parser::bootstrap::ast::{Constructor, Sort, SyntaxFileAst, TopLevelConstructor};
+    use crate::sources::character_class::CharacterClass;
 
     #[test]
     pub fn run_example() {

@@ -1,4 +1,4 @@
-use crate::span::Span;
+use crate::sources::span::Span;
 
 /// A parse pair is a way of representing an AST, without actually using any datatypes that depend on the language definition.
 /// This represents a parse pair for a sort. It stores which constructor was chosen.

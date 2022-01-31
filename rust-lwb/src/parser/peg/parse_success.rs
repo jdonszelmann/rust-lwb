@@ -1,5 +1,5 @@
 use crate::parser::peg::parse_error::ParseError;
-use crate::source_file::SourceFileIterator;
+use crate::sources::source_file::SourceFileIterator;
 
 /// Represents a parser that parsed its value successfully.
 /// It parsed the value of type `O`.
