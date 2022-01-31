@@ -8,35 +8,35 @@ use crate::sources::span::Span;
 use std::collections::HashMap;
 
 /// This stores the immutable data that is used during the parsing process.
-struct ParserState {
-    file: SourceFile,
-    rules: HashMap<String, Sort>,
+struct ParserState<'src> {
+    file: &'src SourceFile,
+    rules: HashMap<&'src str, &'src Sort>,
 }
 
 /// This stores the mutable data that is used during the parsing process.
-struct ParserCache<'a> {
-    cache: HashMap<(usize, String), Result<ParseSuccess<'a, ParsePairSort>, ParseError>>
+struct ParserCache<'src> {
+    cache: HashMap<(usize, &'src str), Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>>>,
 }
 
 /// Parses a file, given the syntax to parse it with, and the file.
 /// When successful, it returns a `ParsePairSort`.
 /// When unsuccessful, it returns a `ParseError`.
-pub fn parse_file<'syn>(syntax: &'syn SyntaxFileAst, file: SourceFile) -> Result<ParsePairSort, ParseError> {
+pub fn parse_file<'src>(syntax: &'src SyntaxFileAst, file: &'src SourceFile) -> Result<ParsePairSort<'src>, ParseError<'src>> {
     //Create a new parser state
     let mut state = ParserState {
-        file: file.clone(),
+        file,
         rules: HashMap::new(),
     };
     syntax.sorts.iter().for_each(|rule| {
-        state.rules.insert(rule.name.clone(), rule.clone());
+        state.rules.insert(&rule.name, &rule);
     });
-    
+
     let mut cache = ParserCache {
-        cache: HashMap::new()
+        cache: HashMap::new(),
     };
 
     //Parse the starting sort
-    let mut ok = parse_sort(&state, &mut cache, &syntax.starting_sort, file.iter())?;
+    let mut ok: ParseSuccess<ParsePairSort<'src>> = parse_sort(&state, &mut cache, &syntax.starting_sort, file.iter())?;
 
     //If there is no input left, return Ok.
     if ok.pos.peek().is_none() {
@@ -51,7 +51,7 @@ pub fn parse_file<'syn>(syntax: &'syn SyntaxFileAst, file: SourceFile) -> Result
                 while ok.pos.next().is_some() {}
                 let endpos = ok.pos.position();
                 Err(ParseError::not_entire_input(Span::from_end(
-                    file.clone(),
+                    &file,
                     curpos,
                     endpos,
                 )))
@@ -63,39 +63,45 @@ pub fn parse_file<'syn>(syntax: &'syn SyntaxFileAst, file: SourceFile) -> Result
 /// Given the name of a sort and the current position, attempts to parse this sort.
 /// The name of the provided sort must exist.
 fn parse_sort<'src>(
-    state: &ParserState,
+    state: &ParserState<'src>,
     cache: &mut ParserCache<'src>,
-    sort: &str,
+    sort: &'src str,
     pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairSort>, ParseError> {
+) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>> {
     //Check if this result is cached
-    let key = (pos.position(), sort.to_string());
+    let key = (pos.position(), sort);
     if let Some(cached) = cache.cache.get(&key) {
-        return (*cached).clone()
+        return (*cached).clone();
     }
 
     //Before executing, put a value for the current position in the cache.
     //This value is used if the rule is left-recursive
-    cache.cache.insert(key.clone(), Err(ParseError::left_recursion(Span::from_length(state.file.clone(), pos.position(), 0))));
+    cache.cache.insert(
+        key,
+        Err(ParseError::left_recursion(Span::from_length(
+            &state.file,
+            pos.position(),
+            0,
+        ))),
+    );
 
     //Now execute the actual rule
     let res = parse_sort_sub(state, cache, sort, pos);
 
     //Now update the cache with the real value
-    *cache.cache.get_mut(&key).unwrap() = res.clone() ;
+    *cache.cache.get_mut(&key).unwrap() = res.clone();
 
     //Return result
     res
-
 }
 fn parse_sort_sub<'src>(
-    state: &ParserState,
+    state: &ParserState<'src>,
     cache: &mut ParserCache<'src>,
-    sort: &str,
+    sort: &'src str,
     pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairSort>, ParseError> {
+) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>> {
     //Obtain the sort
-    let sort = state.rules.get(sort).unwrap(); //Safe: Name is guaranteed to exist.
+    let sort: &'src Sort = state.rules.get(sort).expect("Name is guaranteed to exist");
 
     //Try each constructor, keeping track of the best error that occurred while doing so.
     //If none of the constructors succeed, we will return this error.
@@ -106,8 +112,8 @@ fn parse_sort_sub<'src>(
                 return Ok(ParseSuccess {
                     //TODO should be a bit smarter and avoid these clones
                     result: ParsePairSort {
-                        sort: sort.name.clone(),
-                        constructor_name: constructor.name.clone(),
+                        sort: &sort.name,
+                        constructor_name: &constructor.name,
                         constructor_value: ok.result,
                     },
                     //If one of the previous constructors had a better error, we should return that one
@@ -115,28 +121,26 @@ fn parse_sort_sub<'src>(
                     pos: ok.pos,
                 });
             }
-            Err(err) => {
-                best_error = ParseError::combine_option_parse_error(best_error, Some(err))
-            }
+            Err(err) => best_error = ParseError::combine_option_parse_error(best_error, Some(err)),
         }
     }
-    Err(best_error.unwrap()) //Safe: Each sort has at least one constructor
+    Err(best_error.expect("Each sort has at least one constructor"))
 }
 
 /// Given a constructor and the current position, attempts to parse this constructor.
 fn parse_constructor<'src>(
-    state: &ParserState,
+    state: &ParserState<'src>,
     cache: &mut ParserCache<'src>,
-    constructor: &Constructor,
+    constructor: &'src Constructor,
     mut pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairConstructor>, ParseError> {
+) -> Result<ParseSuccess<'src, ParsePairConstructor<'src>>, ParseError<'src>> {
     match constructor {
         //To parse a sort, call parse_sort recursively.
         Constructor::Sort(rule) => Ok(parse_sort(state, cache, rule, pos)?
-            .map(|s| ParsePairConstructor::Sort(s.span(), Box::new(s)))),
+            .map(|s: ParsePairSort<'src>| ParsePairConstructor::Sort(s.span(), Box::new(s)))),
         //To parse a literal, use accept_str to check if it parses.
         Constructor::Literal(lit) => {
-            let span = Span::from_length(state.file.clone(), pos.position(), lit.len());
+            let span = Span::from_length(&state.file, pos.position(), lit.len());
             if pos.accept_str(lit) {
                 Ok(ParseSuccess {
                     result: ParsePairConstructor::Empty(span),
@@ -165,15 +169,14 @@ fn parse_constructor<'src>(
                         results.push(ok.result);
                     }
                     Err(err) => {
-                        best_error =
-                            ParseError::combine_option_parse_error(best_error, Some(err));
+                        best_error = ParseError::combine_option_parse_error(best_error, Some(err));
                         return Err(best_error.unwrap());
                     }
                 }
             }
 
             //Construct result
-            let span = Span::from_end(state.file.clone(), start_pos, pos.position());
+            let span = Span::from_end(&state.file, start_pos, pos.position());
             Ok(ParseSuccess {
                 result: ParsePairConstructor::List(span, results),
                 best_error,
@@ -199,8 +202,7 @@ fn parse_constructor<'src>(
                             ParseError::combine_option_parse_error(best_error, ok.best_error);
                     }
                     Err(err) => {
-                        best_error =
-                            ParseError::combine_option_parse_error(best_error, Some(err));
+                        best_error = ParseError::combine_option_parse_error(best_error, Some(err));
                         return Err(best_error.unwrap());
                     }
                 }
@@ -216,15 +218,14 @@ fn parse_constructor<'src>(
                             ParseError::combine_option_parse_error(best_error, ok.best_error);
                     }
                     Err(err) => {
-                        best_error =
-                            ParseError::combine_option_parse_error(best_error, Some(err));
+                        best_error = ParseError::combine_option_parse_error(best_error, Some(err));
                         break;
                     }
                 }
             }
 
             //Construct result
-            let span = Span::from_end(state.file.clone(), start_pos, pos.position());
+            let span = Span::from_end(&state.file, start_pos, pos.position());
             Ok(ParseSuccess {
                 result: ParsePairConstructor::List(span, results),
                 best_error,
@@ -233,7 +234,7 @@ fn parse_constructor<'src>(
         }
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
         Constructor::CharacterClass(characters) => {
-            let span = Span::from_length(state.file.clone(), pos.position(), 1);
+            let span = Span::from_length(&state.file, pos.position(), 1);
             if pos.accept(characters) {
                 Ok(ParseSuccess {
                     result: ParsePairConstructor::Empty(span),
@@ -264,8 +265,7 @@ fn parse_constructor<'src>(
                         });
                     }
                     Err(err) => {
-                        best_error =
-                            ParseError::combine_option_parse_error(best_error, Some(err))
+                        best_error = ParseError::combine_option_parse_error(best_error, Some(err))
                     }
                 }
             }

@@ -11,13 +11,13 @@ use thiserror::Error;
 /// The parsing error consists of multiple `ParseErrorSub`, which each represent a single thing that went wrong at this position.
 #[derive(Debug, Clone, Error)]
 #[error("A parse error occured!")]
-pub struct ParseError {
-    pub span: Span,
+pub struct ParseError<'src> {
+    pub span: Span<'src>,
     pub expected: Vec<ParseErrorSub>,
     pub left_rec: bool,
 }
 
-impl Diagnostic for ParseError {
+impl Diagnostic for ParseError<'_> {
     /// Diagnostic severity. This may be used by [ReportHandler]s to change the
     /// display format of this diagnostic.
     ///
@@ -38,54 +38,56 @@ impl Diagnostic for ParseError {
 
         //Leftrec label
         if self.left_rec {
-            labels.push(LabeledSpan::new_with_span(Some(format!("Encountered left recursion here. This is a problem with the grammar, and may hide other errors.")), self.span.clone()));
+            labels.push(LabeledSpan::new_with_span(Some("Encountered left recursion here. This is a problem with the grammar, and may hide other errors.".to_string()), self.span.clone()));
         }
 
         //Expected label
-        if self.expected.len() == 1 {
-            labels.push(LabeledSpan::new_with_span(Some(format!("Expected {} here", expect_str)), self.span.clone()));
-        } else if self.expected.len() >= 1 {
-            labels.push(LabeledSpan::new_with_span(Some(format!("Expected one of {} here", expect_str)), self.span.clone()));
+        match self.expected.len() {
+            0 => {}
+            1 => labels.push(LabeledSpan::new_with_span(
+                Some(format!("Expected {} here", expect_str)),
+                self.span.clone(),
+            )),
+            _ => labels.push(LabeledSpan::new_with_span(
+                Some(format!("Expected one of {} here", expect_str)),
+                self.span.clone(),
+            )),
         }
 
-
-
-        Some(Box::new(
-            labels.into_iter(),
-        ))
+        Some(Box::new(labels.into_iter()))
     }
 }
 
-impl ParseError {
-    pub fn expect_char_class(span: Span, val: CharacterClass) -> Self {
+impl<'src> ParseError<'src> {
+    pub fn expect_char_class(span: Span<'src>, val: CharacterClass) -> Self {
         ParseError {
             span,
             expected: vec![ParseErrorSub::ExpectCharClass(val)],
-            left_rec: false
+            left_rec: false,
         }
     }
 
-    pub fn expect_string(span: Span, val: String) -> Self {
+    pub fn expect_string(span: Span<'src>, val: String) -> Self {
         ParseError {
             span,
             expected: vec![ParseErrorSub::ExpectString(val)],
-            left_rec: false
+            left_rec: false,
         }
     }
 
-    pub fn not_entire_input(span: Span) -> Self {
+    pub fn not_entire_input(span: Span<'src>) -> Self {
         ParseError {
             span,
             expected: vec![ParseErrorSub::NotEntireInput()],
-            left_rec: false
+            left_rec: false,
         }
     }
 
-    pub fn left_recursion(span: Span) -> Self {
+    pub fn left_recursion(span: Span<'src>) -> Self {
         ParseError {
             span,
             expected: vec![],
-            left_rec: true
+            left_rec: true,
         }
     }
 }
@@ -119,13 +121,13 @@ impl Display for ParseErrorSub {
     }
 }
 
-impl ParseError {
+impl<'src> ParseError<'src> {
     /// Combine multiple parse errors. When one has precedence over
     /// another, the highest precedence error is kept and the other
     /// is discarded.
     ///
     /// Highest precedence is defined as furthest starting position for now. This might be changed later.
-    pub fn combine(mut self, mut other: ParseError) -> ParseError {
+    pub fn combine(mut self, mut other: ParseError<'src>) -> ParseError<'src> {
         assert_eq!(self.span.source.name(), other.span.source.name());
 
         //Compare the starting positions of the span
@@ -148,9 +150,9 @@ impl ParseError {
     /// A helper that combines optional parse errors, and returns an optional parse error if either exists.
     /// If both exist, use `ParseError::combine` to combine the errors.
     pub fn combine_option_parse_error(
-        a: Option<ParseError>,
-        b: Option<ParseError>,
-    ) -> Option<ParseError> {
+        a: Option<ParseError<'src>>,
+        b: Option<ParseError<'src>>,
+    ) -> Option<ParseError<'src>> {
         match (a, b) {
             (None, None) => None,
             (None, Some(e)) => Some(e),

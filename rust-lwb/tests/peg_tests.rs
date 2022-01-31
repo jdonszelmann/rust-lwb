@@ -10,7 +10,7 @@ macro_rules! peg_test {
 
             $(
             let sf2 = SourceFile::new($input_pass.to_string(), "input.language".to_string());
-            let parsed = parse_file(&ast, sf2);
+            let parsed = parse_file(&ast, &sf2);
             match parsed {
                 Ok(_) => {}
                 Err(err) => {
@@ -28,7 +28,7 @@ macro_rules! peg_test {
 
             $(
             let sf2 = SourceFile::new($input_fail.to_string(), "input.language".to_string());
-            let parsed = parse_file(&ast, sf2);
+            let parsed = parse_file(&ast, &sf2);
             match parsed {
                 Ok(ok) => {
                     println!("Unexpected ok while parsing: {}", $input_fail);
@@ -43,7 +43,7 @@ macro_rules! peg_test {
 }
 
 peg_test! {
-name: language_of_as_rightrec,
+name: as_rightrec,
 syntax: r#"
 As:
     More = 'a' As;
@@ -63,7 +63,7 @@ failing tests:
 }
 
 peg_test! {
-name: language_of_as_leftrec,
+name: as_leftrec,
 syntax: r#"
 As:
     More = As 'a';
@@ -83,7 +83,7 @@ failing tests:
 }
 
 peg_test! {
-name: language_of_actual_leftrec,
+name: actual_leftrec,
 syntax: r#"
 X:
     Fail = X;
