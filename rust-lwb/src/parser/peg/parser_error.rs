@@ -14,7 +14,8 @@ use thiserror::Error;
 pub struct ParseError {
     pub span: Span,
     pub expected: Vec<ParseErrorSub>,
-    pub left_rec: bool,
+    pub fail_left_rec: bool,
+    pub fail_loop: bool,
 }
 
 impl Diagnostic for ParseError {
@@ -37,8 +38,13 @@ impl Diagnostic for ParseError {
         let mut labels = vec![];
 
         //Leftrec label
-        if self.left_rec {
+        if self.fail_left_rec {
             labels.push(LabeledSpan::new_with_span(Some("Encountered left recursion here. This is a problem with the grammar, and may hide other errors.".to_string()), self.span.clone()));
+        }
+
+        //Loop label
+        if self.fail_loop {
+            labels.push(LabeledSpan::new_with_span(Some("Encountered an infinite loop here. This is a problem with the grammar, and may hide other errors.".to_string()), self.span.clone()));
         }
 
         //Expected label
@@ -63,7 +69,8 @@ impl ParseError {
         ParseError {
             span,
             expected: vec![ParseErrorSub::ExpectCharClass(val)],
-            left_rec: false,
+            fail_left_rec: false,
+            fail_loop: false,
         }
     }
 
@@ -71,7 +78,8 @@ impl ParseError {
         ParseError {
             span,
             expected: vec![ParseErrorSub::ExpectString(val)],
-            left_rec: false,
+            fail_left_rec: false,
+            fail_loop: false,
         }
     }
 
@@ -79,15 +87,26 @@ impl ParseError {
         ParseError {
             span,
             expected: vec![ParseErrorSub::NotEntireInput()],
-            left_rec: false,
+            fail_left_rec: false,
+            fail_loop: false,
         }
     }
 
-    pub fn left_recursion(span: Span) -> Self {
+    pub fn fail_left_recursion(span: Span) -> Self {
         ParseError {
             span,
             expected: vec![],
-            left_rec: true,
+            fail_left_rec: true,
+            fail_loop: false,
+        }
+    }
+
+    pub fn fail_loop(span: Span<'src>) -> Self {
+        ParseError {
+            span,
+            expected: vec![],
+            fail_left_rec: false,
+            fail_loop: true,
         }
     }
 }
@@ -140,7 +159,7 @@ impl ParseError {
                 //Merge the expected tokens
                 self.expected.append(&mut other.expected);
                 //Left recursion
-                self.left_rec |= other.left_rec;
+                self.fail_left_rec |= other.fail_left_rec;
 
                 self
             }

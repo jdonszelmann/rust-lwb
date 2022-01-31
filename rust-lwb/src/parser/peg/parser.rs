@@ -5,7 +5,7 @@ use crate::parser::peg::parser_success::ParseSuccess;
 use crate::sources::source_file::SourceFile;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 /// This stores the immutable data that is used during the parsing process.
 struct ParserState<'src> {
@@ -14,11 +14,60 @@ struct ParserState<'src> {
 }
 
 /// This stores the mutable data that is used during the parsing process.
+/// It contains a cache of the results of each (source position, rule).
+/// It also has a stack which contains information about the order in which the keys were inserted, so they can be removed in order when needed.
 struct ParserCache<'src> {
-    cache: HashMap<
-        (usize, &'src str),
-        Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError>,
-    >,
+    cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
+    cache_stack: VecDeque<(usize, &'src str)>,
+}
+
+impl<'src> ParserCache<'src> {
+    /// Get a mutable reference to an entry
+    fn get_mut(
+        &mut self,
+        key: &(usize, &'src str),
+    ) -> Option<&mut Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>>> {
+        if let Some(v) = self.cache.get_mut(key) {
+            v.read = true;
+            Some(&mut v.value)
+        } else {
+            None
+        }
+    }
+
+    /// Check if an entry has been read
+    fn is_read(&self, key: &(usize, &'src str)) -> Option<bool> {
+        self.cache.get(key).map(|v| v.read)
+    }
+
+    /// Insert a new entry into the cache
+    fn insert(
+        &mut self,
+        key: (usize, &'src str),
+        value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>>,
+    ) {
+        self.cache
+            .insert(key, ParserCacheEntry { read: false, value });
+        self.cache_stack.push_back(key);
+    }
+
+    /// Check how many items are currently in the stack
+    fn state_current(&self) -> usize {
+        self.cache_stack.len()
+    }
+
+    /// Remove all the items that were inserted after the given stack marker
+    fn state_revert(&mut self, state: usize) {
+        self.cache_stack.drain(state..).for_each(|key| {
+            self.cache.remove(&key);
+        })
+    }
+}
+
+/// A single entry in the cache. Contains the value, and a flag whether it has been read.
+struct ParserCacheEntry<'src> {
+    read: bool,
+    value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError<'src>>,
 }
 
 /// Parses a file, given the syntax to parse it with, and the file.
@@ -39,6 +88,7 @@ pub fn parse_file<'src>(
 
     let mut cache = ParserCache {
         cache: HashMap::new(),
+        cache_stack: VecDeque::new(),
     };
 
     //Parse the starting sort
@@ -75,26 +125,72 @@ fn parse_sort<'src>(
 ) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
     //Check if this result is cached
     let key = (pos.position(), sort);
-    if let Some(cached) = cache.cache.get(&key) {
-        return (*cached).clone();
+    if let Some(cached) = cache.get_mut(&key) {
+        return cached.clone();
     }
 
     //Before executing, put a value for the current position in the cache.
     //This value is used if the rule is left-recursive
-    cache.cache.insert(
+    let cache_state = cache.state_current();
+    cache.insert(
         key,
-        Err(ParseError::left_recursion(Span::from_length(
+        Err(ParseError::fail_left_recursion(Span::from_length(
             state.file,
             pos.position(),
             0,
         ))),
     );
 
-    //Now execute the actual rule
-    let res = parse_sort_sub(state, cache, sort, pos);
+    //Now execute the actual rule, taking into account left recursion
+    //The way this is done is heavily inspired by http://web.cs.ucla.edu/~todd/research/pepm08.pdf
+    //A quick summary
+    //- First put an error value for the current (rule, position) in the cache
+    //- Try to parse the current (rule, position). If this fails, there is definitely no left recursion. Otherwise, we now have a seed.
+    //- Put the new seed in the cache, and rerun on the current (rule, position). Make sure to revert the cache to the previous state.
+    //- At some point, the above will fail. Either because no new input is parsed, or because the entire parse now failed. At this point, we have reached the maximum size.
+    let res = match parse_sort_sub(state, cache, sort, pos.clone()) {
+        Ok(mut ok) => {
+            //Do we have a leftrec case?
+            if !cache.is_read(&key).unwrap() {
+                //There was no leftrec, just return the value
+                Ok(ok)
+            } else {
+                //There was leftrec, we need to grow the seed
+                loop {
+                    //Insert the current seed into the cache
+                    cache.state_revert(cache_state);
+                    cache.insert(key, Ok(ok.clone()));
 
-    //Now update the cache with the real value
-    *cache.cache.get_mut(&key).unwrap() = res.clone();
+                    //Grow the seed
+                    match parse_sort_sub(state, cache, sort, pos.clone()) {
+                        Ok(new_ok) => {
+                            if new_ok.pos.position() <= ok.pos.position() {
+                                ok.best_error = ParseError::combine_option_parse_error(
+                                    ok.best_error,
+                                    new_ok.best_error,
+                                );
+                                break;
+                            }
+                            ok = new_ok;
+                        }
+                        Err(new_err) => {
+                            ok.best_error = ParseError::combine_option_parse_error(
+                                ok.best_error,
+                                Some(new_err),
+                            );
+                            break;
+                        }
+                    }
+                }
+                //The seed is at its maximum size
+                cache.insert(key, Ok(ok.clone()));
+                Ok(ok)
+            }
+        }
+        //If it failed, we know
+        Err(err) => Err(err),
+    };
+    cache.insert(key, res.clone());
 
     //Return result
     res
@@ -196,6 +292,7 @@ fn parse_constructor<'src>(
             let mut results = vec![];
             let mut best_error = None;
             let start_pos = pos.position();
+            let mut last_pos = pos.position();
 
             //Parse minimum amount that is needed
             for _ in 0..*min {
@@ -211,6 +308,13 @@ fn parse_constructor<'src>(
                         return Err(best_error.unwrap());
                     }
                 }
+                //If the position hasn't changed, then we're in an infinite loop
+                if last_pos == pos.position() {
+                    let span = Span::from_length(state.file, pos.position(), 0);
+                    // best_error = ParseError::combine_option_parse_error(best_error, Some(ParseError::fail_loop(span)));
+                    return Err(ParseError::fail_loop(span));
+                }
+                last_pos = pos.position();
             }
 
             //Parse until maximum amount is reached
@@ -227,6 +331,13 @@ fn parse_constructor<'src>(
                         break;
                     }
                 }
+                //If the position hasn't changed, then we're in an infinite loop
+                if last_pos == pos.position() {
+                    let span = Span::from_length(state.file, pos.position(), 0);
+                    // best_error = ParseError::combine_option_parse_error(best_error, Some(ParseError::fail_loop(span)));
+                    return Err(ParseError::fail_loop(span));
+                }
+                last_pos = pos.position();
             }
 
             //Construct result
