@@ -1,12 +1,11 @@
-use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
-use crate::parser::bootstrap::ast::{Expression, Sort, SyntaxFileAst};
+use crate::codegen_prelude::ParsePairSort;
+use crate::parser::bootstrap::ast::{Sort, SyntaxFileAst};
 use crate::parser::peg::parse_error::ParseError;
 use crate::parser::peg::parse_success::ParseSuccess;
+use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::source_file::SourceFile;
-use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
 use std::collections::{HashMap, VecDeque};
-use crate::parser::peg::parser_sort::parse_sort;
 
 /// This stores the immutable data that is used during the parsing process.
 pub struct ParserState<'src> {
