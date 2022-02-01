@@ -399,7 +399,15 @@ fn parse_character_class(i: &mut SourceFileIterator) -> ParseResult<CharacterCla
             let mut c = *c;
             if c == '\\' {
                 i.advance();
-                c = *i.peek().ok_or(UnexpectedEndOfFile)?
+                c = *i.peek().ok_or(UnexpectedEndOfFile)?;
+                c = match c {
+                    'n' => '\n',
+                    't' => '\t',
+                    'r' => '\r',
+                    a => a
+                }
+
+
             } else if c == ']' {
                 break;
             }
