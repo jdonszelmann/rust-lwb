@@ -3,8 +3,8 @@
 
 ```
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃     syntax definition      ┃═════════════════════════════════════╤╕
-┃ of syntax definition files ┃                                      ││   
+┃     syntax definition       ┃════════════════════════════════════╤╕
+┃  of syntax definition files  ┃                                    ││   
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛                                    ││
              ││                                                   ││
              ││                                                   ││
