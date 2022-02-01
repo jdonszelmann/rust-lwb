@@ -15,17 +15,16 @@ pub fn parse_expression<'src>(
     mut pos: SourceFileIterator<'src>,
     flags: ParserFlags,
 ) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ParseError> {
+    //First, skip layout
+    if !flags.no_layout {
+        pos.skip_layout(&state.layout)
+    }
     match constructor {
         //To parse a sort, call parse_sort recursively.
         Expression::Sort(rule) => Ok(parse_sort(state, cache, rule, pos, flags)?
             .map(|s: ParsePairSort<'src>| ParsePairExpression::Sort(s.span(), Box::new(s)))),
         //To parse a literal, use accept_str to check if it parses.
         Expression::Literal(lit) => {
-            //First, skip layout
-            if !flags.no_layout {
-                pos.skip_layout(&state.layout)
-            }
-
             let span = Span::from_length(state.file, pos.position(), lit.len());
             if pos.accept_str(lit) {
                 Ok(ParseSuccess {
@@ -135,11 +134,6 @@ pub fn parse_expression<'src>(
         }
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
         Expression::CharacterClass(characters) => {
-            //First, skip layout
-            if !flags.no_layout {
-                pos.skip_layout(&state.layout)
-            }
-
             let span = Span::from_length(state.file, pos.position(), 1);
             if pos.accept(characters) {
                 Ok(ParseSuccess {
