@@ -5,7 +5,6 @@ use crate::sources::source_file::SourceFile;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
-use crate::parser::syntax_file::convert_syntax_file_ast;
 
 #[derive(Debug, Error)]
 pub enum CodegenError {

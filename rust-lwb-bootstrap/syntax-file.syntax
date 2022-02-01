@@ -18,12 +18,15 @@ string-char:
 number:
     number = [0-9]+;
 
+character-class:
+    class =  "[" character-class-item "]"; {no-layout}
+
 expression:
     paren = "(" expression ")"; {injection}
 
     literal = "\"" "^"? string-char* "\""; {no-layout}
     sort = identifier;
-    class = "[" character-class-item "]"; {no-layout}
+    class = character-class;
 
     star = expression "*";
     plus = expression "+";
@@ -40,10 +43,11 @@ newline:
     windows = "\r\n";
 
 sort:
-    sort = identifier ":" newline constructor*;
+    sort = identifier ":" "\n" constructor*;
 
 meta:
-    layout = "layout" "=" constructor;
+    layout = "layout" "=" character-class;
+    start = "start" "at" identifier;
 
 sort-or-meta:
     meta = meta;
