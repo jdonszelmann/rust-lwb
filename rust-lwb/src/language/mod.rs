@@ -9,6 +9,7 @@ macro_rules! language {
             fn parse(
                 source: &$crate::sources::source_file::SourceFile,
             ) -> AST::AST_ROOT<$crate::parser::ast::generate_ast::BasicAstInfo> {
+                $crate::parser::syntax_file::parse_language(source)
             }
         }
     };

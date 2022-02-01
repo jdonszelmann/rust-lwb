@@ -5,6 +5,7 @@ use crate::sources::source_file::SourceFile;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
+use crate::parser::syntax_file::convert_syntax_file_ast;
 
 #[derive(Debug, Error)]
 pub enum CodegenError {
@@ -19,6 +20,9 @@ pub struct CodeGenJob {
     location: PathBuf,
     destination: PathBuf,
     import_location: String,
+
+    /// Make Ast serializable
+    serde: bool,
 }
 
 impl CodeGenJob {
@@ -33,6 +37,7 @@ impl CodeGenJob {
             location: p,
             destination,
             import_location: "rust_lwb".to_string(),
+            serde: false,
         }
     }
 
@@ -46,11 +51,17 @@ impl CodeGenJob {
         self
     }
 
+    pub fn serde(&mut self, enable_serde: bool) -> &mut Self {
+        self.serde = enable_serde;
+        self
+    }
+
+
     pub fn codegen(self) -> Result<(), CodegenError> {
         let sf = SourceFile::open(self.location)?;
-        let ast = parse(&sf)?;
+        let ast = parse(&sf)?; // TODO: replace with bootstrapped parser
 
-        let res = generate_language(ast, &self.import_location);
+        let res = generate_language(ast, &self.import_location, self.serde);
 
         let mut res_file = std::fs::File::create(self.destination)?;
         res_file.write_all(res.as_bytes())?;
@@ -79,6 +90,7 @@ impl CodegenManager {
 
     pub fn codegen(self) -> Result<(), CodegenError> {
         for job in self.jobs {
+            println!("cargo:rerun-if-changed={:?}", job.location);
             job.codegen()?;
         }
 

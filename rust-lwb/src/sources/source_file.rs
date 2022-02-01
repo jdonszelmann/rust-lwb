@@ -4,9 +4,10 @@ use std::io::Read;
 use std::iter::Peekable;
 use std::path::Path;
 use std::sync::Arc;
+use serde::{Serialize, Deserialize};
 
 #[doc(hidden)]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Inner {
     contents: String,
     name: String,
@@ -15,7 +16,7 @@ struct Inner {
 /// SourceFile represents a source into which spans
 /// point. Source files can be cheaply cloned as the
 /// actual contents of them live behind an `Rc`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SourceFile(Arc<Inner>);
 
 impl SourceFile {

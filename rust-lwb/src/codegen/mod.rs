@@ -113,7 +113,7 @@ fn generate_unpack(f: &mut Function, sort: &str, constructor: &str, expression: 
     }
 }
 
-pub fn generate_language(syntax: SyntaxFileAst, import_location: &str) -> String {
+pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bool) -> String {
     let mut scope = Scope::new();
 
     scope.import(&format!("{}::codegen_prelude", import_location), "*");
@@ -121,6 +121,11 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str) -> String
     for rule in &syntax.sorts {
         let enumm = scope.new_enum(&sanitize_identifier(&rule.name));
         enumm.vis("pub");
+
+        if serde {
+            enumm.derive("Serialize");
+            enumm.derive("Deserialize");
+        }
 
         enumm.generic("M : AstInfo");
         for constr in &rule.constructors {
@@ -172,6 +177,11 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str) -> String
             .impl_trait("FromPairs<M>")
             .generic("M: AstInfo")
             .push_fn(f);
+
+        scope
+            .new_impl(&format!("{}<M>", sanitize_identifier(&rule.name)))
+            .impl_trait("AstNode<M>")
+            .generic("M: AstInfo");
     }
 
     format!(
