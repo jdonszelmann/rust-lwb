@@ -1,5 +1,5 @@
 use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
-use crate::parser::bootstrap::ast::Expression;
+use crate::parser::bootstrap::ast::{Expression, Sort};
 use crate::parser::peg::parse_error::ParseError;
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::peg::parser::{ParserCache, ParserState};
@@ -11,13 +11,16 @@ use crate::sources::span::Span;
 pub fn parse_expression<'src>(
     state: &ParserState<'src>,
     cache: &mut ParserCache<'src>,
-    constructor: &'src Expression,
+    constructor: &Expression,
     mut pos: SourceFileIterator<'src>,
 ) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ParseError> {
     match constructor {
         //To parse a sort, call parse_sort recursively.
-        Expression::Sort(rule) => Ok(parse_sort(state, cache, rule, pos)?
-            .map(|s: ParsePairSort<'src>| ParsePairExpression::Sort(s.span(), Box::new(s)))),
+        Expression::Sort(rule) => {
+            let sort: &'src Sort = *state.rules.get(&rule[..]).expect("Sort exists");
+            Ok(parse_sort(state, cache, sort, pos)?
+                .map(|s: ParsePairSort<'src>| ParsePairExpression::Sort(s.span(), Box::new(s))))
+        },
         //To parse a literal, use accept_str to check if it parses.
         Expression::Literal(lit) => {
             let span = Span::from_length(state.file, pos.position(), lit.len());

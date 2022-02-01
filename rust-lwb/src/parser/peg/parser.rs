@@ -92,8 +92,9 @@ pub fn parse_file<'src>(
     };
 
     //Parse the starting sort
+    let start = *state.rules.get(&syntax.starting_sort[..]).expect("Starting sort exists");
     let mut ok: ParseSuccess<ParsePairSort<'src>> =
-        parse_sort(&state, &mut cache, &syntax.starting_sort, file.iter())?;
+        parse_sort(&state, &mut cache, start, file.iter())?;
 
     //If there is no input left, return Ok.
     if ok.pos.peek().is_none() {
