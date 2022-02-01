@@ -3,6 +3,7 @@ use crate::parser::bootstrap::ast::{Sort, SyntaxFileAst};
 use crate::parser::peg::parse_error::ParseError;
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::peg::parser_sort::parse_sort;
+use crate::sources::character_class::CharacterClass;
 use crate::sources::source_file::SourceFile;
 use crate::sources::span::Span;
 use std::collections::{HashMap, VecDeque};
@@ -11,6 +12,7 @@ use std::collections::{HashMap, VecDeque};
 pub struct ParserState<'src> {
     pub(crate) file: &'src SourceFile,
     pub(crate) rules: HashMap<&'src str, &'src Sort>,
+    pub layout: CharacterClass,
 }
 
 /// This stores the mutable data that is used during the parsing process.
@@ -19,6 +21,11 @@ pub struct ParserState<'src> {
 pub struct ParserCache<'src> {
     cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
     cache_stack: VecDeque<(usize, &'src str)>,
+}
+
+#[derive(Copy, Clone)]
+pub struct ParserFlags {
+    pub no_layout: bool,
 }
 
 impl<'src> ParserCache<'src> {
@@ -81,6 +88,7 @@ pub fn parse_file<'src>(
     let mut state = ParserState {
         file,
         rules: HashMap::new(),
+        layout: syntax.layout.clone(),
     };
     syntax.sorts.iter().for_each(|rule| {
         state.rules.insert(&rule.name, rule);
@@ -91,9 +99,16 @@ pub fn parse_file<'src>(
         cache_stack: VecDeque::new(),
     };
 
+    let flags = ParserFlags { no_layout: false };
+
     //Parse the starting sort
-    let mut ok: ParseSuccess<ParsePairSort<'src>> =
-        parse_sort(&state, &mut cache, &syntax.starting_sort, file.iter())?;
+    let mut ok: ParseSuccess<ParsePairSort<'src>> = parse_sort(
+        &state,
+        &mut cache,
+        &syntax.starting_sort,
+        file.iter(),
+        flags,
+    )?;
 
     //If there is no input left, return Ok.
     if ok.pos.peek().is_none() {
