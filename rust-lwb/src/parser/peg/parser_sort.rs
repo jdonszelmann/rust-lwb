@@ -103,7 +103,7 @@ fn parse_sort_sub<'src>(
     let mut best_error: Option<ParseError> = None;
     for constructor in &sort.constructors {
         let flags = ParserFlags {
-            no_layout: flags.no_layout ||  constructor.annotations.contains(&Annotation::NoLayout)
+            no_layout: flags.no_layout || constructor.annotations.contains(&Annotation::NoLayout),
         };
         match parse_expression(state, cache, &constructor.constructor, pos.clone(), flags) {
             Ok(ok) => {

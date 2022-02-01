@@ -13,7 +13,7 @@ pub fn parse_expression<'src>(
     cache: &mut ParserCache<'src>,
     constructor: &'src Expression,
     mut pos: SourceFileIterator<'src>,
-    flags: ParserFlags
+    flags: ParserFlags,
 ) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ParseError> {
     match constructor {
         //To parse a sort, call parse_sort recursively.
@@ -22,7 +22,9 @@ pub fn parse_expression<'src>(
         //To parse a literal, use accept_str to check if it parses.
         Expression::Literal(lit) => {
             //First, skip layout
-            if !flags.no_layout { pos.skip_layout(&state.layout) }
+            if !flags.no_layout {
+                pos.skip_layout(&state.layout)
+            }
 
             let span = Span::from_length(state.file, pos.position(), lit.len());
             if pos.accept_str(lit) {
@@ -134,7 +136,9 @@ pub fn parse_expression<'src>(
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
         Expression::CharacterClass(characters) => {
             //First, skip layout
-            if !flags.no_layout { pos.skip_layout(&state.layout) }
+            if !flags.no_layout {
+                pos.skip_layout(&state.layout)
+            }
 
             let span = Span::from_length(state.file, pos.position(), 1);
             if pos.accept(characters) {
