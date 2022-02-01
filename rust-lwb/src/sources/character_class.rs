@@ -46,7 +46,7 @@ impl Display for CharacterClass {
                 write!(f, "not {}", not)
             }
             CharacterClass::Nothing => {
-                write!(f, "")
+                write!(f, "[NOTHING]")
             }
         }
     }

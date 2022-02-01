@@ -13,7 +13,7 @@ use thiserror::Error;
 #[error("A parse error occured!")]
 pub struct ParseError {
     pub span: Span,
-    pub expected: Vec<ParseErrorSub>,
+    pub expected: Vec<Expect>,
     pub fail_left_rec: bool,
     pub fail_loop: bool,
 }
@@ -65,28 +65,10 @@ impl Diagnostic for ParseError {
 }
 
 impl ParseError {
-    pub fn expect_char_class(span: Span, val: CharacterClass) -> Self {
+    pub fn expect(span: Span, expect: Expect) -> Self {
         ParseError {
             span,
-            expected: vec![ParseErrorSub::ExpectCharClass(val)],
-            fail_left_rec: false,
-            fail_loop: false,
-        }
-    }
-
-    pub fn expect_string(span: Span, val: String) -> Self {
-        ParseError {
-            span,
-            expected: vec![ParseErrorSub::ExpectString(val)],
-            fail_left_rec: false,
-            fail_loop: false,
-        }
-    }
-
-    pub fn not_entire_input(span: Span) -> Self {
-        ParseError {
-            span,
-            expected: vec![ParseErrorSub::NotEntireInput()],
+            expected: vec![expect],
             fail_left_rec: false,
             fail_loop: false,
         }
@@ -113,7 +95,7 @@ impl ParseError {
 
 /// Represents a single thing that went wrong at this position.
 #[derive(Debug, Clone)]
-pub enum ParseErrorSub {
+pub enum Expect {
     /// Expect a character from a certain char class to be there, but it was not.
     ExpectCharClass(CharacterClass),
 
@@ -124,16 +106,16 @@ pub enum ParseErrorSub {
     NotEntireInput(),
 }
 
-impl Display for ParseErrorSub {
+impl Display for Expect {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ParseErrorSub::ExpectCharClass(cc) => {
-                write!(f, "{}", cc)
+            Expect::ExpectCharClass(cc) => {
+                write!(f, "({})", cc)
             }
-            ParseErrorSub::ExpectString(s) => {
+            Expect::ExpectString(s) => {
                 write!(f, "\'{}\'", s)
             }
-            ParseErrorSub::NotEntireInput() => {
+            Expect::NotEntireInput() => {
                 write!(f, "more input")
             }
         }

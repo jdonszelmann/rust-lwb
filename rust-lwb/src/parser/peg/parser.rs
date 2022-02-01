@@ -1,6 +1,6 @@
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::{Sort, SyntaxFileAst};
-use crate::parser::peg::parse_error::ParseError;
+use crate::parser::peg::parse_error::{Expect, ParseError};
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::source_file::SourceFile;
@@ -8,7 +8,7 @@ use crate::sources::span::Span;
 use std::collections::{HashMap, VecDeque};
 
 /// This stores the immutable data that is used during the parsing process.
-pub struct ParserState<'src> {
+pub struct ParserInfo<'src> {
     pub(crate) file: &'src SourceFile,
     pub(crate) rules: HashMap<&'src str, &'src Sort>,
 }
@@ -16,12 +16,12 @@ pub struct ParserState<'src> {
 /// This stores the mutable data that is used during the parsing process.
 /// It contains a cache of the results of each (source position, rule).
 /// It also has a stack which contains information about the order in which the keys were inserted, so they can be removed in order when needed.
-pub struct ParserCache<'src> {
+pub struct ParserState<'src> {
     cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
     cache_stack: VecDeque<(usize, &'src str)>,
 }
 
-impl<'src> ParserCache<'src> {
+impl<'src> ParserState<'src> {
     /// Get a mutable reference to an entry
     pub fn get_mut(
         &mut self,
@@ -78,7 +78,7 @@ pub fn parse_file<'src>(
     file: &'src SourceFile,
 ) -> Result<ParsePairSort<'src>, ParseError> {
     //Create a new parser state
-    let mut state = ParserState {
+    let mut state = ParserInfo {
         file,
         rules: HashMap::new(),
     };
@@ -86,13 +86,16 @@ pub fn parse_file<'src>(
         state.rules.insert(&rule.name, rule);
     });
 
-    let mut cache = ParserCache {
+    let mut cache = ParserState {
         cache: HashMap::new(),
         cache_stack: VecDeque::new(),
     };
 
     //Parse the starting sort
-    let start = *state.rules.get(&syntax.starting_sort[..]).expect("Starting sort exists");
+    let start = *state
+        .rules
+        .get(&syntax.starting_sort[..])
+        .expect("Starting sort exists");
     let mut ok: ParseSuccess<ParsePairSort<'src>> =
         parse_sort(&state, &mut cache, start, file.iter())?;
 
@@ -108,9 +111,10 @@ pub fn parse_file<'src>(
                 let curpos = ok.pos.position();
                 while ok.pos.next().is_some() {}
                 let endpos = ok.pos.position();
-                Err(ParseError::not_entire_input(Span::from_end(
-                    file, curpos, endpos,
-                )))
+                Err(ParseError::expect(
+                    Span::from_end(file, curpos, endpos),
+                    Expect::NotEntireInput(),
+                ))
             }
         }
     }

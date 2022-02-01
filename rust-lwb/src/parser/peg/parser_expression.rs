@@ -1,16 +1,16 @@
 use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
 use crate::parser::bootstrap::ast::{Expression, Sort};
-use crate::parser::peg::parse_error::ParseError;
+use crate::parser::peg::parse_error::{Expect, ParseError};
 use crate::parser::peg::parse_success::ParseSuccess;
-use crate::parser::peg::parser::{ParserCache, ParserState};
+use crate::parser::peg::parser::{ParserInfo, ParserState};
 use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
 
 /// Given an expression and the current position, attempts to parse this constructor.
 pub fn parse_expression<'src>(
-    state: &ParserState<'src>,
-    cache: &mut ParserCache<'src>,
+    state: &ParserInfo<'src>,
+    cache: &mut ParserState<'src>,
     constructor: &Expression,
     mut pos: SourceFileIterator<'src>,
 ) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ParseError> {
@@ -20,7 +20,7 @@ pub fn parse_expression<'src>(
             let sort: &'src Sort = *state.rules.get(&rule[..]).expect("Sort exists");
             Ok(parse_sort(state, cache, sort, pos)?
                 .map(|s: ParsePairSort<'src>| ParsePairExpression::Sort(s.span(), Box::new(s))))
-        },
+        }
         //To parse a literal, use accept_str to check if it parses.
         Expression::Literal(lit) => {
             let span = Span::from_length(state.file, pos.position(), lit.len());
@@ -31,7 +31,7 @@ pub fn parse_expression<'src>(
                     pos,
                 })
             } else {
-                Err(ParseError::expect_string(span, lit.clone()))
+                Err(ParseError::expect(span, Expect::ExpectString(lit.clone())))
             }
         }
         //To parse a sequence, parse each constructor in the sequence.
@@ -140,7 +140,10 @@ pub fn parse_expression<'src>(
                     pos,
                 })
             } else {
-                Err(ParseError::expect_char_class(span, characters.clone()))
+                Err(ParseError::expect(
+                    span,
+                    Expect::ExpectCharClass(characters.clone()),
+                ))
             }
         }
         //To parse a choice, try each constructor, keeping track of the best error that occurred while doing so.

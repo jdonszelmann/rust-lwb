@@ -24,8 +24,3 @@ impl<'a, O: Clone> ParseSuccess<'a, O> {
         }
     }
 }
-
-
-// pub struct ParseResult<'src, O: Clone> {
-//
-// }

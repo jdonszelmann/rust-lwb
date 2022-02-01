@@ -2,7 +2,7 @@ use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
 use crate::parser::bootstrap::ast::{Expression, Sort};
 use crate::parser::peg::parse_error::ParseError;
 use crate::parser::peg::parse_success::ParseSuccess;
-use crate::parser::peg::parser::{ParserCache, ParserState};
+use crate::parser::peg::parser::{ParserInfo, ParserState};
 use crate::parser::peg::parser_expression::parse_expression;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
@@ -10,8 +10,8 @@ use crate::sources::span::Span;
 /// Given the name of a sort and the current position, attempts to parse this sort.
 /// The name of the provided sort must exist.
 pub fn parse_sort<'src>(
-    state: &ParserState<'src>,
-    cache: &mut ParserCache<'src>,
+    state: &ParserInfo<'src>,
+    cache: &mut ParserState<'src>,
     sort: &'src Sort,
     pos: SourceFileIterator<'src>,
 ) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
@@ -88,14 +88,19 @@ pub fn parse_sort<'src>(
     res
 }
 fn parse_sort_sub<'src>(
-    state: &ParserState<'src>,
-    cache: &mut ParserCache<'src>,
+    state: &ParserInfo<'src>,
+    cache: &mut ParserState<'src>,
     sort: &'src Sort,
     pos: SourceFileIterator<'src>,
 ) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
     //We need to make an ordered choice between the constructors
     //To do this, create a choice expression and parse that
-    let expr = Expression::Choice(sort.constructors.iter().map(|c| c.constructor.clone()).collect());
+    let expr = Expression::Choice(
+        sort.constructors
+            .iter()
+            .map(|c| c.constructor.clone())
+            .collect(),
+    );
     match parse_expression(state, cache, &expr, pos.clone()) {
         Ok(ok) => {
             Ok(ok.map(|res| {
@@ -104,7 +109,7 @@ fn parse_sort_sub<'src>(
                     ParsePairSort {
                         sort: &sort.name,
                         constructor_name: &sort.constructors[cnum].name,
-                        constructor_value: *cval
+                        constructor_value: *cval,
                     }
                 } else {
                     unreachable!()
