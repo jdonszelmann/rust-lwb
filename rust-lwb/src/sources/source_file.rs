@@ -32,12 +32,12 @@ impl SourceFile {
     }
 
     /// Create a new SourceFile
-    pub fn new(contents: String, name: String) -> Self {
-        Self(Arc::new(Inner { contents, name }))
+    pub fn new(contents: impl AsRef<str>, name: impl AsRef<str>) -> Self {
+        Self(Arc::new(Inner { contents: contents.as_ref().to_string(), name: name.as_ref().to_string() }))
     }
 
-    pub fn new_for_test(s: &str) -> Self {
-        Self::new(s.to_string(), "test".to_string())
+    pub fn new_for_test(s: impl AsRef<str>) -> Self {
+        Self::new(s.as_ref().to_string(), "test".to_string())
     }
 
     pub fn iter(&self) -> SourceFileIterator {
