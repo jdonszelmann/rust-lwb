@@ -1,4 +1,3 @@
-use crate::codegen_prelude::{GenerateAstInfo, ParsePairSort};
 use crate::parser::ast::from_pairs::FromPairs;
 use crate::sources::span::Span;
 
@@ -9,6 +8,7 @@ pub trait SpannedAstInfo: AstInfo {
     fn span(&self) -> &Span;
 }
 
+#[derive(Hash, Eq, PartialEq)]
 pub struct NodeId(usize);
 
 pub trait AstInfo {
@@ -26,4 +26,3 @@ pub trait AstNode<M: AstInfo>: FromPairs<M> {
         todo!()
     }
 }
-
