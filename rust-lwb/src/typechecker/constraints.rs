@@ -4,6 +4,7 @@ use crate::parser::ast::{AstNode, NodeId};
 use crate::typechecker::constraints::Variable::{Free, Known};
 use crate::typechecker::Type;
 use std::collections::HashMap;
+use std::ops::{BitAnd, BitOr, Not};
 
 #[derive(Copy, Clone)]
 pub struct VariableId(usize);
@@ -78,6 +79,30 @@ impl<TYPE: Type> Constraint<TYPE> {
     }
 
     pub fn not(self) -> Constraint<TYPE> {
+        Not::not(self)
+    }
+}
+
+impl<TYPE: Type> BitAnd for Constraint<TYPE> {
+    type Output = Constraint<TYPE>;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        self.and(rhs)
+    }
+}
+
+impl<TYPE: Type> BitOr for Constraint<TYPE> {
+    type Output = Constraint<TYPE>;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        self.or(rhs)
+    }
+}
+
+impl<TYPE: Type> Not for Constraint<TYPE> {
+    type Output = Constraint<TYPE>;
+
+    fn not(self) -> Self::Output {
         Constraint::Not(Box::new(self))
     }
 }
