@@ -1,11 +1,11 @@
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::{Sort, SyntaxFileAst};
 use crate::parser::peg::parse_error::{Expect, ParseError};
-use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::source_file::SourceFile;
 use crate::sources::span::Span;
 use std::collections::{HashMap, VecDeque};
+use crate::parser::peg::parse_success::ParseResult;
 
 /// This stores the immutable data that is used during the parsing process.
 pub struct ParserInfo<'src> {
@@ -20,6 +20,13 @@ pub struct ParserState<'src> {
     cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
     cache_stack: VecDeque<(usize, &'src str)>,
     trace: VecDeque<&'src Sort>,
+    best_error: Option<ParseError>,
+}
+
+/// A single entry in the cache. Contains the value, and a flag whether it has been read.
+pub struct ParserCacheEntry<'src> {
+    read: bool,
+    value: ParseResult<'src, ParsePairSort<'src>>,
 }
 
 impl<'src> ParserState<'src> {
@@ -27,7 +34,7 @@ impl<'src> ParserState<'src> {
     pub fn get_mut(
         &mut self,
         key: &(usize, &'src str),
-    ) -> Option<&mut Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError>> {
+    ) -> Option<&mut ParseResult<'src, ParsePairSort<'src>>> {
         if let Some(v) = self.cache.get_mut(key) {
             v.read = true;
             Some(&mut v.value)
@@ -45,7 +52,7 @@ impl<'src> ParserState<'src> {
     pub fn insert(
         &mut self,
         key: (usize, &'src str),
-        value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError>,
+        value: ParseResult<'src, ParsePairSort<'src>>,
     ) {
         self.cache
             .insert(key, ParserCacheEntry { read: false, value });
@@ -73,12 +80,13 @@ impl<'src> ParserState<'src> {
     pub fn trace_end(&mut self) {
         self.trace.pop_back().unwrap();
     }
-}
 
-/// A single entry in the cache. Contains the value, and a flag whether it has been read.
-pub struct ParserCacheEntry<'src> {
-    read: bool,
-    value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError>,
+    pub fn error(&mut self, error: ParseError) {
+        match self.best_error.take() {
+            Some(old_error) => self.best_error = Some(ParseError::combine(old_error, error)),
+            None => self.best_error = Some(error),
+        }
+    }
 }
 
 /// Parses a file, given the syntax to parse it with, and the file.
@@ -101,6 +109,7 @@ pub fn parse_file<'src>(
         cache: HashMap::new(),
         cache_stack: VecDeque::new(),
         trace: VecDeque::new(),
+        best_error: None,
     };
 
     //Parse the starting sort
@@ -108,21 +117,23 @@ pub fn parse_file<'src>(
         .rules
         .get(&syntax.starting_sort[..])
         .expect("Starting sort exists");
-    let mut ok: ParseSuccess<ParsePairSort<'src>> =
-        parse_sort(&state, &mut cache, start, file.iter())?;
+    let mut res = parse_sort(&state, &mut cache, start, file.iter());
+    if !res.success {
+        return Err(cache.best_error.unwrap());
+    }
 
     //If there is no input left, return Ok.
-    if ok.pos.peek().is_none() {
-        Ok(ok.result)
+    if res.pos.peek().is_none() {
+        Ok(res.result)
     } else {
         //If any occurred during the parsing, return it. Otherwise, return a generic NotEntireInput error.
         //I'm not entirely sure this logic always returns relevant errors. Maybe we should inform the user the parse was actually fine, but didn't parse enough?
-        match ok.best_error {
+        match cache.best_error {
             Some(err) => Err(err),
             None => {
-                let curpos = ok.pos.position();
-                while ok.pos.next().is_some() {}
-                let endpos = ok.pos.position();
+                let curpos = res.pos.position();
+                while res.pos.next().is_some() {}
+                let endpos = res.pos.position();
                 Err(ParseError::expect(
                     Span::from_end(file, curpos, endpos),
                     Expect::NotEntireInput(),

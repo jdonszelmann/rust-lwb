@@ -1,6 +1,6 @@
-use std::fmt::{Display, Formatter};
-use itertools::Itertools;
 use crate::sources::span::Span;
+use itertools::Itertools;
+use std::fmt::{Display, Formatter};
 
 /// A parse pair is a way of representing an AST, without actually using any datatypes that depend on the language definition.
 /// This represents a parse pair for a sort. It stores which constructor was chosen.

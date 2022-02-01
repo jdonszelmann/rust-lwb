@@ -9,7 +9,7 @@ pub fn run_example() {
 program:
     program = group*;
 group:
-    group = '{' line* '}';
+    group = '{' line+ '}';
 line:
     line = [a-z]+ ';';
 start at program;"#
@@ -18,13 +18,10 @@ start at program;"#
     );
     let ast = rust_lwb::parser::bootstrap::parse(&sf).unwrap();
 
-    let sf = SourceFile::new(
-        "{ab;ab}{ab;ab;}".to_string(),
-        "".to_string(),
-    );
+    let sf = SourceFile::new("{ab;ab;}{ab;ab;}".to_string(), "".to_string());
     match parse_file(&ast, &sf) {
         Ok(ok) => {
-            println!("{}", ok);
+            println!("OK: {}", ok);
         }
         Err(err) => {
             let mut s = String::new();
