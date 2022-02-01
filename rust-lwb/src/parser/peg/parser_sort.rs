@@ -1,5 +1,5 @@
-use crate::codegen_prelude::ParsePairSort;
-use crate::parser::bootstrap::ast::Sort;
+use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
+use crate::parser::bootstrap::ast::{Expression, Sort};
 use crate::parser::peg::parse_error::ParseError;
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::peg::parser::{ParserCache, ParserState};
@@ -93,26 +93,24 @@ fn parse_sort_sub<'src>(
     sort: &'src Sort,
     pos: SourceFileIterator<'src>,
 ) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
-    //Try each constructor, keeping track of the best error that occurred while doing so.
-    //If none of the constructors succeed, we will return this error.
-    let mut best_error: Option<ParseError> = None;
-    for constructor in &sort.constructors {
-        match parse_expression(state, cache, &constructor.constructor, pos.clone()) {
-            Ok(ok) => {
-                return Ok(ParseSuccess {
-                    //TODO should be a bit smarter and avoid these clones
-                    result: ParsePairSort {
+    //We need to make an ordered choice between the constructors
+    //To do this, create a choice expression and parse that
+    let expr = Expression::Choice(sort.constructors.iter().map(|c| c.constructor.clone()).collect());
+    match parse_expression(state, cache, &expr, pos.clone()) {
+        Ok(ok) => {
+            Ok(ok.map(|res| {
+                //Map the ParsePairExpression to a ParsePairSort
+                if let ParsePairExpression::Choice(_, cnum, cval) = res {
+                    ParsePairSort {
                         sort: &sort.name,
-                        constructor_name: &constructor.name,
-                        constructor_value: ok.result,
-                    },
-                    //If one of the previous constructors had a better error, we should return that one
-                    best_error: ok.best_error.or(best_error),
-                    pos: ok.pos,
-                });
-            }
-            Err(err) => best_error = ParseError::combine_option_parse_error(best_error, Some(err)),
+                        constructor_name: &sort.constructors[cnum].name,
+                        constructor_value: *cval
+                    }
+                } else {
+                    unreachable!()
+                }
+            }))
         }
+        Err(err) => Err(err),
     }
-    Err(best_error.expect("Each sort has at least one constructor"))
 }
