@@ -1,8 +1,8 @@
 use crate::codegen_prelude::ParsePairSort;
-use crate::parser::bootstrap::ast::Sort;
+use crate::parser::bootstrap::ast::{Annotation, Sort};
 use crate::parser::peg::parse_error::ParseError;
 use crate::parser::peg::parse_success::ParseSuccess;
-use crate::parser::peg::parser::{ParserCache, ParserState};
+use crate::parser::peg::parser::{ParserCache, ParserFlags, ParserState};
 use crate::parser::peg::parser_expression::parse_expression;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
@@ -14,6 +14,7 @@ pub fn parse_sort<'src>(
     cache: &mut ParserCache<'src>,
     sort: &'src str,
     pos: SourceFileIterator<'src>,
+    flags: ParserFlags,
 ) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
     //Check if this result is cached
     let key = (pos.position(), sort);
@@ -40,7 +41,7 @@ pub fn parse_sort<'src>(
     //- Try to parse the current (rule, position). If this fails, there is definitely no left recursion. Otherwise, we now have a seed.
     //- Put the new seed in the cache, and rerun on the current (rule, position). Make sure to revert the cache to the previous state.
     //- At some point, the above will fail. Either because no new input is parsed, or because the entire parse now failed. At this point, we have reached the maximum size.
-    let res = match parse_sort_sub(state, cache, sort, pos.clone()) {
+    let res = match parse_sort_sub(state, cache, sort, pos.clone(), flags) {
         Ok(mut ok) => {
             //Do we have a leftrec case?
             if !cache.is_read(&key).unwrap() {
@@ -54,7 +55,7 @@ pub fn parse_sort<'src>(
                     cache.insert(key, Ok(ok.clone()));
 
                     //Grow the seed
-                    match parse_sort_sub(state, cache, sort, pos.clone()) {
+                    match parse_sort_sub(state, cache, sort, pos.clone(), flags) {
                         Ok(new_ok) => {
                             if new_ok.pos.position() <= ok.pos.position() {
                                 ok.best_error = ParseError::combine_option_parse_error(
@@ -92,6 +93,7 @@ fn parse_sort_sub<'src>(
     cache: &mut ParserCache<'src>,
     sort: &'src str,
     pos: SourceFileIterator<'src>,
+    flags: ParserFlags,
 ) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
     //Obtain the sort
     let sort: &'src Sort = state.rules.get(sort).expect("Name is guaranteed to exist");
@@ -100,10 +102,12 @@ fn parse_sort_sub<'src>(
     //If none of the constructors succeed, we will return this error.
     let mut best_error: Option<ParseError> = None;
     for constructor in &sort.constructors {
-        match parse_expression(state, cache, &constructor.constructor, pos.clone()) {
+        let flags = ParserFlags {
+            no_layout: flags.no_layout || constructor.annotations.contains(&Annotation::NoLayout),
+        };
+        match parse_expression(state, cache, &constructor.constructor, pos.clone(), flags) {
             Ok(ok) => {
                 return Ok(ParseSuccess {
-                    //TODO should be a bit smarter and avoid these clones
                     result: ParsePairSort {
                         sort: &sort.name,
                         constructor_name: &constructor.name,

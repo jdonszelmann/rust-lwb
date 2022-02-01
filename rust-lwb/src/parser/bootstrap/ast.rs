@@ -27,7 +27,7 @@ pub enum Expression {
     Positive(Box<Expression>),
 }
 
-#[derive(Debug, Clone, IntoEnumIterator, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, IntoEnumIterator, Display, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Annotation {
     #[display(fmt = "no-pretty-print")]
     NoPrettyPrint,
