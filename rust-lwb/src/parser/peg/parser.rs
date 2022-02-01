@@ -19,6 +19,7 @@ pub struct ParserInfo<'src> {
 pub struct ParserState<'src> {
     cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
     cache_stack: VecDeque<(usize, &'src str)>,
+    trace: VecDeque<&'src Sort>,
 }
 
 impl<'src> ParserState<'src> {
@@ -62,6 +63,16 @@ impl<'src> ParserState<'src> {
             self.cache.remove(&key);
         })
     }
+
+    /// Start trace
+    pub fn trace_start(&mut self, state: &'src Sort) {
+        self.trace.push_back(state);
+    }
+
+    /// End trace
+    pub fn trace_end(&mut self) {
+        self.trace.pop_back().unwrap();
+    }
 }
 
 /// A single entry in the cache. Contains the value, and a flag whether it has been read.
@@ -89,6 +100,8 @@ pub fn parse_file<'src>(
     let mut cache = ParserState {
         cache: HashMap::new(),
         cache_stack: VecDeque::new(),
+        trace: VecDeque::new(),
+        accepted_errors: Vec::new(),
     };
 
     //Parse the starting sort

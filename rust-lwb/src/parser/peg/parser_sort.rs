@@ -23,6 +23,7 @@ pub fn parse_sort<'src>(
 
     //Before executing, put a value for the current position in the cache.
     //This value is used if the rule is left-recursive
+    cache.trace_start(sort);
     let cache_state = cache.state_current();
     cache.insert(
         key,
@@ -83,6 +84,7 @@ pub fn parse_sort<'src>(
         Err(err) => Err(err),
     };
     cache.insert(key, res.clone());
+    cache.trace_end();
 
     //Return result
     res
