@@ -2,7 +2,7 @@ use crate::codegen_prelude::AstInfo;
 use crate::parser::ast::AstNode;
 use crate::typechecker::constraints::{Constraint, ConstraintBuilder};
 
-mod constraints;
+pub mod constraints;
 
 pub trait Type {}
 

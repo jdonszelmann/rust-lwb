@@ -9,8 +9,6 @@ mod ast;
 language!(SDF at mod ast);
 
 pub fn parse_language<M: AstInfo, AST: AstNode<M>>(input: &SourceFile) -> AST {
-    // TODO: inline the parser into the library (so we don't need to reparse the syntax definition file every time)
-    // parse_file(, input)
-    todo!()
+    todo!() // TODO: replace with bootstrapped parser
 }
 
