@@ -1,5 +1,5 @@
 use crate::parser::ast::AstInfo;
-use crate::parser::peg::parser_pair::ParsePairSort;
+use crate::parser::peg::parse_pair::ParsePairSort;
 use thiserror::Error;
 
 pub trait GenerateAstInfo {

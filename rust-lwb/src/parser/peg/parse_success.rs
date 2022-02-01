@@ -1,4 +1,4 @@
-use crate::parser::peg::parser_error::ParseError;
+use crate::parser::peg::parse_error::ParseError;
 use crate::sources::source_file::SourceFileIterator;
 
 /// Represents a parser that parsed its value successfully.
