@@ -1,3 +1,4 @@
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use crate::codegen_prelude::AstInfo;
 use crate::parser::ast::{AstNode, NodeId};
 use crate::typechecker::constraints::Variable::{Free, Known};
@@ -31,14 +32,14 @@ pub enum Variable<TYPE> {
 }
 
 pub trait ComputedConstraint<TYPE: Type> {
-    fn solve(&self, input: &Vec<KnownVariable<TYPE>>) -> Constraint<TYPE>;
+    fn solve(&self, input: &[KnownVariable<TYPE>]) -> Constraint<TYPE>;
 }
 
 impl<TYPE: Type, F> ComputedConstraint<TYPE> for F
 where
-    F: Fn(&Vec<KnownVariable<TYPE>>) -> Constraint<TYPE>,
+    F: Fn(&[KnownVariable<TYPE>]) -> Constraint<TYPE>,
 {
-    fn solve(&self, input: &Vec<KnownVariable<TYPE>>) -> Constraint<TYPE> {
+    fn solve(&self, input: &[KnownVariable<TYPE>]) -> Constraint<TYPE> {
         (self)(input)
     }
 }
@@ -85,6 +86,7 @@ pub fn not<TYPE: Type>(c1: Constraint<TYPE>) -> Constraint<TYPE> {
     c1.not()
 }
 
+#[derive(Default)]
 pub struct ConstraintBuilder {
     counter: usize,
     node_type_vars: HashMap<NodeId, VariableId>,
@@ -92,16 +94,13 @@ pub struct ConstraintBuilder {
 
 impl ConstraintBuilder {
     pub fn new() -> Self {
-        ConstraintBuilder {
-            counter: 0,
-            node_type_vars: HashMap::new(),
-        }
+        Default::default()
     }
 }
 
 impl ConstraintBuilder {
     pub fn free_variable<TYPE>(&mut self) -> Variable<TYPE> {
-        self.counter = &self.counter + 1;
+        self.counter += 1;
         Free(FreeVariable {
             id: VariableId(self.counter),
         })
@@ -109,16 +108,18 @@ impl ConstraintBuilder {
 
     pub fn own_type_variable<M: AstInfo, TYPE>(&mut self, node: impl AstNode<M>) -> Variable<TYPE> {
         let node_id = node.ast_info().node_id();
-        if self.node_type_vars.contains_key(&node_id) {
-            let id = self.node_type_vars.get(&node_id).unwrap();
-            Free(FreeVariable { id: *id })
-        } else {
-            self.counter = &self.counter + 1;
-            self.node_type_vars
-                .insert(node_id, VariableId(self.counter));
-            Free(FreeVariable {
-                id: VariableId(self.counter),
-            })
+        match self.node_type_vars.entry(node_id) {
+            Vacant(e) => {
+                self.counter += 1;
+                e.insert(VariableId(self.counter));
+                Free(FreeVariable {
+                    id: VariableId(self.counter),
+                })
+            },
+            Occupied(e) => {
+                let id = e.get();
+                Free(FreeVariable { id: *id })
+            }
         }
     }
 
