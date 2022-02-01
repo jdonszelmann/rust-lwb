@@ -1,15 +1,16 @@
 use crate::sources::character_class::CharacterClass;
 use derive_more::Display;
 use enum_iterator::IntoEnumIterator;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Constructor {
     pub name: String,
     pub constructor: Expression,
     pub annotations: Vec<Annotation>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Expression {
     Sort(String),
     Literal(String),
@@ -26,7 +27,7 @@ pub enum Expression {
     Positive(Box<Expression>),
 }
 
-#[derive(Debug, Clone, IntoEnumIterator, Display, Eq, PartialEq)]
+#[derive(Debug, Clone, IntoEnumIterator, Display, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Annotation {
     #[display(fmt = "no-pretty-print")]
     NoPrettyPrint,
@@ -36,13 +37,13 @@ pub enum Annotation {
     Injection,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sort {
     pub name: String,
     pub constructors: Vec<Constructor>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SyntaxFileAst {
     pub sorts: Vec<Sort>,
     pub starting_sort: String,

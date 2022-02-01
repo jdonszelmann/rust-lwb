@@ -1,5 +1,8 @@
 extern crate paste;
 
+// Mostly used in bootstrapper
+pub use bincode;
+
 /// Code describing languages created with rust-lwb
 #[macro_use]
 pub mod language;
