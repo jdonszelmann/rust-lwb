@@ -42,7 +42,7 @@
     ││  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     ││  ┃     run generated ast      ┃ 
     ││  ┃   "from pair" conversion   ┃
-    ││  ┃   giving a filled in ast   ┃
+    ││  ┃    giving a filled in ast   ┃
     ││  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
     ││               ╘╘═════════════════════════╤╕
     ││                                          ╲╱
