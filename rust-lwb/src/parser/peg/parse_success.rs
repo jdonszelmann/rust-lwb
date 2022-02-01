@@ -24,3 +24,9 @@ impl<'a, O: Clone> ParseSuccess<'a, O> {
         }
     }
 }
+
+pub struct ParseResult<'src, O: Clone> {
+    pub result: O,
+    pub pos: SourceFileIterator<'src>,
+
+}

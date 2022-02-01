@@ -101,7 +101,6 @@ pub fn parse_file<'src>(
         cache: HashMap::new(),
         cache_stack: VecDeque::new(),
         trace: VecDeque::new(),
-        accepted_errors: Vec::new(),
     };
 
     //Parse the starting sort

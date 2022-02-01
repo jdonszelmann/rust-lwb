@@ -19,12 +19,12 @@ start at program;"#
     let ast = rust_lwb::parser::bootstrap::parse(&sf).unwrap();
 
     let sf = SourceFile::new(
-        "{adassa;adkasa}{xxlaksad;asas;xxx;}".to_string(),
+        "{ab;ab}{ab;ab;}".to_string(),
         "".to_string(),
     );
     match parse_file(&ast, &sf) {
         Ok(ok) => {
-            println!("{:?}", ok);
+            println!("{}", ok);
         }
         Err(err) => {
             let mut s = String::new();
