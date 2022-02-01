@@ -2,6 +2,7 @@ use rust_lwb::language;
 use rust_lwb::sources::source_file::SourceFile;
 
 mod stl;
+mod types;
 
 language!(STL at mod stl);
 
