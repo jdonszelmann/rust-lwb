@@ -8,8 +8,10 @@ language!(STL at mod stl);
 
 #[test]
 fn test_parse() {
-    let file = SourceFile::new("
+    let file = SourceFile::new(
+        "
 
-    ", "main.stl");
+    ", "main.stl",
+    );
     let ast = STL::parse(&file);
 }

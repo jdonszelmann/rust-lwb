@@ -1,8 +1,8 @@
-use std::collections::hash_map::Entry::{Occupied, Vacant};
 use crate::codegen_prelude::AstInfo;
 use crate::parser::ast::{AstNode, NodeId};
 use crate::typechecker::constraints::Variable::{Free, Known};
 use crate::typechecker::Type;
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
 use std::ops::{BitAnd, BitOr, Not};
 
@@ -140,7 +140,7 @@ impl ConstraintBuilder {
                 Free(FreeVariable {
                     id: VariableId(self.counter),
                 })
-            },
+            }
             Occupied(e) => {
                 let id = e.get();
                 Free(FreeVariable { id: *id })

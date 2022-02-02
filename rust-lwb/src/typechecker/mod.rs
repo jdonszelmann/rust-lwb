@@ -2,7 +2,7 @@ use crate::codegen_prelude::AstInfo;
 use crate::parser::ast::AstNode;
 use crate::typechecker::constraints::{Constraint, ConstraintBuilder};
 
-mod constraints;
+pub mod constraints;
 
 pub trait Type {}
 
@@ -22,7 +22,11 @@ impl<TYPE: Type> Solver<TYPE> {
         self.solve_constraints();
     }
 
-    fn collect_constraints<CTX, M: AstInfo>(&mut self, _root: impl TypeCheckable<M, CTX>, _ctx: &CTX) {
+    fn collect_constraints<CTX, M: AstInfo>(
+        &mut self,
+        _root: impl TypeCheckable<M, CTX>,
+        _ctx: &CTX,
+    ) {
         todo!()
     }
 
