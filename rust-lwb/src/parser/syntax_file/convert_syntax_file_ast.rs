@@ -39,9 +39,8 @@ pub fn convert_syntax_file_ast<M: AstInfo>(inp: ast::AST_ROOT<M>) -> SyntaxFileA
 
 fn convert_identifier<M: AstInfo>(inp: ast::Identifier<M>) -> String {
     match inp {
-        Identifier::Identifier(_, mut first, rest) => {
-            first.extend(rest.join("").chars());
-            first
+        Identifier::Identifier(_, name) => {
+            name
         }
     }
 }
