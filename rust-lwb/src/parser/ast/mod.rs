@@ -1,3 +1,4 @@
+use crate::codegen_prelude::{GenerateAstInfo, ParsePairSort};
 use crate::parser::ast::from_pairs::FromPairs;
 use crate::sources::span::Span;
 
@@ -28,3 +29,11 @@ pub trait AstNode<M: AstInfo>: FromPairs<M> {
         todo!()
     }
 }
+
+impl<M: AstInfo, T> FromPairs<M> for Box<T> where T: AstNode<M> {
+    fn from_pairs<G: GenerateAstInfo<Result=M>>(pair: &ParsePairSort, generator: &mut G) -> Self where Self: Sized {
+        Box::new(T::from_pairs(pair, generator))
+    }
+}
+
+impl<M: AstInfo, T> AstNode<M> for Box<T> where T: AstNode<M> {}

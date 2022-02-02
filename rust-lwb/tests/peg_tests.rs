@@ -3,6 +3,7 @@ use rust_lwb::parser::peg::parser_file::parse_file;
 use rust_lwb::parser::syntax_file::convert_syntax_file_ast::convert;
 use rust_lwb::parser::syntax_file::SyntaxFile;
 use rust_lwb::sources::source_file::SourceFile;
+use rust_lwb::language::Language;
 
 macro_rules! peg_test {
     (name: $name:ident, syntax: $syntax:literal, passing tests: $($input_pass:literal)* failing tests: $($input_fail:literal)*) => {

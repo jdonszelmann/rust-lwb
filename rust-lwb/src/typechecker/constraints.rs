@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use crate::codegen_prelude::AstInfo;
 use crate::parser::ast::{AstNode, NodeId};
@@ -5,17 +6,25 @@ use crate::typechecker::constraints::Variable::{Free, Known};
 use crate::typechecker::Type;
 use std::collections::HashMap;
 use std::ops::{BitAnd, BitOr, Not};
+use std::rc::Rc;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static GLOBALLY_UNIQUE_VARIABLE_ID: AtomicU64 = AtomicU64::new(0);
+pub fn new_variable_id() -> VariableId {
+    let value = GLOBALLY_UNIQUE_VARIABLE_ID.fetch_add(1, Ordering::Relaxed);
+    VariableId(value)
+}
 
 #[derive(Copy, Clone)]
-pub struct VariableId(usize);
+pub struct VariableId(pub(super) u64);
 
 pub struct KnownVariable<TYPE> {
-    id: VariableId,
-    value: TYPE,
+    pub(super) id: VariableId,
+    pub(super) value: TYPE,
 }
 
 pub struct FreeVariable {
-    id: VariableId,
+    pub(super) id: VariableId,
 }
 
 impl FreeVariable {
@@ -28,8 +37,49 @@ impl FreeVariable {
 }
 
 pub enum Variable<TYPE> {
-    Free(FreeVariable),
-    Known(KnownVariable<TYPE>),
+    Free(Rc<FreeVariable>),
+    Known(Rc<KnownVariable<TYPE>>),
+}
+
+impl<TYPE> Clone for Variable<TYPE> {
+    fn clone(&self) -> Self {
+        match self {
+            Free(v) => Free(Rc::clone(v)),
+            Known(v) => Known(Rc::clone(v)),
+        }
+    }
+}
+
+#[doc(hidden)]
+mod sealed {
+    use crate::typechecker::constraints::Variable;
+    use crate::typechecker::Type;
+
+    pub trait Sealed<TYPE> {}
+    impl<TYPE: Type> Sealed<TYPE> for Variable<TYPE> {}
+    impl<TYPE: Type> Sealed<TYPE> for TYPE {}
+}
+
+/// Converts things into variables. Trivially, variables
+/// are convertible into variables. But types also are.
+/// This trait can be seen in [`Variable::equiv`]
+pub trait IntoVariable<TYPE>: sealed::Sealed<TYPE> {
+    fn into(self) -> Variable<TYPE>;
+}
+
+impl<TYPE: Type> IntoVariable<TYPE> for TYPE {
+    fn into(self) -> Variable<TYPE> {
+        Variable::Known(Rc::new(KnownVariable {
+            id: new_variable_id(),
+            value: self
+        }))
+    }
+}
+
+impl<TYPE: Type> IntoVariable<TYPE> for Variable<TYPE> {
+    fn into(self) -> Variable<TYPE> {
+        self
+    }
 }
 
 pub trait ComputedConstraint<TYPE: Type> {
@@ -54,18 +104,25 @@ pub enum Constraint<TYPE: Type> {
     Node(Variable<TYPE>, NodeId),
 
     Computed(Box<dyn ComputedConstraint<TYPE>>),
+
+    None,
 }
 
 impl<TYPE: Type> Variable<TYPE> {
-    pub fn eq(self, other: Variable<TYPE>) -> Constraint<TYPE> {
-        Constraint::Eq(self, other)
-    }
-
-    pub fn is_free(&self) -> bool {
-        match self {
-            Variable::Free(_) => true,
-            Variable::Known(_) => false,
-        }
+    /// Places a constraint on two variables, namely that they are equivalent
+    /// and that their types should be the same.
+    ///
+    /// Can either accept a variable:
+    /// ```rust
+    /// // TODO
+    /// ```
+    ///
+    /// Or a type, in which case it asserts that a variable is equal to a specific type:
+    /// ```rust
+    /// // TODO
+    /// ```
+    pub fn equiv(&self, other: impl IntoVariable<TYPE>) -> Constraint<TYPE> {
+        Constraint::Eq(self.clone(), other.into())
     }
 }
 
@@ -107,52 +164,3 @@ impl<TYPE: Type> Not for Constraint<TYPE> {
     }
 }
 
-pub fn not<TYPE: Type>(c1: Constraint<TYPE>) -> Constraint<TYPE> {
-    c1.not()
-}
-
-#[derive(Default)]
-pub struct ConstraintBuilder {
-    counter: usize,
-    node_type_vars: HashMap<NodeId, VariableId>,
-}
-
-impl ConstraintBuilder {
-    pub fn new() -> Self {
-        Default::default()
-    }
-}
-
-impl ConstraintBuilder {
-    pub fn free_variable<TYPE>(&mut self) -> Variable<TYPE> {
-        self.counter += 1;
-        Free(FreeVariable {
-            id: VariableId(self.counter),
-        })
-    }
-
-    pub fn own_type_variable<M: AstInfo, TYPE>(&mut self, node: impl AstNode<M>) -> Variable<TYPE> {
-        let node_id = node.ast_info().node_id();
-        match self.node_type_vars.entry(node_id) {
-            Vacant(e) => {
-                self.counter += 1;
-                e.insert(VariableId(self.counter));
-                Free(FreeVariable {
-                    id: VariableId(self.counter),
-                })
-            },
-            Occupied(e) => {
-                let id = e.get();
-                Free(FreeVariable { id: *id })
-            }
-        }
-    }
-
-    pub fn value_of_type<TYPE>(&mut self, value: TYPE) -> Variable<TYPE> {
-        self.counter = &self.counter + 1;
-        Known(KnownVariable {
-            id: VariableId(self.counter),
-            value,
-        })
-    }
-}
