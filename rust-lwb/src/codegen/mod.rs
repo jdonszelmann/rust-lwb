@@ -73,7 +73,7 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
 
             let line = format!(
                 r#"if let ParsePairExpression::List(_, ref p) = {src} {{
-    {}
+    ({},)
 }} else {{
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}"#,
@@ -93,11 +93,29 @@ fn generate_unpack(f: &mut Function, sort: &str, constructor: &str, expression: 
                 generate_unpack_expression(a, sort, "pair.constructor_value")
             ));
         }
-        a @ Expression::Sequence(_) => {
-            f.line(format!(
-                "Self::{constructor}(info, {})",
-                generate_unpack_expression(a, sort, "pair.constructor_value")
-            ));
+        Expression::Sequence(c) => {
+            let mut expressions = Vec::new();
+            for (index, i) in c.iter().enumerate() {
+                match i {
+                    Expression::Sequence(_) => unreachable!(),
+                    Expression::Choice(_) => todo!(),
+                    Expression::Literal(_) => continue,
+                    Expression::Negative(_) => continue,
+                    Expression::Positive(_) => continue,
+                    _ => {}
+                }
+
+                let line = generate_unpack_expression(i, sort, &format!("p[{index}]"));
+                expressions.push(line)
+            }
+
+            f.line(format!(r#"if let ParsePairExpression::List(_, ref p) = pair.constructor_value {{
+                    Self::{constructor}(info, {})
+                }} else {{
+                    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
+                }}"#
+                           , expressions.join(",")));
+
         }
         a @ Expression::Repeat { .. } => {
             f.line(format!(

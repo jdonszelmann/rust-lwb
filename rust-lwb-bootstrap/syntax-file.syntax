@@ -3,8 +3,8 @@ identifier:
     identifier = [A-Za-z_][A-Za-z0-9-_]*; {no-layout}
 
 escape-closing-bracket:
+    escaped = "\\" [\]nrt\\];
     unescaped = [^\]];
-    escaped = "\\" [\]];
 
 character-class-item:
     range = escape-closing-bracket  "-" escape-closing-bracket;
@@ -12,8 +12,8 @@ character-class-item:
 
 
 string-char:
+    escaped = "\\" [nrt\\"];
     normal = [^"];
-    escape = "\\" [nrt\\];
 
 number:
     number = [0-9]+;
@@ -22,7 +22,7 @@ character-class:
     class =  "[" character-class-item* "]"; {no-layout}
 
 expression:
-    paren = "(" expression ")"; {injection}
+    paren = "(" expression* ")"; {injection}
 
     star = expression "*";
     plus = expression "+";
