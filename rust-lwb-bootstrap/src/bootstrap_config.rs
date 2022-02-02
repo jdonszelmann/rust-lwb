@@ -1,6 +1,6 @@
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::Display;
-use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -13,7 +13,7 @@ pub struct BootstrapConfig {
 }
 
 pub fn from_root(path_from_root: impl AsRef<Path>) -> PathBuf {
-    let mut f = root().clone();
+    let mut f = root();
     f.push(path_from_root);
     f
 }
@@ -33,7 +33,7 @@ pub fn load(path_from_root: impl AsRef<Path>) -> BootstrapConfig {
     toml::from_str(&contents).expect("failed to parse config file")
 }
 
-pub fn unwrap<T, E: Error + Display>(e: Result<T, E>) -> T{
+pub fn unwrap<T, E: Error + Display>(e: Result<T, E>) -> T {
     if let Err(e) = e {
         panic!("{}", e);
     } else {

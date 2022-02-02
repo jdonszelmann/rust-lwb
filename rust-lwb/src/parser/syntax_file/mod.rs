@@ -1,14 +1,10 @@
-use miette::{GraphicalReportHandler, GraphicalTheme};
-use crate::codegen_prelude::AstInfo;
-use crate::parser::ast::AstNode;
-use crate::parser::ast::generate_ast::{BasicAstInfo, BasicAstNode, generate_ast};
-use crate::parser::bootstrap;
+use crate::error::display_miette_error;
+use crate::parser::ast::generate_ast::{generate_ast, BasicAstInfo, BasicAstNode};
+use crate::parser::peg::parse_error::PEGParseError;
 use crate::parser::peg::parser_file::parse_file;
+use crate::parser::syntax_file::convert_syntax_file_ast::{convert, AstConversionError};
 use crate::sources::source_file::SourceFile;
 use thiserror::Error;
-use crate::error::display_miette_error;
-use crate::parser::peg::parse_error::PEGParseError;
-use crate::parser::syntax_file::convert_syntax_file_ast::{AstConversionError, convert};
 
 pub mod ast;
 pub mod convert_syntax_file_ast;
@@ -19,7 +15,9 @@ const SERIALIZED_AST: &[u8] = include_bytes!("serialized-ast.bin");
 
 #[derive(Debug, Error)]
 pub enum ParseError {
-    #[error("failed to deserialize saved syntax file definition ast (this is a bug! please report it)")]
+    #[error(
+        "failed to deserialize saved syntax file definition ast (this is a bug! please report it)"
+    )]
     Bincode(#[from] bincode::Error),
 
     #[error("failed to convert saved syntax file definition ast to legacy syntax file definition ast (this is a bug! please report it)")]

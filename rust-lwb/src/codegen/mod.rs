@@ -1,4 +1,4 @@
-use crate::parser::bootstrap::ast::Annotation::{NoLayout, SingleString};
+use crate::parser::bootstrap::ast::Annotation::SingleString;
 use crate::parser::bootstrap::ast::{Expression, SyntaxFileAst};
 use codegen::{Function, Scope};
 use convert_case::{Case, Casing};
@@ -94,7 +94,7 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
                 expressions.push(line)
             }
 
-            if expressions.len() == 0 {
+            if expressions.is_empty() {
                 todo!()
             } else if expressions.len() == 1 {
                 let line = format!(
@@ -103,7 +103,8 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
 }} else {{
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}"#,
-                    expressions.pop().unwrap());
+                    expressions.pop().unwrap()
+                );
 
                 line
             } else {
@@ -113,7 +114,8 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
 }} else {{
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}"#,
-                    expressions.join(","));
+                    expressions.join(",")
+                );
 
                 line
             }
@@ -303,8 +305,7 @@ fn generate_constructor_type(constructor: &Expression) -> Option<String> {
                 }
             }
 
-
-            if parts.len() == 0 {
+            if parts.is_empty() {
                 None
             } else if parts.len() == 1 {
                 Some(parts.pop().unwrap())

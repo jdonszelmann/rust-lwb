@@ -3,10 +3,9 @@ use crate::sources::source_file::SourceFile;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
-use crate::error::display_miette_error;
 // use crate::parser::bootstrap::parse;
-use crate::parser::syntax_file::{convert_syntax_file_ast, parse_language, ParseError, SyntaxFile};
 use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError;
+use crate::parser::syntax_file::{convert_syntax_file_ast, ParseError, SyntaxFile};
 
 #[derive(Debug, Error)]
 pub enum CodegenError {

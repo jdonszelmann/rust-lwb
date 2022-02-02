@@ -1,3 +1,4 @@
+#![allow(clippy::result_unit_err)]
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::{Annotation, Sort};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
@@ -96,7 +97,7 @@ fn parse_sort_sub<'src>(
 ) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ()> {
     //Try each constructor, keeping track of the best error that occurred while doing so.
     //If none of the constructors succeed, we will return this error.
-    assert!(sort.constructors.len() > 0);
+    assert!(!sort.constructors.is_empty());
     for constructor in &sort.constructors {
         if constructor.annotations.contains(&Annotation::NoLayout) {
             cache.no_layout_nest_count += 1;
@@ -124,7 +125,7 @@ fn parse_sort_sub<'src>(
             }
             Err(_) => {
                 if constructor.annotations.contains(&Annotation::NoLayout) {
-                    let span = Span::from_length(&state.file, pos.position(), 1);
+                    let span = Span::from_length(state.file, pos.position(), 1);
                     let err = PEGParseError::expect(
                         span,
                         Expect::ExpectSort(sort.name.clone(), constructor.name.clone()),

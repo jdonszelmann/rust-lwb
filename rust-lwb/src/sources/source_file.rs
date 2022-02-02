@@ -20,13 +20,19 @@ struct Inner {
 pub struct SourceFile(Arc<Inner>);
 
 impl Serialize for SourceFile {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         serializer.serialize_unit()
     }
 }
 
 impl<'de> Deserialize<'de> for SourceFile {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+    fn deserialize<D>(_deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
         Ok(SourceFile::new("".to_string(), "dummmy".to_string()))
     }
 }

@@ -4,8 +4,6 @@ mod bootstrap_config;
 
 use crate::bootstrap_config::{from_root, unwrap};
 use rust_lwb::codegen::manager::CodegenManager;
-use std::error::Error;
-use std::fmt::Display;
 
 fn main() {
     let config = bootstrap_config::load("bootstrap.toml");
@@ -19,6 +17,4 @@ fn main() {
         .serde(true);
 
     unwrap(m.codegen());
-
-
 }

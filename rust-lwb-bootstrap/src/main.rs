@@ -1,13 +1,13 @@
-use std::error::Error;
-use std::io::Write;
 use miette::GraphicalReportHandler;
-use rust_lwb::sources::source_file::SourceFile;
 use rust_lwb::parser::ast::generate_ast::generate_ast;
 use rust_lwb::parser::peg::parser_file::parse_file;
+use rust_lwb::sources::source_file::SourceFile;
+use std::error::Error;
+use std::io::Write;
 // use rust_lwb::parser::bootstrap::parse;
+use crate::bootstrap_config::{from_root, unwrap};
 use rust_lwb::parser::syntax_file::convert_syntax_file_ast::convert;
 use rust_lwb::parser::syntax_file::SyntaxFile;
-use crate::bootstrap_config::{from_root, unwrap};
 
 mod bootstrap_config;
 
@@ -28,13 +28,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // let legacy_ast = parse(&sf)?; // TODO: replace with bootstrapped parser
 
-
-    println!("reparsing {} with peg parser and output from previous parse", config.input_location);
+    println!(
+        "reparsing {} with peg parser and output from previous parse",
+        config.input_location
+    );
     let bootstrapped_syntax_file_ast_pairs = match parse_file(&legacy_ast, &sf) {
         Ok(i) => {
             // println!("{}", i);
             i
-        },
+        }
         Err(e) => {
             let mut s = String::new();
             GraphicalReportHandler::new()
@@ -45,12 +47,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
     println!("generating ast from pairs");
-    let bootstrapped_syntax_file_ast: temp::AST_ROOT<_> = generate_ast(&bootstrapped_syntax_file_ast_pairs);
+    let bootstrapped_syntax_file_ast: temp::AST_ROOT<_> =
+        generate_ast(&bootstrapped_syntax_file_ast_pairs);
 
     println!("serializing ast");
     let serialized_ast = rust_lwb::bincode::serialize(&bootstrapped_syntax_file_ast)?;
 
-    println!("writing serialized ast at {}", config.serialized_ast_location);
+    println!(
+        "writing serialized ast at {}",
+        config.serialized_ast_location
+    );
     let mut res_file = std::fs::File::create(from_root(config.serialized_ast_location))?;
     res_file.write_all(&serialized_ast)?;
 

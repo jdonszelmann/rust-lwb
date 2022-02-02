@@ -1,8 +1,8 @@
-use std::str::FromStr;
 use crate::sources::character_class::CharacterClass;
 use derive_more::Display;
 use enum_iterator::IntoEnumIterator;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Constructor {
@@ -51,7 +51,7 @@ impl FromStr for Annotation {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         for i in Annotation::into_enum_iter() {
             if s == i.to_string() {
-                return Ok(i)
+                return Ok(i);
             }
         }
         Err(())

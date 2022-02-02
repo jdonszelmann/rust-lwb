@@ -1,6 +1,6 @@
 use crate::codegen_prelude::ParsePairSort;
-use crate::parser::bootstrap::ast::{Sort};
-use crate::parser::peg::parse_error::{PEGParseError};
+use crate::parser::bootstrap::ast::Sort;
+use crate::parser::peg::parse_error::PEGParseError;
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::sources::character_class::CharacterClass;
 use crate::sources::source_file::SourceFile;

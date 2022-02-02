@@ -1,3 +1,5 @@
+#![allow(clippy::result_unit_err)]
+
 use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
 use crate::parser::bootstrap::ast::{Expression, Sort};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
@@ -38,7 +40,10 @@ pub fn parse_expression<'src>(
                     pos,
                 })
             } else {
-                cache.add_error(PEGParseError::expect(span, Expect::ExpectString(lit.clone())));
+                cache.add_error(PEGParseError::expect(
+                    span,
+                    Expect::ExpectString(lit.clone()),
+                ));
                 Err(())
             }
         }
@@ -115,7 +120,7 @@ pub fn parse_expression<'src>(
                 //If the position hasn't changed, then we're in an infinite loop
                 if last_pos == pos.position() {
                     let span = Span::from_length(state.file, pos.position(), 0);
-                    cache.add_error(PEGParseError::fail_loop(span.clone()));
+                    cache.add_error(PEGParseError::fail_loop(span));
                     return Err(());
                 }
                 last_pos = pos.position();
@@ -135,7 +140,7 @@ pub fn parse_expression<'src>(
                 //If the position hasn't changed, then we're in an infinite loop
                 if last_pos == pos.position() {
                     let span = Span::from_length(state.file, pos.position(), 0);
-                    cache.add_error(PEGParseError::fail_loop(span.clone()));
+                    cache.add_error(PEGParseError::fail_loop(span));
                     return Err(());
                 }
                 last_pos = pos.position();
@@ -152,18 +157,16 @@ pub fn parse_expression<'src>(
         //If none of the constructors succeed, we will return this error.
         Expression::Choice(constructors) => {
             for (i, subconstructor) in constructors.iter().enumerate() {
-                match parse_expression(state, cache, flags, subconstructor, pos.clone()) {
-                    Ok(suc) => {
-                        return Ok(ParseSuccess {
-                            result: ParsePairExpression::Choice(
-                                suc.result.span(),
-                                i,
-                                Box::new(suc.result),
-                            ),
-                            pos: suc.pos,
-                        });
-                    }
-                    Err(_) => {}
+                if let Ok(suc) = parse_expression(state, cache, flags, subconstructor, pos.clone())
+                {
+                    return Ok(ParseSuccess {
+                        result: ParsePairExpression::Choice(
+                            suc.result.span(),
+                            i,
+                            Box::new(suc.result),
+                        ),
+                        pos: suc.pos,
+                    });
                 }
             }
             Err(())
