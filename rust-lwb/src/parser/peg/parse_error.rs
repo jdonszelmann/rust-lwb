@@ -11,14 +11,14 @@ use thiserror::Error;
 /// The parsing error consists of multiple `ParseErrorSub`, which each represent a single thing that went wrong at this position.
 #[derive(Debug, Clone, Error)]
 #[error("A parse error occured!")]
-pub struct ParseError {
+pub struct PEGParseError {
     pub span: Span,
     pub expected: Vec<Expect>,
     pub fail_left_rec: bool,
     pub fail_loop: bool,
 }
 
-impl Diagnostic for ParseError {
+impl Diagnostic for PEGParseError {
     /// Diagnostic severity. This may be used by [ReportHandler]s to change the
     /// display format of this diagnostic.
     ///
@@ -64,9 +64,9 @@ impl Diagnostic for ParseError {
     }
 }
 
-impl ParseError {
+impl PEGParseError {
     pub fn expect(span: Span, expect: Expect) -> Self {
-        ParseError {
+        PEGParseError {
             span,
             expected: vec![expect],
             fail_left_rec: false,
@@ -75,7 +75,7 @@ impl ParseError {
     }
 
     pub fn fail_left_recursion(span: Span) -> Self {
-        ParseError {
+        PEGParseError {
             span,
             expected: vec![],
             fail_left_rec: true,
@@ -84,7 +84,7 @@ impl ParseError {
     }
 
     pub fn fail_loop(span: Span) -> Self {
-        ParseError {
+        PEGParseError {
             span,
             expected: vec![],
             fail_left_rec: false,
@@ -128,13 +128,13 @@ impl Display for Expect {
     }
 }
 
-impl ParseError {
+impl PEGParseError {
     /// Combine multiple parse errors. When one has precedence over
     /// another, the highest precedence error is kept and the other
     /// is discarded.
     ///
     /// Highest precedence is defined as furthest starting position for now. This might be changed later.
-    pub fn combine(mut self, mut other: ParseError) -> ParseError {
+    pub fn combine(mut self, mut other: PEGParseError) -> PEGParseError {
         assert_eq!(self.span.source.name(), other.span.source.name());
 
         //Compare the starting positions of the span
@@ -157,9 +157,9 @@ impl ParseError {
     /// A helper that combines optional parse errors, and returns an optional parse error if either exists.
     /// If both exist, use `ParseError::combine` to combine the errors.
     pub fn combine_option_parse_error(
-        a: Option<ParseError>,
-        b: Option<ParseError>,
-    ) -> Option<ParseError> {
+        a: Option<PEGParseError>,
+        b: Option<PEGParseError>,
+    ) -> Option<PEGParseError> {
         match (a, b) {
             (None, None) => None,
             (None, Some(e)) => Some(e),

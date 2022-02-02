@@ -1,6 +1,6 @@
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::SyntaxFileAst;
-use crate::parser::peg::parse_error::{Expect, ParseError};
+use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parser::{ParserCache, ParserFlags, ParserState};
 use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::source_file::SourceFile;
@@ -13,7 +13,7 @@ use std::collections::{HashMap, VecDeque};
 pub fn parse_file<'src>(
     syntax: &'src SyntaxFileAst,
     file: &'src SourceFile,
-) -> Result<ParsePairSort<'src>, ParseError> {
+) -> Result<ParsePairSort<'src>, PEGParseError> {
     //Create a new parser state
     let mut state = ParserState {
         file,
@@ -49,6 +49,7 @@ pub fn parse_file<'src>(
     };
 
     //If there is no input left, return Ok.
+    ok.pos.skip_layout(&state.layout);
     if ok.pos.peek().is_none() {
         Ok(ok.result)
     } else {
@@ -60,7 +61,7 @@ pub fn parse_file<'src>(
                 let curpos = ok.pos.position();
                 while ok.pos.next().is_some() {}
                 let endpos = ok.pos.position();
-                Err(ParseError::expect(
+                Err(PEGParseError::expect(
                     Span::from_end(file, curpos, endpos),
                     Expect::NotEntireInput(),
                 ))

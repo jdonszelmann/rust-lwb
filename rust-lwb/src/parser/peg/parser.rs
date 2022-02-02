@@ -1,6 +1,6 @@
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::{Sort};
-use crate::parser::peg::parse_error::{ParseError};
+use crate::parser::peg::parse_error::{PEGParseError};
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::sources::character_class::CharacterClass;
 use crate::sources::source_file::SourceFile;
@@ -19,7 +19,7 @@ pub struct ParserState<'src> {
 pub struct ParserCache<'src> {
     pub(crate) cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
     pub(crate) cache_stack: VecDeque<(usize, &'src str)>,
-    pub best_error: Option<ParseError>,
+    pub best_error: Option<PEGParseError>,
     pub trace: VecDeque<&'src Sort>,
     pub allow_layout: bool, // True if layout should be allowed at the moment
     pub no_layout_nest_count: usize, // How many times no layout has been nested
@@ -77,12 +77,12 @@ impl<'src> ParserCache<'src> {
         })
     }
 
-    pub fn add_error(&mut self, error: ParseError) {
+    pub fn add_error(&mut self, error: PEGParseError) {
         if self.no_errors_nest_count > 0 {
             return;
         }
         match self.best_error.take() {
-            Some(old_error) => self.best_error = Some(ParseError::combine(old_error, error)),
+            Some(old_error) => self.best_error = Some(PEGParseError::combine(old_error, error)),
             None => self.best_error = Some(error),
         }
     }

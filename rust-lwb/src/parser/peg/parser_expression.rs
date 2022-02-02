@@ -1,6 +1,6 @@
 use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
 use crate::parser::bootstrap::ast::{Expression, Sort};
-use crate::parser::peg::parse_error::{Expect, ParseError};
+use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::peg::parser::{ParserCache, ParserFlags, ParserState};
 use crate::parser::peg::parser_sort::parse_sort;
@@ -38,7 +38,7 @@ pub fn parse_expression<'src>(
                     pos,
                 })
             } else {
-                cache.add_error(ParseError::expect(span, Expect::ExpectString(lit.clone())));
+                cache.add_error(PEGParseError::expect(span, Expect::ExpectString(lit.clone())));
                 Err(())
             }
         }
@@ -57,7 +57,7 @@ pub fn parse_expression<'src>(
                     pos,
                 })
             } else {
-                cache.add_error(ParseError::expect(
+                cache.add_error(PEGParseError::expect(
                     span,
                     Expect::ExpectCharClass(characters.clone()),
                 ));
@@ -115,7 +115,7 @@ pub fn parse_expression<'src>(
                 //If the position hasn't changed, then we're in an infinite loop
                 if last_pos == pos.position() {
                     let span = Span::from_length(state.file, pos.position(), 0);
-                    cache.add_error(ParseError::fail_loop(span.clone()));
+                    cache.add_error(PEGParseError::fail_loop(span.clone()));
                     return Err(());
                 }
                 last_pos = pos.position();
@@ -135,7 +135,7 @@ pub fn parse_expression<'src>(
                 //If the position hasn't changed, then we're in an infinite loop
                 if last_pos == pos.position() {
                     let span = Span::from_length(state.file, pos.position(), 0);
-                    cache.add_error(ParseError::fail_loop(span.clone()));
+                    cache.add_error(PEGParseError::fail_loop(span.clone()));
                     return Err(());
                 }
                 last_pos = pos.position();

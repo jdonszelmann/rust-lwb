@@ -1,5 +1,5 @@
 use crate::sources::character_class::CharacterClass;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::io;
 use std::io::Read;
 use std::iter::Peekable;
@@ -16,8 +16,20 @@ struct Inner {
 /// SourceFile represents a source into which spans
 /// point. Source files can be cheaply cloned as the
 /// actual contents of them live behind an `Rc`.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct SourceFile(Arc<Inner>);
+
+impl Serialize for SourceFile {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        serializer.serialize_unit()
+    }
+}
+
+impl<'de> Deserialize<'de> for SourceFile {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+        Ok(SourceFile::new("".to_string(), "dummmy".to_string()))
+    }
+}
 
 impl SourceFile {
     pub fn open(name: impl AsRef<Path>) -> io::Result<Self> {

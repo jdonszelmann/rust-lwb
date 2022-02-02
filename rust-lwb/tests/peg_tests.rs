@@ -1,33 +1,65 @@
 use miette::GraphicalReportHandler;
-use rust_lwb::parser::peg::parser::parse_file;
+use rust_lwb::parser::peg::parser_file::parse_file;
 use rust_lwb::sources::source_file::SourceFile;
 use rust_lwb::parser::syntax_file::SyntaxFile;
+use rust_lwb::parser::syntax_file::convert_syntax_file_ast::convert;
 
 macro_rules! peg_test {
     (name: $name:ident, syntax: $syntax:literal, passing tests: $($input_pass:literal)* failing tests: $($input_fail:literal)*) => {
         #[test]
         fn $name() {
-            $(
-            let sf2 = SourceFile::new($input_pass.to_string(), "input.language".to_string());
-            let parsed = SyntaxFile::parse(&sf2);
-            match parsed {
-                Ok(_) => {}
+            let sf = SourceFile::new($syntax.to_string(), "test.syntax".to_string());
+            let ast = match SyntaxFile::parse(&sf) {
+                Ok(ok) => ok,
                 Err(err) => {
-                    panic!("{}", err)
+                    println!("{}", err);
+                    panic!();
+                }
+            };
+            let ast = convert(ast).unwrap();
+
+            $(
+            println!("== Parsing (should be ok): {}", $input_pass);
+            let sf2 = SourceFile::new($input_pass.to_string(), "input.language".to_string());
+            let parsed = parse_file(&ast, &sf2);
+            match parsed {
+                Ok(ok) => {
+                    println!("{:?}", ok);
+                }
+                Err(err) => {
+                    println!("{:?}", err);
+                    if $input_pass != "" {
+                        let mut s = String::new();
+                        GraphicalReportHandler::new()
+                            .with_links(true)
+                            .render_report(&mut s, &err)
+                            .unwrap();
+                        print!("{}", s);
+                    }
                 }
             }
             )*
 
             $(
+            println!("== Parsing (should be err): {}", $input_fail);
             let sf2 = SourceFile::new($input_fail.to_string(), "input.language".to_string());
-            let parsed = SyntaxFile::parse(&sf2);
+            let parsed = parse_file(&ast, &sf2);
             match parsed {
                 Ok(ok) => {
-                    println!("Unexpected ok while parsing: {}", $input_fail);
-                    // print!("{:?}", ok); // TODO: derive debug
+                    println!("{:?}", ok);
                     assert!(false);
                 }
-                Err(_) => {}
+                Err(err) => {
+                    println!("{:?}", err);
+                    if $input_fail != "" {
+                        let mut s = String::new();
+                        GraphicalReportHandler::new()
+                            .with_links(true)
+                            .render_report(&mut s, &err)
+                            .unwrap();
+                        print!("{}", s);
+                    }
+                }
             }
             )*
         }
@@ -38,8 +70,8 @@ peg_test! {
 name: as_rightrec,
 syntax: r#"
 As:
-    More = 'a' As;
-    NoMore = '';
+    More = "a" As;
+    NoMore = "";
 start at As;
 "#,
 passing tests:
@@ -58,8 +90,8 @@ peg_test! {
 name: as_leftrec,
 syntax: r#"
 As:
-    More = As 'a';
-    NoMore = '';
+    More = As "a";
+    NoMore = "";
 start at As;
 "#,
 passing tests:
@@ -94,7 +126,7 @@ peg_test! {
 name: bad_loop,
 syntax: r#"
 X:
-    Fail = ''*;
+    Fail = ""*;
 start at X;
 "#,
 passing tests:
@@ -110,7 +142,7 @@ peg_test! {
 name: recovery,
 syntax: r#"
 X:
-    X = 'x'+ ';';
+    X = "x"+ ";";
 XS:
     XS = X*;
 start at XS;
@@ -132,7 +164,7 @@ peg_test! {
 name: layout,
 syntax: r#"
 X:
-    X = 'x' 'y';
+    X = "x" "y";
 layout = [\n\r\t ];
 start at X;
 "#,
@@ -148,7 +180,7 @@ peg_test! {
 name: no_layout,
 syntax: r#"
 X:
-    X = 'x' 'y'; {no-layout}
+    X = "x" "y"; {no-layout}
 layout = [\n\r\t ];
 start at X;
 "#,
@@ -159,4 +191,16 @@ failing tests:
     "x_y"
     "x
 y"
+}
+
+peg_test! {
+name: simple,
+syntax: r#"
+X:
+    X = "x";
+start at X;
+"#,
+passing tests:
+    "x"
+failing tests:
 }

@@ -1,6 +1,6 @@
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::{Annotation, Sort};
-use crate::parser::peg::parse_error::{Expect, ParseError};
+use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::peg::parser::{ParserCache, ParserFlags, ParserState};
 use crate::parser::peg::parser_expression::parse_expression;
@@ -71,7 +71,7 @@ pub fn parse_sort<'src>(
             // Left recursion value was used, but did not make a seed.
             // This is an illegal grammar!
             if cache.is_read(&key).unwrap() {
-                cache.add_error(ParseError::fail_left_recursion(Span::from_length(
+                cache.add_error(PEGParseError::fail_left_recursion(Span::from_length(
                     state.file,
                     pos.position(),
                     0,
@@ -102,7 +102,7 @@ fn parse_sort_sub<'src>(
             cache.no_layout_nest_count += 1;
             cache.no_errors_nest_count += 1;
         }
-        let res = parse_expression(state, cache, flags, &constructor.constructor, pos.clone());
+        let res = parse_expression(state, cache, flags, &constructor.expression, pos.clone());
         if constructor.annotations.contains(&Annotation::NoLayout) {
             cache.no_layout_nest_count -= 1;
             cache.no_errors_nest_count -= 1;
@@ -125,7 +125,7 @@ fn parse_sort_sub<'src>(
             Err(_) => {
                 if constructor.annotations.contains(&Annotation::NoLayout) {
                     let span = Span::from_length(&state.file, pos.position(), 1);
-                    let err = ParseError::expect(
+                    let err = PEGParseError::expect(
                         span,
                         Expect::ExpectSort(sort.name.clone(), constructor.name.clone()),
                     );
