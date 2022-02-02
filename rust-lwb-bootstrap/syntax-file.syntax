@@ -33,10 +33,11 @@ expression:
     sort = identifier;
     class = character-class;
 
-
+annotation:
+    annotation = "{" identifier? ("," identifier)* ","? "}";
 
 constructor:
-    constructor = "    " identifier "=" expression* ";";
+    constructor = "    " identifier "=" expression* ";" annotation?;
 
 newline:
     unix = "\n";
