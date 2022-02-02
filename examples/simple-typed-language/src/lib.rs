@@ -9,7 +9,13 @@ language!(STL at mod stl);
 #[test]
 fn test_parse() {
     let file = SourceFile::new("
-
+3 + 5
     ", "main.stl");
-    let ast = STL::parse(&file);
+    let ast = match STL::parse(&file) {
+        Ok(ok) => ok,
+        Err(e) => {
+            println!("{}", e);
+            panic!();
+        },
+    };
 }

@@ -18,6 +18,10 @@ pub fn from_root(path_from_root: impl AsRef<Path>) -> PathBuf {
     f
 }
 
+pub fn temporary_location() -> PathBuf {
+    from_root("src/temp.rs")
+}
+
 pub fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR").to_string())
 }

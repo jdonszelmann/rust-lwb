@@ -176,7 +176,7 @@ fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<E
             min: convert_number(*min)?,
             max: max.map(|i| convert_number(*i)).transpose()?,
         },
-        ast::Expression::Literal(_, l) => {
+        ast::Expression::Literal(_, l) | ast::Expression::SingleQuoteLiteral(_, l) => {
             Expression::Literal(l.into_iter().map(|i| convert_string_char(*i)).collect())
         }
         ast::Expression::Sort(_, s) => Expression::Sort(convert_identifier(*s)),

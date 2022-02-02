@@ -192,7 +192,7 @@ fn generate_unpack(
     }
 }
 
-pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bool) -> String {
+pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bool, serialized_parser: Option<&[u8]>) -> String {
     let mut scope = Scope::new();
 
     scope.import(&format!("{}::codegen_prelude", import_location), "*");
@@ -269,6 +269,10 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bo
             .new_impl(&format!("{}<M>", sanitize_identifier(&rule.name)))
             .impl_trait("AstNode<M>")
             .generic("M: AstInfo");
+    }
+
+    if let Some(i) = serialized_parser {
+        scope.raw(&format!(r##"pub const PARSER: &[u8] = &{:?};"##, i));
     }
 
     format!(
