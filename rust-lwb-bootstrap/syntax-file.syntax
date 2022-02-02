@@ -1,6 +1,6 @@
 
 identifier:
-    identifier = [A-Za-z_][A-Za-z0-9-_]*; {no-layout}
+    identifier = [A-Za-z_][A-Za-z0-9-_]*; {no-layout, single-string}
 
 escape-closing-bracket:
     escaped = "\\" [\]nrt\\];
@@ -19,7 +19,7 @@ number:
     number = [0-9]+;
 
 character-class:
-    class =  "[" character-class-item* "]"; {no-layout}
+    class =  "[" "^"? character-class-item* "]"; {no-layout}
 
 expression:
     paren = "(" expression* ")"; {injection}
@@ -29,7 +29,7 @@ expression:
     maybe = expression "?";
     repeat-exact = expression "{" number "," number? "}";
 
-    literal = "\"" "^"? string-char* "\""; {no-layout}
+    literal = "\"" string-char* "\""; {no-layout, single-string}
     sort = identifier;
     class = character-class;
 

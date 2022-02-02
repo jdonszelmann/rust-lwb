@@ -2,6 +2,7 @@ use crate::parser::bootstrap::ast::{Expression, SyntaxFileAst};
 use codegen::{Function, Scope};
 use convert_case::{Case, Casing};
 use std::ops::Deref;
+use crate::parser::bootstrap::ast::Annotation::{NoLayout, SingleString};
 
 pub mod manager;
 
@@ -27,7 +28,20 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
 }}"#
         ),
         Expression::Repeat { min, max, c } => {
+
+            let ue = generate_unpack_expression(c, sort, "x");
+
             match (min, max) {
+                (0, Some(1)) if ue == "()" => {
+                    format!(
+                        r#"if let ParsePairExpression::List(_, ref l) = {src} {{
+    l.first().is_some()
+}} else {{
+    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
+}}
+                    "#,
+                    )
+                }
                 (0, Some(1)) => {
                     // option
                     format!(
@@ -37,7 +51,17 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}
                     "#,
-                        generate_unpack_expression(c, sort, "x")
+                       ue
+                    )
+                }
+                _ if ue == "()" => {
+                    format!(
+                        r#"if let ParsePairExpression::List(_, ref l) = {src} {{
+    l.iter().len()
+}} else {{
+    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
+}}
+                    "#,
                     )
                 }
                 _ => {
@@ -49,7 +73,7 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}
                     "#,
-                        generate_unpack_expression(c, sort, "x")
+                        ue
                     )
                 }
             }
@@ -85,7 +109,13 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
     }
 }
 
-fn generate_unpack(f: &mut Function, sort: &str, constructor: &str, expression: &Expression) {
+fn generate_unpack(f: &mut Function, sort: &str, constructor: &str, expression: &Expression, no_layout: bool) {
+    // if its a no-layout constructor then just return the contents as a string
+    if no_layout {
+        f.line(format!("Self::{constructor}(info, pair.constructor_value.span().as_str().to_string())"));
+        return;
+    }
+
     match expression {
         a @ Expression::Sort(_) => {
             f.line(format!(
@@ -158,8 +188,13 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bo
         for constr in &rule.constructors {
             let variant = enumm.new_variant(&sanitize_identifier(&constr.name));
             variant.tuple("M");
-            let typ =
-                generate_constructor_type(&constr.constructor).unwrap_or_else(|| "()".to_string());
+
+            let typ = if constr.annotations.contains(&SingleString) {
+                "String".to_string()
+            } else {
+                generate_constructor_type(&constr.constructor).unwrap_or_else(|| "()".to_string())
+            };
+
             let typ = if typ.starts_with('(') {
                 &typ[1..typ.len() - 1]
             } else {
@@ -192,6 +227,7 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bo
                 &rule.name,
                 &sanitize_identifier(&constructor.name),
                 &constructor.constructor,
+                constructor.annotations.contains(&SingleString),
             );
             f.line("}");
         }
@@ -260,7 +296,9 @@ fn generate_constructor_type(constructor: &Expression) -> Option<String> {
             };
 
             match (min, max) {
+                (0, Some(1)) if subtype == "()" => Some("bool".to_string()),
                 (0, Some(1)) => Some(String::from_iter(["Option<", &subtype, ">"])),
+                _ if subtype == "()" => Some("usize".to_string()),
                 _ => Some(String::from_iter(["Vec<", &subtype, ">"])),
             }
         }

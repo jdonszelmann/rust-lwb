@@ -31,10 +31,17 @@ pub enum Expression {
 pub enum Annotation {
     #[display(fmt = "no-pretty-print")]
     NoPrettyPrint,
+
+    /// Don't accept layout in this rule and any child rule
     #[display(fmt = "no-layout")]
     NoLayout,
+
     #[display(fmt = "injection")]
     Injection,
+
+    /// represent this constructor as a single string in the final ast
+    #[display(fmt = "single-string")]
+    SingleString,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
