@@ -104,7 +104,10 @@ fn parse_sort_sub<'src>(
     for constructor in &sort.constructors {
         let flags = ParserFlags {
             no_layout_now: flags.no_layout_now,
-            no_layout_future: flags.no_layout_future || constructor.annotations.contains(&Annotation::NoLayout),
+            no_layout_future: flags.no_layout_future
+                .or_else(|| constructor.annotations.contains(&Annotation::NoLayout)
+                    .then(|| constructor.name.as_str())
+                ),
         };
         match parse_expression(state, cache, &constructor.constructor, pos.clone(), flags) {
             Ok(ok) => {
