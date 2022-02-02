@@ -1,4 +1,3 @@
-#[rustfmt::skip]
 use miette::GraphicalReportHandler;
 use rust_lwb::parser::ast::generate_ast::generate_ast;
 use rust_lwb::parser::peg::parser_file::parse_file;
