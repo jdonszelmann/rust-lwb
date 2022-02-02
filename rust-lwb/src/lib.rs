@@ -9,9 +9,6 @@ pub mod language;
 
 mod error;
 
-/// Helpers for type checking
-pub mod typechecker;
-
 /// Helpers for code generation
 pub mod transform;
 
