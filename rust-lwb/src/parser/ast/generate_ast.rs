@@ -1,7 +1,7 @@
 use crate::codegen_prelude::{AstInfo, GenerateAstInfo, ParsePairSort};
 use crate::parser::ast::{AstNode, NodeId, SpannedAstInfo};
 use crate::sources::span::Span;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct BasicAstInfo {
@@ -18,6 +18,9 @@ impl SpannedAstInfo for BasicAstInfo {
         &self.span
     }
 }
+
+pub trait BasicAstNode: AstNode<BasicAstInfo> {}
+impl<T> BasicAstNode for T where T: AstNode<BasicAstInfo> {}
 
 struct AstInfoGenerator;
 

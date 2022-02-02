@@ -7,6 +7,8 @@ pub use bincode;
 #[macro_use]
 pub mod language;
 
+mod error;
+
 /// Helpers for type checking
 pub mod typechecker;
 

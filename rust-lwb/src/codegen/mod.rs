@@ -1,3 +1,4 @@
+use crate::parser::bootstrap::ast::Annotation::SingleString;
 use crate::parser::bootstrap::ast::{Expression, SyntaxFileAst};
 use codegen::{Function, Scope};
 use convert_case::{Case, Casing};
@@ -27,7 +28,19 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
 }}"#
         ),
         Expression::Repeat { min, max, c } => {
+            let ue = generate_unpack_expression(c, sort, "x");
+
             match (min, max) {
+                (0, Some(1)) if ue == "()" => {
+                    format!(
+                        r#"if let ParsePairExpression::List(_, ref l) = {src} {{
+    l.first().is_some()
+}} else {{
+    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
+}}
+                    "#,
+                    )
+                }
                 (0, Some(1)) => {
                     // option
                     format!(
@@ -37,7 +50,17 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}
                     "#,
-                        generate_unpack_expression(c, sort, "x")
+                        ue
+                    )
+                }
+                _ if ue == "()" => {
+                    format!(
+                        r#"if let ParsePairExpression::List(_, ref l) = {src} {{
+    l.iter().len()
+}} else {{
+    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
+}}
+                    "#,
                     )
                 }
                 _ => {
@@ -49,17 +72,73 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}
                     "#,
-                        generate_unpack_expression(c, sort, "x")
+                        ue
                     )
                 }
             }
         }
         Expression::Literal(_) => "()".to_string(),
+        Expression::Sequence(c) => {
+            let mut expressions = Vec::new();
+            for (index, i) in c.iter().enumerate() {
+                match i {
+                    Expression::Sequence(_) => unreachable!(),
+                    Expression::Choice(_) => todo!(),
+                    Expression::Literal(_) => continue,
+                    Expression::Negative(_) => continue,
+                    Expression::Positive(_) => continue,
+                    _ => {}
+                }
+
+                let line = generate_unpack_expression(i, sort, &format!("p[{index}]"));
+                expressions.push(line)
+            }
+
+            if expressions.is_empty() {
+                todo!()
+            } else if expressions.len() == 1 {
+                let line = format!(
+                    r#"if let ParsePairExpression::List(_, ref p) = {src} {{
+    {}
+}} else {{
+    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
+}}"#,
+                    expressions.pop().unwrap()
+                );
+
+                line
+            } else {
+                let line = format!(
+                    r#"if let ParsePairExpression::List(_, ref p) = {src} {{
+    ({})
+}} else {{
+    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
+}}"#,
+                    expressions.join(",")
+                );
+
+                line
+            }
+        }
         a => unreachable!("{:?}", a),
     }
 }
 
-fn generate_unpack(f: &mut Function, sort: &str, constructor: &str, expression: &Expression) {
+fn generate_unpack(
+    f: &mut Function,
+    sort: &str,
+    constructor: &str,
+    expression: &Expression,
+    no_layout: bool,
+) {
+    // if its a no-layout constructor then just return the contents as a string
+    if no_layout {
+        f.line(format!(
+            "Self::{constructor}(info, pair.constructor_value.span().as_str().to_string())"
+        ));
+        return;
+    }
+
     match expression {
         a @ Expression::Sort(_) => {
             f.line(format!(
@@ -88,7 +167,7 @@ fn generate_unpack(f: &mut Function, sort: &str, constructor: &str, expression: 
                 }} else {{
                     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
                 }}"#
-            , expressions.join(",")));
+                           , expressions.join(",")));
         }
         a @ Expression::Repeat { .. } => {
             f.line(format!(
@@ -127,12 +206,19 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bo
             enumm.derive("Deserialize");
         }
 
+        enumm.derive("Debug");
+
         enumm.generic("M : AstInfo");
         for constr in &rule.constructors {
             let variant = enumm.new_variant(&sanitize_identifier(&constr.name));
             variant.tuple("M");
-            let typ =
-                generate_constructor_type(&constr.constructor).unwrap_or_else(|| "()".to_string());
+
+            let typ = if constr.annotations.contains(&SingleString) {
+                "String".to_string()
+            } else {
+                generate_constructor_type(&constr.expression).unwrap_or_else(|| "()".to_string())
+            };
+
             let typ = if typ.starts_with('(') {
                 &typ[1..typ.len() - 1]
             } else {
@@ -164,7 +250,8 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bo
                 &mut f,
                 &rule.name,
                 &sanitize_identifier(&constructor.name),
-                &constructor.constructor,
+                &constructor.expression,
+                constructor.annotations.contains(&SingleString),
             );
             f.line("}");
         }
@@ -210,19 +297,20 @@ fn generate_constructor_type(constructor: &Expression) -> Option<String> {
             "<M>>",
         ])),
         Expression::Sequence(cons) => {
-            let mut s = String::new();
-            s.push('(');
+            let mut parts = Vec::new();
+
             for con in cons {
                 if let Some(con_type) = generate_constructor_type(con) {
-                    s.push_str(&con_type);
-                    s.push(',');
+                    parts.push(con_type);
                 }
             }
-            s.push(')');
-            if s.len() > 2 {
-                Some(s)
-            } else {
+
+            if parts.is_empty() {
                 None
+            } else if parts.len() == 1 {
+                Some(parts.pop().unwrap())
+            } else {
+                Some(format!("({})", parts.join(",")))
             }
         }
         Expression::Repeat { c, min, max } => {
@@ -233,7 +321,9 @@ fn generate_constructor_type(constructor: &Expression) -> Option<String> {
             };
 
             match (min, max) {
+                (0, Some(1)) if subtype == "()" => Some("bool".to_string()),
                 (0, Some(1)) => Some(String::from_iter(["Option<", &subtype, ">"])),
+                _ if subtype == "()" => Some("usize".to_string()),
                 _ => Some(String::from_iter(["Vec<", &subtype, ">"])),
             }
         }

@@ -1,53 +1,54 @@
 
 identifier:
-    identifier = [A-Za-z_][A-Za-z0-9-_]*; {no-layout}
+    identifier = [A-Za-z_][A-Za-z0-9-_]*; {no-layout, single-string}
 
 escape-closing-bracket:
+    escaped = "\\" [\]nrt\\];
     unescaped = [^\]];
-    escaped = "\\" [\]];
 
 character-class-item:
-    single-char = escape-closing-bracket; {injection}
     range = escape-closing-bracket  "-" escape-closing-bracket;
+    single-char = escape-closing-bracket; {injection}
 
 
 string-char:
-    normal = [^"];
-    escape = "\\" [nrt\\];
+    escaped = "\\" [nrt\\"];
+    normal = [^"\\];
 
 number:
-    number = [0-9]+;
+    number = [0-9]+; {single-string}
 
 character-class:
-    class =  "[" character-class-item "]"; {no-layout}
+    class =  "[" "^"? character-class-item* "]"; {no-layout}
 
 expression:
-    paren = "(" expression ")"; {injection}
-
-    literal = "\"" "^"? string-char* "\""; {no-layout}
-    sort = identifier;
-    class = character-class;
-
     star = expression "*";
     plus = expression "+";
     maybe = expression "?";
     repeat-exact = expression "{" number "," number? "}";
 
-    sequence = expression expression;
+    literal = "\"" string-char* "\""; {no-layout}
+    sort = identifier;
+    class = character-class;
+
+    paren = "(" expression+ ")"; {injection}
+
+annotation:
+    annotation = "{" identifier? ("," identifier)* ","? "}";
 
 constructor:
-    constructor = "    " identifier "=" expression ";";
+    constructor = "    " identifier "=" expression+ ";" annotation?;
 
 newline:
     unix = "\n";
     windows = "\r\n";
 
 sort:
-    sort = identifier ":" "\n" constructor*;
+    sort = identifier ":" constructor*;
 
 meta:
-    layout = "layout" "=" character-class;
-    start = "start" "at" identifier;
+    layout = "layout" "=" character-class ";";
+    start = "start" "at" identifier ";";
 
 sort-or-meta:
     meta = meta;
