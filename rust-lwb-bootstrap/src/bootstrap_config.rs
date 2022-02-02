@@ -9,7 +9,6 @@ use std::path::{Path, PathBuf};
 pub struct BootstrapConfig {
     pub input_location: String,
     pub output_location: String,
-    pub serialized_ast_location: String,
 }
 
 pub fn from_root(path_from_root: impl AsRef<Path>) -> PathBuf {

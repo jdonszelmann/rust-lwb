@@ -2,4 +2,3 @@
 # relative to cargo root
 input_location = "../rust-lwb-bootstrap/syntax-file.syntax"
 output_location = "../rust-lwb/src/parser/syntax_file/ast.rs"
-serialized_ast_location = "../rust-lwb/src/parser/syntax_file/serialized-ast.bin"
