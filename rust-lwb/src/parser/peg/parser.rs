@@ -1,11 +1,9 @@
 use crate::codegen_prelude::ParsePairSort;
-use crate::parser::bootstrap::ast::{Sort, SyntaxFileAst};
-use crate::parser::peg::parse_error::ParseError;
+use crate::parser::bootstrap::ast::{Sort};
+use crate::parser::peg::parse_error::{ParseError};
 use crate::parser::peg::parse_success::ParseSuccess;
-use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::character_class::CharacterClass;
 use crate::sources::source_file::SourceFile;
-use crate::sources::span::Span;
 use std::collections::{HashMap, VecDeque};
 
 /// This stores the immutable data that is used during the parsing process.
@@ -19,23 +17,30 @@ pub struct ParserState<'src> {
 /// It contains a cache of the results of each (source position, rule).
 /// It also has a stack which contains information about the order in which the keys were inserted, so they can be removed in order when needed.
 pub struct ParserCache<'src> {
-    cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
-    cache_stack: VecDeque<(usize, &'src str)>,
+    pub(crate) cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
+    pub(crate) cache_stack: VecDeque<(usize, &'src str)>,
+    pub best_error: Option<ParseError>,
     pub trace: VecDeque<&'src Sort>,
     pub allow_layout: bool, // True if layout should be allowed at the moment
     pub no_layout_nest_count: usize, // How many times no layout has been nested
+    pub no_errors_nest_count: usize, // How many times no errors has been nested
+}
+
+/// A single entry in the cache. Contains the value, and a flag whether it has been read.
+pub struct ParserCacheEntry<'src> {
+    read: bool,
+    value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ()>,
 }
 
 #[derive(Copy, Clone)]
-pub struct ParserFlags {
-}
+pub struct ParserFlags {}
 
 impl<'src> ParserCache<'src> {
     /// Get a mutable reference to an entry
     pub fn get_mut(
         &mut self,
         key: &(usize, &'src str),
-    ) -> Option<&mut Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError>> {
+    ) -> Option<&mut Result<ParseSuccess<'src, ParsePairSort<'src>>, ()>> {
         if let Some(v) = self.cache.get_mut(key) {
             v.read = true;
             Some(&mut v.value)
@@ -53,7 +58,7 @@ impl<'src> ParserCache<'src> {
     pub fn insert(
         &mut self,
         key: (usize, &'src str),
-        value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError>,
+        value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ()>,
     ) {
         self.cache
             .insert(key, ParserCacheEntry { read: false, value });
@@ -71,67 +76,14 @@ impl<'src> ParserCache<'src> {
             self.cache.remove(&key);
         })
     }
-}
 
-/// A single entry in the cache. Contains the value, and a flag whether it has been read.
-pub struct ParserCacheEntry<'src> {
-    read: bool,
-    value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError>,
-}
-
-/// Parses a file, given the syntax to parse it with, and the file.
-/// When successful, it returns a `ParsePairSort`.
-/// When unsuccessful, it returns a `ParseError`.
-pub fn parse_file<'src>(
-    syntax: &'src SyntaxFileAst, // TODO: are these lifetimes truly the same?
-    file: &'src SourceFile,      // TODO: the same as this one I mean
-) -> Result<ParsePairSort<'src>, ParseError> {
-    //Create a new parser state
-    let mut state = ParserState {
-        file,
-        rules: HashMap::new(),
-        layout: syntax.layout.clone(),
-    };
-    syntax.sorts.iter().for_each(|rule| {
-        state.rules.insert(&rule.name, rule);
-    });
-
-    let mut cache = ParserCache {
-        cache: HashMap::new(),
-        cache_stack: VecDeque::new(),
-        trace: VecDeque::new(),
-        no_layout_nest_count: 0usize,
-        allow_layout: true,
-    };
-
-    let flags = ParserFlags {
-
-    };
-
-    //Parse the starting sort
-    let starting_sort = state
-        .rules
-        .get(&syntax.starting_sort[..])
-        .expect("Starting sort exists");
-    let mut ok: ParseSuccess<ParsePairSort<'src>> =
-        parse_sort(&state, &mut cache, flags, starting_sort, file.iter())?;
-
-    //If there is no input left, return Ok.
-    if ok.pos.peek().is_none() {
-        Ok(ok.result)
-    } else {
-        //If any occurred during the parsing, return it. Otherwise, return a generic NotEntireInput error.
-        //I'm not entirely sure this logic always returns relevant errors. Maybe we should inform the user the parse was actually fine, but didn't parse enough?
-        match ok.best_error {
-            Some(err) => Err(err),
-            None => {
-                let curpos = ok.pos.position();
-                while ok.pos.next().is_some() {}
-                let endpos = ok.pos.position();
-                Err(ParseError::not_entire_input(Span::from_end(
-                    file, curpos, endpos,
-                )))
-            }
+    pub fn add_error(&mut self, error: ParseError) {
+        if self.no_errors_nest_count > 0 {
+            return;
+        }
+        match self.best_error.take() {
+            Some(old_error) => self.best_error = Some(ParseError::combine(old_error, error)),
+            None => self.best_error = Some(error),
         }
     }
 }

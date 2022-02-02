@@ -1,7 +1,7 @@
 use crate::codegen_prelude::AstInfo;
 use crate::parser::ast::AstNode;
 use crate::parser::bootstrap;
-use crate::parser::peg::parser::parse_file;
+use crate::parser::peg::parser_file::parse_file;
 use crate::sources::source_file::SourceFile;
 
 mod ast;

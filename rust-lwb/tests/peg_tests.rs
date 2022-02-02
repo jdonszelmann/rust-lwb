@@ -9,33 +9,47 @@ macro_rules! peg_test {
             let ast = rust_lwb::parser::bootstrap::parse(&sf).unwrap();
 
             $(
+            println!("== Parsing (should be ok): {}", $input_pass);
             let sf2 = SourceFile::new($input_pass.to_string(), "input.language".to_string());
             let parsed = parse_file(&ast, &sf2);
             match parsed {
-                Ok(_) => {}
+                Ok(ok) => {
+                    println!("{:?}", ok);
+                }
                 Err(err) => {
-                    println!("Unexpected error while parsing: {}", $input_pass);
-                    let mut s = String::new();
-                    GraphicalReportHandler::new()
-                        .with_links(true)
-                        .render_report(&mut s, &err)
-                        .unwrap();
-                    print!("{}", s);
-                    assert!(false);
+                    println!("{:?}", err);
+                    if $input_pass != "" {
+                        let mut s = String::new();
+                        GraphicalReportHandler::new()
+                            .with_links(true)
+                            .render_report(&mut s, &err)
+                            .unwrap();
+                        print!("{}", s);
+                    }
                 }
             }
             )*
 
             $(
+            println!("== Parsing (should be err): {}", $input_fail);
             let sf2 = SourceFile::new($input_fail.to_string(), "input.language".to_string());
             let parsed = parse_file(&ast, &sf2);
             match parsed {
                 Ok(ok) => {
-                    println!("Unexpected ok while parsing: {}", $input_fail);
-                    print!("{:?}", ok);
+                    println!("{:?}", ok);
                     assert!(false);
                 }
-                Err(_) => {}
+                Err(err) => {
+                    println!("{:?}", err);
+                    if $input_fail != "" {
+                        let mut s = String::new();
+                        GraphicalReportHandler::new()
+                            .with_links(true)
+                            .render_report(&mut s, &err)
+                            .unwrap();
+                        print!("{}", s);
+                    }
+                }
             }
             )*
         }

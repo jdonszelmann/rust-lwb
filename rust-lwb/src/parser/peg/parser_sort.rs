@@ -1,6 +1,6 @@
-use crate::parser::peg::parse_error::ParseError;
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::{Annotation, Sort};
+use crate::parser::peg::parse_error::{Expect, ParseError};
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::peg::parser::{ParserCache, ParserFlags, ParserState};
 use crate::parser::peg::parser_expression::parse_expression;
@@ -15,7 +15,7 @@ pub fn parse_sort<'src>(
     flags: ParserFlags,
     sort: &'src Sort,
     pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
+) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ()> {
     //Check if this result is cached
     let key = (pos.position(), &sort.name[..]);
     if let Some(cached) = cache.get_mut(&key) {
@@ -25,14 +25,7 @@ pub fn parse_sort<'src>(
     //Before executing, put a value for the current position in the cache.
     //This value is used if the rule is left-recursive
     let cache_state = cache.state_current();
-    cache.insert(
-        key,
-        Err(ParseError::fail_left_recursion(Span::from_length(
-            state.file,
-            pos.position(),
-            0,
-        ))),
-    );
+    cache.insert(key, Err(()));
     cache.trace.push_back(sort);
 
     //Now execute the actual rule, taking into account left recursion
@@ -59,19 +52,11 @@ pub fn parse_sort<'src>(
                     match parse_sort_sub(state, cache, flags, sort, pos.clone()) {
                         Ok(new_ok) => {
                             if new_ok.pos.position() <= ok.pos.position() {
-                                ok.best_error = ParseError::combine_option_parse_error(
-                                    ok.best_error,
-                                    new_ok.best_error,
-                                );
                                 break;
                             }
                             ok = new_ok;
                         }
-                        Err(new_err) => {
-                            ok.best_error = ParseError::combine_option_parse_error(
-                                ok.best_error,
-                                Some(new_err),
-                            );
+                        Err(_) => {
                             break;
                         }
                     }
@@ -82,7 +67,18 @@ pub fn parse_sort<'src>(
             }
         }
         //If it failed, we know
-        Err(err) => Err(err),
+        Err(_) => {
+            // Left recursion value was used, but did not make a seed.
+            // This is an illegal grammar!
+            if cache.is_read(&key).unwrap() {
+                cache.add_error(ParseError::fail_left_recursion(Span::from_length(
+                    state.file,
+                    pos.position(),
+                    0,
+                )));
+            }
+            Err(())
+        }
     };
     cache.insert(key, res.clone());
 
@@ -97,17 +93,19 @@ fn parse_sort_sub<'src>(
     flags: ParserFlags,
     sort: &'src Sort,
     pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
+) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ()> {
     //Try each constructor, keeping track of the best error that occurred while doing so.
     //If none of the constructors succeed, we will return this error.
-    let mut best_error: Option<ParseError> = None;
+    assert!(sort.constructors.len() > 0);
     for constructor in &sort.constructors {
         if constructor.annotations.contains(&Annotation::NoLayout) {
             cache.no_layout_nest_count += 1;
+            cache.no_errors_nest_count += 1;
         }
         let res = parse_expression(state, cache, flags, &constructor.constructor, pos.clone());
         if constructor.annotations.contains(&Annotation::NoLayout) {
             cache.no_layout_nest_count -= 1;
+            cache.no_errors_nest_count -= 1;
             if cache.no_layout_nest_count == 0 {
                 cache.allow_layout = true;
             }
@@ -121,22 +119,20 @@ fn parse_sort_sub<'src>(
                         constructor_name: &constructor.name,
                         constructor_value: ok.result,
                     },
-                    //If one of the previous constructors had a better error, we should return that one
-                    best_error: ok.best_error.or(best_error),
                     pos: ok.pos,
                 });
             }
-            Err(err) => {
+            Err(_) => {
                 if constructor.annotations.contains(&Annotation::NoLayout) {
-                    let err = ParseError::expect_sort(err.span, sort.name.clone(), constructor.name.clone());
-                    best_error = ParseError::combine_option_parse_error(best_error, Some(err))
-                } else {
-                    best_error = ParseError::combine_option_parse_error(best_error, Some(err))
+                    let span = Span::from_length(&state.file, pos.position(), 1);
+                    let err = ParseError::expect(
+                        span,
+                        Expect::ExpectSort(sort.name.clone(), constructor.name.clone()),
+                    );
+                    cache.add_error(err);
                 }
-            },
+            }
         }
-
-
     }
-    Err(best_error.expect("Each sort has at least one constructor"))
+    Err(())
 }
