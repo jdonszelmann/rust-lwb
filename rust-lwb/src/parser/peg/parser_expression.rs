@@ -13,20 +13,18 @@ pub fn parse_expression<'src>(
     cache: &mut ParserCache<'src>,
     constructor: &'src Expression,
     mut pos: SourceFileIterator<'src>,
-    flags: ParserFlags,
+    mut flags: ParserFlags,
 ) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ParseError> {
-    //First, skip layout
-    if !flags.no_layout {
-        pos.skip_layout(&state.layout)
-    }
     match constructor {
         //To parse a sort, call parse_sort recursively.
         Expression::Sort(rule) => Ok(parse_sort(state, cache, rule, pos, flags)?
             .map(|s: ParsePairSort<'src>| ParsePairExpression::Sort(s.span(), Box::new(s)))),
         //To parse a literal, use accept_str to check if it parses.
         Expression::Literal(lit) => {
+            while (!flags.no_layout_now || !flags.no_layout_future) && !pos.clone().accept_str(lit) && pos.accept(&state.layout) {}
             let span = Span::from_length(state.file, pos.position(), lit.len());
             if pos.accept_str(lit) {
+                flags.no_layout_now = flags.no_layout_future;
                 Ok(ParseSuccess {
                     result: ParsePairExpression::Empty(span),
                     best_error: None,
@@ -34,6 +32,21 @@ pub fn parse_expression<'src>(
                 })
             } else {
                 Err(ParseError::expect_string(span, lit.clone()))
+            }
+        }
+        //To parse a character class, check if the character is accepted, and make an ok/error based on that.
+        Expression::CharacterClass(characters) => {
+            while (!flags.no_layout_now || !flags.no_layout_future) && !pos.clone().accept(characters) && pos.accept(&state.layout) {}
+            let span = Span::from_length(state.file, pos.position(), 1);
+            if pos.accept(characters) {
+                flags.no_layout_now = flags.no_layout_future;
+                Ok(ParseSuccess {
+                    result: ParsePairExpression::Empty(span),
+                    best_error: None,
+                    pos,
+                })
+            } else {
+                Err(ParseError::expect_char_class(span, characters.clone()))
             }
         }
         //To parse a sequence, parse each constructor in the sequence.
@@ -131,19 +144,6 @@ pub fn parse_expression<'src>(
                 best_error,
                 pos,
             })
-        }
-        //To parse a character class, check if the character is accepted, and make an ok/error based on that.
-        Expression::CharacterClass(characters) => {
-            let span = Span::from_length(state.file, pos.position(), 1);
-            if pos.accept(characters) {
-                Ok(ParseSuccess {
-                    result: ParsePairExpression::Empty(span),
-                    best_error: None,
-                    pos,
-                })
-            } else {
-                Err(ParseError::expect_char_class(span, characters.clone()))
-            }
         }
         //To parse a choice, try each constructor, keeping track of the best error that occurred while doing so.
         //If none of the constructors succeed, we will return this error.

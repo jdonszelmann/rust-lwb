@@ -25,7 +25,8 @@ pub struct ParserCache<'src> {
 
 #[derive(Copy, Clone)]
 pub struct ParserFlags {
-    pub no_layout: bool,
+    pub no_layout_now: bool,
+    pub no_layout_future: bool,
 }
 
 impl<'src> ParserCache<'src> {
@@ -99,7 +100,7 @@ pub fn parse_file<'src>(
         cache_stack: VecDeque::new(),
     };
 
-    let flags = ParserFlags { no_layout: false };
+    let flags = ParserFlags { no_layout_now: false, no_layout_future: false };
 
     //Parse the starting sort
     let mut ok: ParseSuccess<ParsePairSort<'src>> = parse_sort(
