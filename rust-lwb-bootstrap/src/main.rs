@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // parse the syntax definition again with the old parse
     println!("parsing {}", config.input_location);
     let sf = SourceFile::open(from_root(&config.input_location))?;
-    let ast = SyntaxFile::parse(&sf)?; // TODO: replace with bootstrapped parser
+    let ast = unwrap(SyntaxFile::parse(&sf)); // TODO: replace with bootstrapped parser
 
     let legacy_ast = unwrap(convert(ast));
 

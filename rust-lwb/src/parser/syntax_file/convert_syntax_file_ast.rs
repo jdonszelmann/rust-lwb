@@ -57,7 +57,7 @@ pub fn convert<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionResult<SyntaxFile
             Ok(SyntaxFileAst {
                 sorts,
                 starting_sort: start.ok_or(NoStartingSort)?,
-                layout: CharacterClass::Nothing,
+                layout,
             })
         }
     }
@@ -209,7 +209,11 @@ fn convert_constructor<M: AstInfo>(inp: ast::Constructor<M>) -> ConversionResult
             Ok(Constructor {
                 name: convert_identifier(*name),
                 expression: convert_expressions(expressions)?,
-                annotations: vec![],
+                annotations: if let Some(a) = annotations {
+                    convert_annotations(*a)?
+                } else {
+                   Vec::new()
+                },
             })
         }
     }
