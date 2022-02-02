@@ -27,46 +27,44 @@ pub fn parse_expression<'src>(
         }
         //To parse a literal, use accept_str to check if it parses.
         Expression::Literal(lit) => {
-            while flags.do_layout() && !pos.clone().accept_str(lit) && pos.accept(&state.layout) {}
+            while cache.allow_layout && !pos.clone().accept_str(lit) && pos.accept(&state.layout) {}
             let span = Span::from_length(state.file, pos.position(), lit.len());
             if pos.accept_str(lit) {
-                flags.no_layout_now = flags.no_layout_future;
+                if cache.no_layout_nest_count > 0 { cache.allow_layout = false; }
                 Ok(ParseSuccess {
                     result: ParsePairExpression::Empty(span),
                     best_error: None,
                     pos,
                 })
-            } else if let Some(last_rule_with_layout) = flags.no_layout_future {
-                // report the last known rule *with* layout in the error instead
-                // of the exact character we're erroring on right now.
-                Err(ParseError::expect_string(
-                    span,
-                    last_rule_with_layout.to_string(),
-                ))
+            // } else if let Some(last_rule_with_layout) = flags.in_no_layout {
+            //     // report the last known rule *with* layout in the error instead
+            //     // of the exact character we're erroring on right now.
+            //     Err(ParseError::expect_string(
+            //         span,
+            //         last_rule_with_layout.to_string(),
+            //     ))
             } else {
                 Err(ParseError::expect_string(span, lit.clone()))
             }
         }
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
         Expression::CharacterClass(characters) => {
-            while flags.do_layout() && !pos.clone().accept(characters) && pos.accept(&state.layout)
-            {
-            }
+            while cache.allow_layout && !pos.clone().accept(characters) && pos.accept(&state.layout) {}
             let span = Span::from_length(state.file, pos.position(), 1);
             if pos.accept(characters) {
-                flags.no_layout_now = flags.no_layout_future;
+                if cache.no_layout_nest_count > 0 { cache.allow_layout = false; }
                 Ok(ParseSuccess {
                     result: ParsePairExpression::Empty(span),
                     best_error: None,
                     pos,
                 })
-            } else if let Some(last_rule_with_layout) = flags.no_layout_future {
-                // report the last known rule *with* layout in the error instead
-                // of the exact character we're erroring on right now.
-                Err(ParseError::expect_string(
-                    span,
-                    last_rule_with_layout.to_string(),
-                ))
+            // } else if let Some(last_rule_with_layout) = flags.in_no_layout {
+            //     // report the last known rule *with* layout in the error instead
+            //     // of the exact character we're erroring on right now.
+            //     Err(ParseError::expect_string(
+            //         span,
+            //         last_rule_with_layout.to_string(),
+            //     ))
             } else {
                 Err(ParseError::expect_char_class(span, characters.clone()))
             }

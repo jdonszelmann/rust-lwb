@@ -23,37 +23,13 @@ pub struct ParserCache<'src> {
     cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
     cache_stack: VecDeque<(usize, &'src str)>,
     pub trace: VecDeque<&'src Sort>,
-}
-
-#[derive(Copy, Clone)]
-pub struct FullConstructorName<'src> {
-    pub sort: &'src str,
-    pub constructor: &'src str,
-}
-
-impl<'src> FullConstructorName<'src> {
-    pub fn new(sort: &'src str, constructor: &'src str) -> Self {
-        Self { sort, constructor }
-    }
-}
-
-impl<'src> Display for FullConstructorName<'src> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}.{}", self.sort, self.constructor)
-    }
+    pub allow_layout: bool, // True if layout should be allowed at the moment
+    pub no_layout_nest_count: usize, // How many times no layout has been nested
 }
 
 #[derive(Copy, Clone)]
 pub struct ParserFlags<'src> {
-    // BOTH THESE FIELDS ARE NONE IF LAYOUT *SHOULD* BE PROCESSED
-    pub no_layout_now: Option<FullConstructorName<'src>>,
-    pub no_layout_future: Option<FullConstructorName<'src>>,
-}
-
-impl<'src> ParserFlags<'src> {
-    pub fn do_layout(&self) -> bool {
-        self.no_layout_now.is_none() || self.no_layout_future.is_none()
-    }
+    pub error_sort: Option<&'src str>
 }
 
 impl<'src> ParserCache<'src> {
@@ -126,11 +102,12 @@ pub fn parse_file<'src>(
         cache: HashMap::new(),
         cache_stack: VecDeque::new(),
         trace: VecDeque::new(),
+        no_layout_nest_count: 0usize,
+        allow_layout: true,
     };
 
     let flags = ParserFlags {
-        no_layout_now: None,
-        no_layout_future: None,
+        error_sort: None,
     };
 
     //Parse the starting sort
