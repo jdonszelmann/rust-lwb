@@ -33,6 +33,9 @@ pub fn parse_language<AST: BasicAstNode>(input: &SourceFile) -> Result<AST, Pars
     let syntax_file_ast: ast::AST_ROOT<BasicAstInfo> = bincode::deserialize_from(SERIALIZED_AST)?;
     let legacy_ast = convert(syntax_file_ast)?; // TODO: make peg parser use new version of ast
 
+    // let sf = SourceFile::open("rust-lwb-bootstrap/syntax-file.syntax").expect("open error");
+    // let legacy_ast = bootstrap::parse(&sf).expect("should parse");
+
     let pairs = parse_file(&legacy_ast, input)?;
 
     let ast = generate_ast(&pairs);

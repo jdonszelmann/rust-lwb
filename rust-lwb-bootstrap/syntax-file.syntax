@@ -13,7 +13,7 @@ character-class-item:
 
 string-char:
     escaped = "\\" [nrt\\"];
-    normal = [^"];
+    normal = [^"\\];
 
 number:
     number = [0-9]+; {single-string}
@@ -27,7 +27,7 @@ expression:
     maybe = expression "?";
     repeat-exact = expression "{" number "," number? "}";
 
-    literal = "\"" string-char* "\""; {no-layout, single-string}
+    literal = "\"" string-char* "\""; {no-layout}
     sort = identifier;
     class = character-class;
 

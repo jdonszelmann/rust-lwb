@@ -6,6 +6,7 @@ use crate::parser::bootstrap::ast::{Annotation, Constructor, Expression, Sort, S
 use crate::parser::syntax_file::ast::{CharacterClassItem, EscapeClosingBracket, Identifier, Meta, Number, SortOrMeta};
 use crate::sources::character_class::CharacterClass;
 use thiserror::Error;
+use crate::parser::syntax_file::AST::StringChar;
 use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError::{DuplicateStartingRule, NoStartingSort};
 
 #[derive(Debug, Error)]
@@ -96,6 +97,25 @@ fn convert_escape_closing_bracket<M: AstInfo>(inp: ast::EscapeClosingBracket<M>)
    }
 }
 
+fn convert_string_char<M: AstInfo>(inp: ast::StringChar<M>) -> char {
+    match inp {
+        StringChar::Escaped(_, c) => {
+            match c.as_str() {
+                "n" => '\n',
+                "r" => '\r',
+                "t" => '\t',
+                "\\" => '\\',
+                "\"" => '"',
+                a => unreachable!("grammar shouldn't allow {} here", a),
+            }
+        }
+        StringChar::Normal(_, c) => {
+            let c = c.chars().next().expect("only one character");
+            c
+        }
+    }
+}
+
 fn convert_character_class<M: AstInfo>(inp: ast::CharacterClass<M>) -> ConversionResult<CharacterClass> {
     Ok(match inp {
         ast::CharacterClass::Class(_, inverted, items) => {
@@ -163,7 +183,7 @@ fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<E
             min: convert_number(*min)?,
             max: max.map(|i| convert_number(*i)).transpose()?,
         },
-        ast::Expression::Literal(_, l) => Expression::Literal(l),
+        ast::Expression::Literal(_, l) => Expression::Literal(l.into_iter().map(|i| convert_string_char(*i)).collect()),
         ast::Expression::Sort(_, s) => Expression::Sort(convert_identifier(*s)),
         ast::Expression::Class(_, cc) => Expression::CharacterClass(convert_character_class(*cc)?),
         ast::Expression::Paren(_, exp) => convert_expressions(exp)?,

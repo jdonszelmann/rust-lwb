@@ -3,6 +3,7 @@ use std::io::Write;
 use miette::GraphicalReportHandler;
 use rust_lwb::sources::source_file::SourceFile;
 use rust_lwb::parser::ast::generate_ast::generate_ast;
+// use rust_lwb::parser::bootstrap::parse;
 use rust_lwb::parser::peg::parser::parse_file;
 use rust_lwb::parser::syntax_file::convert_syntax_file_ast::convert;
 use rust_lwb::parser::syntax_file::SyntaxFile;
@@ -23,8 +24,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("parsing {}", config.input_location);
     let sf = SourceFile::open(from_root(&config.input_location))?;
     let ast = unwrap(SyntaxFile::parse(&sf)); // TODO: replace with bootstrapped parser
-
     let legacy_ast = unwrap(convert(ast));
+
+    // let legacy_ast = parse(&sf)?; // TODO: replace with bootstrapped parser
+
 
     println!("reparsing {} with peg parser and output from previous parse", config.input_location);
     let bootstrapped_syntax_file_ast_pairs = match parse_file(&legacy_ast, &sf) {

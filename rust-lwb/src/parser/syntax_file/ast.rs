@@ -12,85 +12,85 @@
 
 use crate::codegen_prelude::*;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Identifier<M : AstInfo> {
     Identifier(M, String),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum EscapeClosingBracket<M : AstInfo> {
     Escaped(M, String),
     Unescaped(M, String),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum CharacterClassItem<M : AstInfo> {
     Range(M, Box<EscapeClosingBracket<M>>,Box<EscapeClosingBracket<M>>),
     SingleChar(M, Box<EscapeClosingBracket<M>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum StringChar<M : AstInfo> {
     Escaped(M, String),
     Normal(M, String),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Number<M : AstInfo> {
     Number(M, String),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum CharacterClass<M : AstInfo> {
     Class(M, bool,Vec<Box<CharacterClassItem<M>>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Expression<M : AstInfo> {
     Star(M, Box<Expression<M>>),
     Plus(M, Box<Expression<M>>),
     Maybe(M, Box<Expression<M>>),
     RepeatExact(M, Box<Expression<M>>,Box<Number<M>>,Option<Box<Number<M>>>),
-    Literal(M, String),
+    Literal(M, Vec<Box<StringChar<M>>>),
     Sort(M, Box<Identifier<M>>),
     Class(M, Box<CharacterClass<M>>),
     Paren(M, Vec<Box<Expression<M>>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Annotation<M : AstInfo> {
     Annotation(M, Option<Box<Identifier<M>>>,Vec<Box<Identifier<M>>>,bool),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Constructor<M : AstInfo> {
     Constructor(M, Box<Identifier<M>>,Vec<Box<Expression<M>>>,Option<Box<Annotation<M>>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Newline<M : AstInfo> {
     Unix(M, ),
     Windows(M, ),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Sort<M : AstInfo> {
     Sort(M, Box<Identifier<M>>,Vec<Box<Constructor<M>>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Meta<M : AstInfo> {
     Layout(M, Box<CharacterClass<M>>),
     Start(M, Box<Identifier<M>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum SortOrMeta<M : AstInfo> {
     Meta(M, Box<Meta<M>>),
     Sort(M, Box<Sort<M>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Program<M : AstInfo> {
     Program(M, Vec<Box<SortOrMeta<M>>>),
 }
@@ -323,7 +323,20 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                         }
         }
         "literal" => {
-        Self::Literal(info, pair.constructor_value.span().as_str().to_string())
+        if let ParsePairExpression::List(_, ref p) = pair.constructor_value {
+                            Self::Literal(info, if let ParsePairExpression::List(_, ref l) = p[1] {
+            l.iter().map(|x| { if let ParsePairExpression::Sort(_, ref s) = x {
+                    Box::new(StringChar::from_pairs(s, generator))
+                } else {
+                    panic!("expected empty parse pair expression in pair to ast conversion of expression")
+                } }).collect()
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of expression")
+        }
+                            )
+                        } else {
+                            panic!("expected empty parse pair expression in pair to ast conversion of expression")
+                        }
         }
         "sort" => {
         Self::Sort(info, if let ParsePairExpression::Sort(_, ref s) = pair.constructor_value {

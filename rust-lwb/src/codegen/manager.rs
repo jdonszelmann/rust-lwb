@@ -4,6 +4,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 use crate::error::display_miette_error;
+// use crate::parser::bootstrap::parse;
 use crate::parser::syntax_file::{convert_syntax_file_ast, parse_language, ParseError, SyntaxFile};
 use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError;
 
@@ -63,6 +64,10 @@ impl CodeGenJob {
         let sf = SourceFile::open(self.location)?;
         let ast = SyntaxFile::parse(&sf)?;
         let legacy_ast = convert_syntax_file_ast::convert(ast)?; // TODO make peg parser use new ast
+
+        // TODO: initial bootstrap (remove)
+        // let sf = SourceFile::open(&self.location)?;
+        // let legacy_ast = parse(&sf).expect("should parse");
 
         let res = generate_language(legacy_ast, &self.import_location, self.serde);
 
