@@ -16,7 +16,9 @@ pub trait AstInfo {
 }
 
 pub trait AstNode<M: AstInfo>: FromPairs<M> {
-    fn ast_info(&self) -> &M {todo!()}
+    fn ast_info(&self) -> &M {
+        todo!()
+    }
 
     fn traverse<F>(&self, _f: F)
     where

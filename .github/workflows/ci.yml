@@ -60,6 +60,11 @@ jobs:
           override: true
           components: rustfmt, clippy
 
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
         with:

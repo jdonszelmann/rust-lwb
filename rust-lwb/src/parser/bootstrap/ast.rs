@@ -1,12 +1,13 @@
 use crate::sources::character_class::CharacterClass;
 use derive_more::Display;
 use enum_iterator::IntoEnumIterator;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Constructor {
     pub name: String,
-    pub constructor: Expression,
+    pub expression: Expression,
     pub annotations: Vec<Annotation>,
 }
 
@@ -31,10 +32,30 @@ pub enum Expression {
 pub enum Annotation {
     #[display(fmt = "no-pretty-print")]
     NoPrettyPrint,
+
+    /// Don't accept layout in this rule and any child rule
     #[display(fmt = "no-layout")]
     NoLayout,
+
     #[display(fmt = "injection")]
     Injection,
+
+    /// represent this constructor as a single string in the final ast
+    #[display(fmt = "single-string")]
+    SingleString,
+}
+
+impl FromStr for Annotation {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        for i in Annotation::into_enum_iter() {
+            if s == i.to_string() {
+                return Ok(i);
+            }
+        }
+        Err(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
