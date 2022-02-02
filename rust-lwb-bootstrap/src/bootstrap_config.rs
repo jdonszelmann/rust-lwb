@@ -1,3 +1,5 @@
+use std::error::Error;
+use std::fmt::Display;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Read;
@@ -29,4 +31,12 @@ pub fn load(path_from_root: impl AsRef<Path>) -> BootstrapConfig {
         .expect("failed to read config file");
 
     toml::from_str(&contents).expect("failed to parse config file")
+}
+
+pub fn unwrap<T, E: Error + Display>(e: Result<T, E>) -> T{
+    if let Err(e) = e {
+        panic!("{}", e);
+    } else {
+        e.unwrap()
+    }
 }

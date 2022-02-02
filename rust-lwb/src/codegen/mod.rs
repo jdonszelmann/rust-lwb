@@ -204,6 +204,8 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bo
             enumm.derive("Deserialize");
         }
 
+        enumm.derive("Debug");
+
         enumm.generic("M : AstInfo");
         for constr in &rule.constructors {
             let variant = enumm.new_variant(&sanitize_identifier(&constr.name));

@@ -1,10 +1,11 @@
 use crate::codegen::generate_language;
-use crate::parser::bootstrap::parse;
-use crate::parser::bootstrap::BootstrapParseError;
 use crate::sources::source_file::SourceFile;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
+use crate::error::display_miette_error;
+use crate::parser::syntax_file::{convert_syntax_file_ast, parse_language, ParseError, SyntaxFile};
+use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError;
 
 #[derive(Debug, Error)]
 pub enum CodegenError {
@@ -12,7 +13,10 @@ pub enum CodegenError {
     Io(#[from] std::io::Error),
 
     #[error("a parse error occurred: {0}")]
-    ParseError(#[from] BootstrapParseError),
+    ParseError(#[from] ParseError),
+
+    #[error("failed to convert saved syntax file definition ast to legacy syntax file definition ast (this is a bug! please report it)")]
+    ConvertAstError(#[from] AstConversionError),
 }
 
 pub struct CodeGenJob {
@@ -57,9 +61,10 @@ impl CodeGenJob {
 
     pub fn codegen(self) -> Result<(), CodegenError> {
         let sf = SourceFile::open(self.location)?;
-        let ast = parse(&sf)?; // TODO: replace with bootstrapped parser
+        let ast = SyntaxFile::parse(&sf)?;
+        let legacy_ast = convert_syntax_file_ast::convert(ast)?; // TODO make peg parser use new ast
 
-        let res = generate_language(ast, &self.import_location, self.serde);
+        let res = generate_language(legacy_ast, &self.import_location, self.serde);
 
         let mut res_file = std::fs::File::create(self.destination)?;
         res_file.write_all(res.as_bytes())?;

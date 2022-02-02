@@ -84,7 +84,7 @@ impl PEGParseError {
     }
 
     pub fn expect_sort(span: Span, sort: String, constructor: String) -> Self {
-        ParseError {
+        PEGParseError {
             span,
             expected: vec![ParseErrorSub::ExpectSort(sort, constructor)],
             fail_left_rec: false,

@@ -1,4 +1,4 @@
 pub mod ast;
 mod parser;
 
-pub use parser::{parse, BootstrapParseError};
+// pub use parser::{parse, BootstrapParseError};

@@ -1,4 +1,3 @@
-use crate::parser::peg::parse_error::ParseError;
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::{Annotation, Sort};
 use crate::parser::peg::parse_error::PEGParseError;
@@ -129,10 +128,10 @@ fn parse_sort_sub<'src>(
             }
             Err(err) => {
                 if constructor.annotations.contains(&Annotation::NoLayout) {
-                    let err = ParseError::expect_sort(err.span, sort.name.clone(), constructor.name.clone());
+                    let err = PEGParseError::expect_sort(err.span, sort.name.clone(), constructor.name.clone());
                     best_error = PEGParseError::combine_option_parse_error(best_error, Some(err))
                 } else {
-                    best_error = ParseError::combine_option_parse_error(best_error, Some(err))
+                    best_error = PEGParseError::combine_option_parse_error(best_error, Some(err))
                 }
             },
         }

@@ -6,7 +6,7 @@ use crate::parser::bootstrap::ast::{Annotation, Constructor, Expression, Sort, S
 use crate::parser::syntax_file::ast::{CharacterClassItem, EscapeClosingBracket, Identifier, Meta, Number, SortOrMeta};
 use crate::sources::character_class::CharacterClass;
 use thiserror::Error;
-use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError::DuplicateStartingRule;
+use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError::{DuplicateStartingRule, NoStartingSort};
 
 #[derive(Debug, Error)]
 pub enum AstConversionError {
@@ -18,11 +18,14 @@ pub enum AstConversionError {
 
     #[error("{0} is not a valid annotation")]
     BadAnnotation(String),
+
+    #[error("no starting sort in syntax file definition")]
+    NoStartingSort,
 }
 
 pub type ConversionResult<T> = Result<T, AstConversionError>;
 
-pub fn convert_syntax_file_ast<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionResult<SyntaxFileAst> {
+pub fn convert<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionResult<SyntaxFileAst> {
     match inp {
         ast::Program::Program(_, sort_or_metas) => {
             let mut layout = CharacterClass::Nothing;
@@ -53,7 +56,7 @@ pub fn convert_syntax_file_ast<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionR
 
             Ok(SyntaxFileAst {
                 sorts,
-                starting_sort: "".to_string(),
+                starting_sort: start.ok_or(NoStartingSort)?,
                 layout: CharacterClass::Nothing,
             })
         }
@@ -62,7 +65,7 @@ pub fn convert_syntax_file_ast<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionR
 
 fn convert_identifier<M: AstInfo>(inp: ast::Identifier<M>) -> String {
     match inp {
-        Identifier::Identifier(_, name) => name,
+        Identifier::Identifier(_, name) => name.trim().to_string(),
     }
 }
 
