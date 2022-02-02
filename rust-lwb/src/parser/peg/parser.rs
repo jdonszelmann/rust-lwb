@@ -7,6 +7,7 @@ use crate::sources::character_class::CharacterClass;
 use crate::sources::source_file::SourceFile;
 use crate::sources::span::Span;
 use std::collections::{HashMap, VecDeque};
+use std::fmt::{Display, Formatter};
 
 /// This stores the immutable data that is used during the parsing process.
 pub struct ParserState<'src> {
@@ -24,11 +25,32 @@ pub struct ParserCache<'src> {
 }
 
 #[derive(Copy, Clone)]
+pub struct FullConstructorName<'src> {
+    pub sort: &'src str,
+    pub constructor: &'src str,
+}
+
+impl<'src> FullConstructorName<'src> {
+    pub fn new(sort: &'src str, constructor: &'src str) -> Self {
+        Self {
+            sort,
+            constructor
+        }
+    }
+}
+
+impl<'src> Display for FullConstructorName<'src> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}", self.sort, self.constructor)
+    }
+}
+
+#[derive(Copy, Clone)]
 pub struct ParserFlags<'src> {
 
     // BOTH THESE FIELDS ARE NONE IF LAYOUT *SHOULD* BE PROCESSED
-    pub no_layout_now: Option<&'src str>,
-    pub no_layout_future: Option<&'src str>,
+    pub no_layout_now: Option<FullConstructorName<'src>>,
+    pub no_layout_future: Option<FullConstructorName<'src>>,
 }
 
 impl<'src> ParserFlags<'src> {

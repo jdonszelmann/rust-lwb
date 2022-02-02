@@ -2,7 +2,7 @@ use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::{Annotation, Sort};
 use crate::parser::peg::parse_error::ParseError;
 use crate::parser::peg::parse_success::ParseSuccess;
-use crate::parser::peg::parser::{ParserCache, ParserFlags, ParserState};
+use crate::parser::peg::parser::{FullConstructorName, ParserCache, ParserFlags, ParserState};
 use crate::parser::peg::parser_expression::parse_expression;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
@@ -106,7 +106,7 @@ fn parse_sort_sub<'src>(
             no_layout_now: flags.no_layout_now,
             no_layout_future: flags.no_layout_future
                 .or_else(|| constructor.annotations.contains(&Annotation::NoLayout)
-                    .then(|| constructor.name.as_str())
+                    .then(|| FullConstructorName::new(sort.name.as_str(), constructor.name.as_str()))
                 ),
         };
         match parse_expression(state, cache, &constructor.constructor, pos.clone(), flags) {
