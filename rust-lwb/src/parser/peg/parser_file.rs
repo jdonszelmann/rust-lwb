@@ -1,7 +1,7 @@
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::SyntaxFileAst;
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
-use crate::parser::peg::parser::{ParserCache, ParserFlags, ParserState};
+use crate::parser::peg::parser::{ParserCache, ParserState};
 use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::source_file::SourceFile;
 use crate::sources::span::Span;
@@ -34,14 +34,12 @@ pub fn parse_file<'src>(
         allow_layout: true,
     };
 
-    let flags = ParserFlags {};
-
     //Parse the starting sort
     let starting_sort = state
         .rules
         .get(&syntax.starting_sort[..])
         .expect("Starting sort exists");
-    let res = parse_sort(&state, &mut cache, flags, starting_sort, file.iter());
+    let res = parse_sort(&state, &mut cache, starting_sort, file.iter());
     let mut ok = if let Ok(ok) = res {
         ok
     } else {

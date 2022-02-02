@@ -3,7 +3,7 @@ use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::{Annotation, Sort};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_success::ParseSuccess;
-use crate::parser::peg::parser::{ParserCache, ParserFlags, ParserState};
+use crate::parser::peg::parser::{ParserCache, ParserState};
 use crate::parser::peg::parser_expression::parse_expression;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
@@ -13,7 +13,6 @@ use crate::sources::span::Span;
 pub fn parse_sort<'src>(
     state: &ParserState<'src>,
     cache: &mut ParserCache<'src>,
-    flags: ParserFlags,
     sort: &'src Sort,
     pos: SourceFileIterator<'src>,
 ) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ()> {
@@ -36,7 +35,7 @@ pub fn parse_sort<'src>(
     //- Try to parse the current (rule, position). If this fails, there is definitely no left recursion. Otherwise, we now have a seed.
     //- Put the new seed in the cache, and rerun on the current (rule, position). Make sure to revert the cache to the previous state.
     //- At some point, the above will fail. Either because no new input is parsed, or because the entire parse now failed. At this point, we have reached the maximum size.
-    let res = match parse_sort_sub(state, cache, flags, sort, pos.clone()) {
+    let res = match parse_sort_sub(state, cache, sort, pos.clone()) {
         Ok(mut ok) => {
             //Do we have a leftrec case?
             if !cache.is_read(&key).unwrap() {
@@ -50,7 +49,7 @@ pub fn parse_sort<'src>(
                     cache.insert(key, Ok(ok.clone()));
 
                     //Grow the seed
-                    match parse_sort_sub(state, cache, flags, sort, pos.clone()) {
+                    match parse_sort_sub(state, cache, sort, pos.clone()) {
                         Ok(new_ok) => {
                             if new_ok.pos.position() <= ok.pos.position() {
                                 break;
@@ -91,7 +90,6 @@ pub fn parse_sort<'src>(
 fn parse_sort_sub<'src>(
     state: &ParserState<'src>,
     cache: &mut ParserCache<'src>,
-    flags: ParserFlags,
     sort: &'src Sort,
     pos: SourceFileIterator<'src>,
 ) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ()> {
@@ -103,7 +101,7 @@ fn parse_sort_sub<'src>(
             cache.no_layout_nest_count += 1;
             cache.no_errors_nest_count += 1;
         }
-        let res = parse_expression(state, cache, flags, &constructor.expression, pos.clone());
+        let res = parse_expression(state, cache, &constructor.expression, pos.clone());
         if constructor.annotations.contains(&Annotation::NoLayout) {
             cache.no_layout_nest_count -= 1;
             cache.no_errors_nest_count -= 1;

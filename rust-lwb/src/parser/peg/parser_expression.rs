@@ -4,7 +4,7 @@ use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
 use crate::parser::bootstrap::ast::{Expression, Sort};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_success::ParseSuccess;
-use crate::parser::peg::parser::{ParserCache, ParserFlags, ParserState};
+use crate::parser::peg::parser::{ParserCache, ParserState};
 use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
@@ -13,7 +13,6 @@ use crate::sources::span::Span;
 pub fn parse_expression<'src>(
     state: &ParserState<'src>,
     cache: &mut ParserCache<'src>,
-    flags: ParserFlags,
     constructor: &'src Expression,
     mut pos: SourceFileIterator<'src>,
 ) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ()> {
@@ -24,7 +23,7 @@ pub fn parse_expression<'src>(
                 .rules
                 .get(&sort_name[..])
                 .expect("Name is guaranteed to exist");
-            Ok(parse_sort(state, cache, flags, sort, pos)?
+            Ok(parse_sort(state, cache, sort, pos)?
                 .map(|s: ParsePairSort<'src>| ParsePairExpression::Sort(s.span(), Box::new(s))))
         }
         //To parse a literal, use accept_str to check if it parses.
@@ -78,7 +77,7 @@ pub fn parse_expression<'src>(
 
             //Parse all subconstructors in sequence
             for subconstructor in constructors {
-                match parse_expression(state, cache, flags, subconstructor, pos) {
+                match parse_expression(state, cache, subconstructor, pos) {
                     Ok(ok) => {
                         pos = ok.pos;
                         results.push(ok.result);
@@ -107,7 +106,7 @@ pub fn parse_expression<'src>(
 
             //Parse minimum amount that is needed
             for _ in 0..*min {
-                match parse_expression(state, cache, flags, c.as_ref(), pos) {
+                match parse_expression(state, cache, c.as_ref(), pos) {
                     Ok(ok) => {
                         results.push(ok.result);
                         pos = ok.pos;
@@ -128,7 +127,7 @@ pub fn parse_expression<'src>(
 
             //Parse until maximum amount is reached
             for _ in *min..max.unwrap_or(u64::MAX) {
-                match parse_expression(state, cache, flags, c.as_ref(), pos.clone()) {
+                match parse_expression(state, cache, c.as_ref(), pos.clone()) {
                     Ok(ok) => {
                         results.push(ok.result);
                         pos = ok.pos;
@@ -157,7 +156,7 @@ pub fn parse_expression<'src>(
         //If none of the constructors succeed, we will return this error.
         Expression::Choice(constructors) => {
             for (i, subconstructor) in constructors.iter().enumerate() {
-                if let Ok(suc) = parse_expression(state, cache, flags, subconstructor, pos.clone())
+                if let Ok(suc) = parse_expression(state, cache, subconstructor, pos.clone())
                 {
                     return Ok(ParseSuccess {
                         result: ParsePairExpression::Choice(

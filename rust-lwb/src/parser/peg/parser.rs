@@ -32,9 +32,6 @@ pub struct ParserCacheEntry<'src> {
     value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ()>,
 }
 
-#[derive(Copy, Clone)]
-pub struct ParserFlags {}
-
 impl<'src> ParserCache<'src> {
     /// Get a mutable reference to an entry
     pub fn get_mut(
