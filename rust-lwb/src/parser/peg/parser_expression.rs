@@ -3,7 +3,7 @@
 use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
 use crate::parser::bootstrap::ast::{Expression, Sort};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
-use crate::parser::peg::parse_success::ParseSuccess;
+use crate::parser::peg::parse_result::ParseResult;
 use crate::parser::peg::parser::{ParserCache, ParserState};
 use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::source_file::SourceFileIterator;
@@ -15,7 +15,7 @@ pub fn parse_expression<'src>(
     cache: &mut ParserCache<'src>,
     constructor: &'src Expression,
     mut pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ()> {
+) -> ParseResult<'src, ParsePairExpression<'src>> {
     match constructor {
         //To parse a sort, call parse_sort recursively.
         Expression::Sort(sort_name) => {
@@ -23,8 +23,8 @@ pub fn parse_expression<'src>(
                 .rules
                 .get(&sort_name[..])
                 .expect("Name is guaranteed to exist");
-            Ok(parse_sort(state, cache, sort, pos)?
-                .map(|s: ParsePairSort<'src>| ParsePairExpression::Sort(s.span(), Box::new(s))))
+            let res = parse_sort(state, cache, sort, pos);
+            res.map(|s| ParsePairExpression::Sort(s.span(), Box::new(s)))
         }
         //To parse a literal, use accept_str to check if it parses.
         Expression::Literal(lit) => {
@@ -34,16 +34,13 @@ pub fn parse_expression<'src>(
                 if cache.no_layout_nest_count > 0 {
                     cache.allow_layout = false;
                 }
-                Ok(ParseSuccess {
-                    result: ParsePairExpression::Empty(span),
-                    pos,
-                })
+                ParseResult::new_ok(ParsePairExpression::Empty(span), pos)
             } else {
                 cache.add_error(PEGParseError::expect(
-                    span,
+                    span.clone(),
                     Expect::ExpectString(lit.clone()),
                 ));
-                Err(())
+                ParseResult::new_err(ParsePairExpression::Error(span), pos)
             }
         }
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
@@ -56,16 +53,13 @@ pub fn parse_expression<'src>(
                 if cache.no_layout_nest_count > 0 {
                     cache.allow_layout = false;
                 }
-                Ok(ParseSuccess {
-                    result: ParsePairExpression::Empty(span),
-                    pos,
-                })
+                ParseResult::new_ok(ParsePairExpression::Empty(span), pos)
             } else {
                 cache.add_error(PEGParseError::expect(
-                    span,
+                    span.clone(),
                     Expect::ExpectCharClass(characters.clone()),
                 ));
-                Err(())
+                ParseResult::new_err(ParsePairExpression::Error(span), pos)
             }
         }
         //To parse a sequence, parse each constructor in the sequence.
@@ -77,23 +71,18 @@ pub fn parse_expression<'src>(
 
             //Parse all subconstructors in sequence
             for subconstructor in constructors {
-                match parse_expression(state, cache, subconstructor, pos) {
-                    Ok(ok) => {
-                        pos = ok.pos;
-                        results.push(ok.result);
-                    }
-                    Err(()) => {
-                        return Err(());
-                    }
+                let res = parse_expression(state, cache, subconstructor, pos);
+                pos = res.pos;
+                results.push(res.result);
+                if !res.ok {
+                    let span = Span::from_end(state.file, start_pos, pos.position());
+                    return ParseResult::new_err(ParsePairExpression::List(span, results), pos);
                 }
             }
 
             //Construct result
             let span = Span::from_end(state.file, start_pos, pos.position());
-            Ok(ParseSuccess {
-                result: ParsePairExpression::List(span, results),
-                pos,
-            })
+            ParseResult::new_ok(ParsePairExpression::List(span, results), pos)
         }
         //To parse a sequence, first parse the minimum amount that is needed.
         //Then keep trying to parse the constructor until the maximum is reached.
@@ -104,71 +93,50 @@ pub fn parse_expression<'src>(
             let start_pos = pos.position();
             let mut last_pos = pos.position();
 
-            //Parse minimum amount that is needed
-            for _ in 0..*min {
-                match parse_expression(state, cache, c.as_ref(), pos) {
-                    Ok(ok) => {
-                        results.push(ok.result);
-                        pos = ok.pos;
-                    }
-                    Err(_) => {
-                        return Err(());
-                    }
-                }
-                //If the position hasn't changed, then we're in an infinite loop
-                //If the position hasn't changed, then we're in an infinite loop
-                if last_pos == pos.position() {
-                    let span = Span::from_length(state.file, pos.position(), 0);
-                    cache.add_error(PEGParseError::fail_loop(span));
-                    return Err(());
-                }
-                last_pos = pos.position();
-            }
-
-            //Parse until maximum amount is reached
-            for _ in *min..max.unwrap_or(u64::MAX) {
-                match parse_expression(state, cache, c.as_ref(), pos.clone()) {
-                    Ok(ok) => {
-                        results.push(ok.result);
-                        pos = ok.pos;
-                    }
-                    Err(_) => {
+            //Parse at most maximum times
+            for i in 0..max.unwrap_or(u64::MAX) {
+                let res = parse_expression(state, cache, c.as_ref(), pos);
+                pos = res.pos;
+                results.push(res.result);
+                if !res.ok {
+                    let span = Span::from_end(state.file, start_pos, pos.position());
+                    //If we have not yet reached the minimum, we error.
+                    //Otherwise, we break and ok after the loop body.
+                    if i < *min {
+                        return ParseResult::new_err(ParsePairExpression::List(span, results), pos);
+                    } else {
                         break;
                     }
+
                 }
                 //If the position hasn't changed, then we're in an infinite loop
                 if last_pos == pos.position() {
                     let span = Span::from_length(state.file, pos.position(), 0);
-                    cache.add_error(PEGParseError::fail_loop(span));
-                    return Err(());
+                    cache.add_error(PEGParseError::fail_loop(span.clone()));
+                    return ParseResult::new_err(ParsePairExpression::List(span, results), pos);
                 }
                 last_pos = pos.position();
             }
 
             //Construct result
             let span = Span::from_end(state.file, start_pos, pos.position());
-            Ok(ParseSuccess {
-                result: ParsePairExpression::List(span, results),
-                pos,
-            })
+            ParseResult::new_ok(ParsePairExpression::List(span, results), pos)
         }
         //To parse a choice, try each constructor, keeping track of the best error that occurred while doing so.
         //If none of the constructors succeed, we will return this error.
         Expression::Choice(constructors) => {
+            let mut results = vec![];
+            assert!(constructors.len() > 0);
             for (i, subconstructor) in constructors.iter().enumerate() {
-                if let Ok(suc) = parse_expression(state, cache, subconstructor, pos.clone())
-                {
-                    return Ok(ParseSuccess {
-                        result: ParsePairExpression::Choice(
-                            suc.result.span(),
-                            i,
-                            Box::new(suc.result),
-                        ),
-                        pos: suc.pos,
-                    });
+                let res = parse_expression(state, cache, subconstructor, pos.clone());
+                if res.ok {
+                    return ParseResult::new_ok(ParsePairExpression::Choice(res.result.span(), i, Box::new(res.result)), res.pos);
+                } else {
+                    results.push(res);
                 }
             }
-            Err(())
+            let (i, res) = results.into_iter().enumerate().max_by_key(|(_, r)| r.pos.position()).unwrap();
+            ParseResult::new_err(ParsePairExpression::Choice(res.result.span(), i, Box::new(res.result)), res.pos)
         }
 
         Expression::Negative(_) => {

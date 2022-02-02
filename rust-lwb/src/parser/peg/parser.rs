@@ -1,7 +1,7 @@
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::Sort;
 use crate::parser::peg::parse_error::PEGParseError;
-use crate::parser::peg::parse_success::ParseSuccess;
+use crate::parser::peg::parse_result::ParseResult;
 use crate::sources::character_class::CharacterClass;
 use crate::sources::source_file::SourceFile;
 use std::collections::{HashMap, VecDeque};
@@ -29,7 +29,7 @@ pub struct ParserCache<'src> {
 /// A single entry in the cache. Contains the value, and a flag whether it has been read.
 pub struct ParserCacheEntry<'src> {
     read: bool,
-    value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ()>,
+    value: ParseResult<'src, ParsePairSort<'src>>,
 }
 
 impl<'src> ParserCache<'src> {
@@ -37,7 +37,7 @@ impl<'src> ParserCache<'src> {
     pub fn get_mut(
         &mut self,
         key: &(usize, &'src str),
-    ) -> Option<&mut Result<ParseSuccess<'src, ParsePairSort<'src>>, ()>> {
+    ) -> Option<&mut ParseResult<'src, ParsePairSort<'src>>> {
         if let Some(v) = self.cache.get_mut(key) {
             v.read = true;
             Some(&mut v.value)
@@ -55,7 +55,7 @@ impl<'src> ParserCache<'src> {
     pub fn insert(
         &mut self,
         key: (usize, &'src str),
-        value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ()>,
+        value: ParseResult<'src, ParsePairSort<'src>>,
     ) {
         self.cache
             .insert(key, ParserCacheEntry { read: false, value });

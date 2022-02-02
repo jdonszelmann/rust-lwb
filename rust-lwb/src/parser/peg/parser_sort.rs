@@ -1,8 +1,8 @@
 #![allow(clippy::result_unit_err)]
-use crate::codegen_prelude::ParsePairSort;
+use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
 use crate::parser::bootstrap::ast::{Annotation, Sort};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
-use crate::parser::peg::parse_success::ParseSuccess;
+use crate::parser::peg::parse_result::ParseResult;
 use crate::parser::peg::parser::{ParserCache, ParserState};
 use crate::parser::peg::parser_expression::parse_expression;
 use crate::sources::source_file::SourceFileIterator;
@@ -15,7 +15,7 @@ pub fn parse_sort<'src>(
     cache: &mut ParserCache<'src>,
     sort: &'src Sort,
     pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ()> {
+) -> ParseResult<'src, ParsePairSort<'src>> {
     //Check if this result is cached
     let key = (pos.position(), &sort.name[..]);
     if let Some(cached) = cache.get_mut(&key) {
@@ -25,7 +25,13 @@ pub fn parse_sort<'src>(
     //Before executing, put a value for the current position in the cache.
     //This value is used if the rule is left-recursive
     let cache_state = cache.state_current();
-    cache.insert(key, Err(()));
+    cache.insert(key, ParseResult::new_err(
+        ParsePairSort {
+            sort: &sort.name,
+            constructor_name: "ERROR",
+            constructor_value: ParsePairExpression::Error(Span::from_length(state.file, pos.position(), 0))
+        },
+        pos.clone()));
     cache.trace.push_back(sort);
 
     //Now execute the actual rule, taking into account left recursion
@@ -35,51 +41,49 @@ pub fn parse_sort<'src>(
     //- Try to parse the current (rule, position). If this fails, there is definitely no left recursion. Otherwise, we now have a seed.
     //- Put the new seed in the cache, and rerun on the current (rule, position). Make sure to revert the cache to the previous state.
     //- At some point, the above will fail. Either because no new input is parsed, or because the entire parse now failed. At this point, we have reached the maximum size.
-    let res = match parse_sort_sub(state, cache, sort, pos.clone()) {
-        Ok(mut ok) => {
-            //Do we have a leftrec case?
-            if !cache.is_read(&key).unwrap() {
-                //There was no leftrec, just return the value
-                Ok(ok)
-            } else {
-                //There was leftrec, we need to grow the seed
-                loop {
-                    //Insert the current seed into the cache
-                    cache.state_revert(cache_state);
-                    cache.insert(key, Ok(ok.clone()));
+    let res = parse_sort_sub(state, cache, sort, pos.clone());
+    let new_res = if res.ok {
+        //Do we have a leftrec case?
+        if !cache.is_read(&key).unwrap() {
+            //There was no leftrec, just return the value
+            res
+        } else {
+            //There was leftrec, we need to grow the seed
+            loop {
+                //Insert the current seed into the cache
+                cache.state_revert(cache_state);
+                cache.insert(key, Ok(ok.clone()));
 
-                    //Grow the seed
-                    match parse_sort_sub(state, cache, sort, pos.clone()) {
-                        Ok(new_ok) => {
-                            if new_ok.pos.position() <= ok.pos.position() {
-                                break;
-                            }
-                            ok = new_ok;
-                        }
-                        Err(_) => {
+                //Grow the seed
+                match parse_sort_sub(state, cache, sort, pos.clone()) {
+                    Ok(new_ok) => {
+                        if new_ok.pos.position() <= ok.pos.position() {
                             break;
                         }
+                        ok = new_ok;
+                    }
+                    Err(_) => {
+                        break;
                     }
                 }
-                //The seed is at its maximum size
-                cache.insert(key, Ok(ok.clone()));
-                Ok(ok)
             }
+            //The seed is at its maximum size
+            cache.insert(key, Ok(ok.clone()));
+            Ok(ok)
         }
-        //If it failed, we know
-        Err(_) => {
-            // Left recursion value was used, but did not make a seed.
-            // This is an illegal grammar!
-            if cache.is_read(&key).unwrap() {
-                cache.add_error(PEGParseError::fail_left_recursion(Span::from_length(
-                    state.file,
-                    pos.position(),
-                    0,
-                )));
-            }
-            Err(())
+    } else {
+        // Left recursion value was used, but did not make a seed.
+        // This is an illegal grammar!
+        if cache.is_read(&key).unwrap() {
+            cache.add_error(PEGParseError::fail_left_recursion(Span::from_length(
+                state.file,
+                pos.position(),
+                0,
+            )));
         }
-    };
+        Err(())
+    }
+
     cache.insert(key, res.clone());
 
     cache.trace.pop_back();
@@ -92,7 +96,7 @@ fn parse_sort_sub<'src>(
     cache: &mut ParserCache<'src>,
     sort: &'src Sort,
     pos: SourceFileIterator<'src>,
-) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ()> {
+) -> ParseResult<'src, ParsePairSort<'src>> {
     //Try each constructor, keeping track of the best error that occurred while doing so.
     //If none of the constructors succeed, we will return this error.
     assert!(!sort.constructors.is_empty());
