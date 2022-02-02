@@ -6,6 +6,7 @@ use crate::parser::syntax_file::convert_syntax_file_ast::{convert, AstConversion
 use crate::sources::source_file::SourceFile;
 use thiserror::Error;
 
+#[rustfmt::skip]
 pub mod ast;
 pub mod convert_syntax_file_ast;
 

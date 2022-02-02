@@ -15,6 +15,7 @@ mod codegen_prelude {
     pub use rust_lwb::codegen_prelude::*;
 }
 
+#[rustfmt::skip]
 mod temp;
 
 fn main() -> Result<(), Box<dyn Error>> {
