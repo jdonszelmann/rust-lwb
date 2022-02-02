@@ -36,13 +36,6 @@ pub fn parse_expression<'src>(
                     best_error: None,
                     pos,
                 })
-            // } else if let Some(last_rule_with_layout) = flags.in_no_layout {
-            //     // report the last known rule *with* layout in the error instead
-            //     // of the exact character we're erroring on right now.
-            //     Err(ParseError::expect_string(
-            //         span,
-            //         last_rule_with_layout.to_string(),
-            //     ))
             } else {
                 Err(ParseError::expect_string(span, lit.clone()))
             }
@@ -58,13 +51,6 @@ pub fn parse_expression<'src>(
                     best_error: None,
                     pos,
                 })
-            // } else if let Some(last_rule_with_layout) = flags.in_no_layout {
-            //     // report the last known rule *with* layout in the error instead
-            //     // of the exact character we're erroring on right now.
-            //     Err(ParseError::expect_string(
-            //         span,
-            //         last_rule_with_layout.to_string(),
-            //     ))
             } else {
                 Err(ParseError::expect_char_class(span, characters.clone()))
             }

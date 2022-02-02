@@ -83,6 +83,15 @@ impl ParseError {
         }
     }
 
+    pub fn expect_sort(span: Span, sort: String, constructor: String) -> Self {
+        ParseError {
+            span,
+            expected: vec![ParseErrorSub::ExpectSort(sort, constructor)],
+            fail_left_rec: false,
+            fail_loop: false,
+        }
+    }
+
     pub fn not_entire_input(span: Span) -> Self {
         ParseError {
             span,
@@ -120,6 +129,9 @@ pub enum ParseErrorSub {
     /// Expect a certain string (keyword) to be there, but it was not.
     ExpectString(String),
 
+    /// Expect a certain sort
+    ExpectSort(String, String),
+
     /// This happens when not the entire input was parsed, but also no errors occurred during parsing.
     NotEntireInput(),
 }
@@ -132,6 +144,9 @@ impl Display for ParseErrorSub {
             }
             ParseErrorSub::ExpectString(s) => {
                 write!(f, "\'{}\'", s)
+            }
+            ParseErrorSub::ExpectSort(s, c) => {
+                write!(f, "{}.{}", s, c)
             }
             ParseErrorSub::NotEntireInput() => {
                 write!(f, "more input")

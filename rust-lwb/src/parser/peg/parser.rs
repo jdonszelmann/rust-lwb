@@ -7,7 +7,6 @@ use crate::sources::character_class::CharacterClass;
 use crate::sources::source_file::SourceFile;
 use crate::sources::span::Span;
 use std::collections::{HashMap, VecDeque};
-use std::fmt::{Display, Formatter};
 
 /// This stores the immutable data that is used during the parsing process.
 pub struct ParserState<'src> {
@@ -28,8 +27,7 @@ pub struct ParserCache<'src> {
 }
 
 #[derive(Copy, Clone)]
-pub struct ParserFlags<'src> {
-    pub error_sort: Option<&'src str>
+pub struct ParserFlags {
 }
 
 impl<'src> ParserCache<'src> {
@@ -107,7 +105,7 @@ pub fn parse_file<'src>(
     };
 
     let flags = ParserFlags {
-        error_sort: None,
+
     };
 
     //Parse the starting sort
