@@ -1,10 +1,13 @@
+extern crate core;
+
 mod bootstrap_config;
 
-use crate::bootstrap_config::from_root;
+use crate::bootstrap_config::{from_root, unwrap};
 use rust_lwb::codegen::manager::CodegenManager;
 use std::error::Error;
+use std::fmt::Display;
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
     let config = bootstrap_config::load("bootstrap.toml");
 
     let temporary_language_location = from_root("src/temp.rs");
@@ -15,7 +18,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .destination(temporary_language_location)
         .serde(true);
 
-    m.codegen()?;
+    unwrap(m.codegen());
 
-    Ok(())
+
 }

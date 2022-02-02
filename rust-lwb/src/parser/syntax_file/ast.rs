@@ -12,85 +12,85 @@
 
 use crate::codegen_prelude::*;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Identifier<M : AstInfo> {
     Identifier(M, String),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum EscapeClosingBracket<M : AstInfo> {
-    Escaped(M, String,),
+    Escaped(M, String),
     Unescaped(M, String),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum CharacterClassItem<M : AstInfo> {
-    Range(M, Box<EscapeClosingBracket<M>>,Box<EscapeClosingBracket<M>>,),
+    Range(M, Box<EscapeClosingBracket<M>>,Box<EscapeClosingBracket<M>>),
     SingleChar(M, Box<EscapeClosingBracket<M>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum StringChar<M : AstInfo> {
-    Escaped(M, String,),
+    Escaped(M, String),
     Normal(M, String),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Number<M : AstInfo> {
-    Number(M, Vec<String>),
+    Number(M, String),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum CharacterClass<M : AstInfo> {
-    Class(M, bool,Vec<Box<CharacterClassItem<M>>>,),
+    Class(M, bool,Vec<Box<CharacterClassItem<M>>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Expression<M : AstInfo> {
-    Star(M, Box<Expression<M>>,),
-    Plus(M, Box<Expression<M>>,),
-    Maybe(M, Box<Expression<M>>,),
-    RepeatExact(M, Box<Expression<M>>,Box<Number<M>>,Option<Box<Number<M>>>,),
-    Literal(M, String),
+    Star(M, Box<Expression<M>>),
+    Plus(M, Box<Expression<M>>),
+    Maybe(M, Box<Expression<M>>),
+    RepeatExact(M, Box<Expression<M>>,Box<Number<M>>,Option<Box<Number<M>>>),
+    Literal(M, Vec<Box<StringChar<M>>>),
     Sort(M, Box<Identifier<M>>),
     Class(M, Box<CharacterClass<M>>),
-    Paren(M, Vec<Box<Expression<M>>>,),
+    Paren(M, Vec<Box<Expression<M>>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Annotation<M : AstInfo> {
-    Annotation(M, Option<Box<Identifier<M>>>,Vec<(Box<Identifier<M>>,)>,bool,),
+    Annotation(M, Option<Box<Identifier<M>>>,Vec<Box<Identifier<M>>>,bool),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Constructor<M : AstInfo> {
-    Constructor(M, Box<Identifier<M>>,Vec<Box<Expression<M>>>,Option<Box<Annotation<M>>>,),
+    Constructor(M, Box<Identifier<M>>,Vec<Box<Expression<M>>>,Option<Box<Annotation<M>>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Newline<M : AstInfo> {
     Unix(M, ),
     Windows(M, ),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Sort<M : AstInfo> {
-    Sort(M, Box<Identifier<M>>,Vec<Box<Constructor<M>>>,),
+    Sort(M, Box<Identifier<M>>,Vec<Box<Constructor<M>>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Meta<M : AstInfo> {
-    Layout(M, Box<CharacterClass<M>>,),
-    Start(M, Box<Identifier<M>>,),
+    Layout(M, Box<CharacterClass<M>>),
+    Start(M, Box<Identifier<M>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum SortOrMeta<M : AstInfo> {
     Meta(M, Box<Meta<M>>),
     Sort(M, Box<Sort<M>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Program<M : AstInfo> {
     Program(M, Vec<Box<SortOrMeta<M>>>),
 }
@@ -216,16 +216,7 @@ impl<M: AstInfo> FromPairs<M> for Number<M> {
         let info = generator.generate(&pair);
         match pair.constructor_name {
         "number" => {
-        Self::Number(info, if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
-            l.iter().map(|x| { if let ParsePairExpression::Empty(ref span) = x {
-            span.as_str().to_string()
-        } else {
-            panic!("expected empty parse pair expression in pair to ast conversion of number")
-        } }).collect()
-        } else {
-            panic!("expected empty parse pair expression in pair to ast conversion of number")
-        }
-                            )
+        Self::Number(info, pair.constructor_value.span().as_str().to_string())
         }
         a => unreachable!("{}", a)
         }
@@ -332,7 +323,20 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                         }
         }
         "literal" => {
-        Self::Literal(info, pair.constructor_value.span().as_str().to_string())
+        if let ParsePairExpression::List(_, ref p) = pair.constructor_value {
+                            Self::Literal(info, if let ParsePairExpression::List(_, ref l) = p[1] {
+            l.iter().map(|x| { if let ParsePairExpression::Sort(_, ref s) = x {
+                    Box::new(StringChar::from_pairs(s, generator))
+                } else {
+                    panic!("expected empty parse pair expression in pair to ast conversion of expression")
+                } }).collect()
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of expression")
+        }
+                            )
+                        } else {
+                            panic!("expected empty parse pair expression in pair to ast conversion of expression")
+                        }
         }
         "sort" => {
         Self::Sort(info, if let ParsePairExpression::Sort(_, ref s) = pair.constructor_value {
@@ -390,11 +394,11 @@ impl<M: AstInfo> FromPairs<M> for Annotation<M> {
         }
                             ,if let ParsePairExpression::List(_, ref l) = p[2] {
             l.iter().map(|x| { if let ParsePairExpression::List(_, ref p) = x {
-            (if let ParsePairExpression::Sort(_, ref s) = p[1] {
+            if let ParsePairExpression::Sort(_, ref s) = p[1] {
                     Box::new(Identifier::from_pairs(s, generator))
                 } else {
                     panic!("expected empty parse pair expression in pair to ast conversion of annotation")
-                },)
+                }
         } else {
             panic!("expected empty parse pair expression in pair to ast conversion of annotation")
         } }).collect()

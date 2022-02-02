@@ -15,6 +15,9 @@ impl SpannedAstInfo for BasicAstInfo {
     }
 }
 
+pub trait BasicAstNode: AstNode<BasicAstInfo> {}
+impl<T> BasicAstNode for T where T: AstNode<BasicAstInfo> {}
+
 struct AstInfoGenerator;
 
 impl GenerateAstInfo for AstInfoGenerator {

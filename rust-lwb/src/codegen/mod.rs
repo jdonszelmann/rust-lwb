@@ -94,16 +94,29 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
                 expressions.push(line)
             }
 
-            let line = format!(
-                r#"if let ParsePairExpression::List(_, ref p) = {src} {{
-    ({},)
+            if expressions.len() == 0 {
+                todo!()
+            } else if expressions.len() == 1 {
+                let line = format!(
+                    r#"if let ParsePairExpression::List(_, ref p) = {src} {{
+    {}
 }} else {{
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}"#,
-                expressions.join(",")
-            );
+                    expressions.pop().unwrap());
 
-            line
+                line
+            } else {
+                let line = format!(
+                    r#"if let ParsePairExpression::List(_, ref p) = {src} {{
+    ({})
+}} else {{
+    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
+}}"#,
+                    expressions.join(","));
+
+                line
+            }
         }
         a => unreachable!("{:?}", a),
     }
@@ -191,6 +204,8 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bo
             enumm.derive("Deserialize");
         }
 
+        enumm.derive("Debug");
+
         enumm.generic("M : AstInfo");
         for constr in &rule.constructors {
             let variant = enumm.new_variant(&sanitize_identifier(&constr.name));
@@ -199,7 +214,7 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bo
             let typ = if constr.annotations.contains(&SingleString) {
                 "String".to_string()
             } else {
-                generate_constructor_type(&constr.constructor).unwrap_or_else(|| "()".to_string())
+                generate_constructor_type(&constr.expression).unwrap_or_else(|| "()".to_string())
             };
 
             let typ = if typ.starts_with('(') {
@@ -233,7 +248,7 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bo
                 &mut f,
                 &rule.name,
                 &sanitize_identifier(&constructor.name),
-                &constructor.constructor,
+                &constructor.expression,
                 constructor.annotations.contains(&SingleString),
             );
             f.line("}");
@@ -280,19 +295,21 @@ fn generate_constructor_type(constructor: &Expression) -> Option<String> {
             "<M>>",
         ])),
         Expression::Sequence(cons) => {
-            let mut s = String::new();
-            s.push('(');
+            let mut parts = Vec::new();
+
             for con in cons {
                 if let Some(con_type) = generate_constructor_type(con) {
-                    s.push_str(&con_type);
-                    s.push(',');
+                    parts.push(con_type);
                 }
             }
-            s.push(')');
-            if s.len() > 2 {
-                Some(s)
-            } else {
+
+
+            if parts.len() == 0 {
                 None
+            } else if parts.len() == 1 {
+                Some(parts.pop().unwrap())
+            } else {
+                Some(format!("({})", parts.join(",")))
             }
         }
         Expression::Repeat { c, min, max } => {

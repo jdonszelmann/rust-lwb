@@ -13,10 +13,10 @@ character-class-item:
 
 string-char:
     escaped = "\\" [nrt\\"];
-    normal = [^"];
+    normal = [^"\\];
 
 number:
-    number = [0-9]+;
+    number = [0-9]+; {single-string}
 
 character-class:
     class =  "[" "^"? character-class-item* "]"; {no-layout}
@@ -27,17 +27,17 @@ expression:
     maybe = expression "?";
     repeat-exact = expression "{" number "," number? "}";
 
-    literal = "\"" string-char* "\""; {no-layout, single-string}
+    literal = "\"" string-char* "\""; {no-layout}
     sort = identifier;
     class = character-class;
 
-    paren = "(" expression* ")"; {injection}
+    paren = "(" expression+ ")"; {injection}
 
 annotation:
     annotation = "{" identifier? ("," identifier)* ","? "}";
 
 constructor:
-    constructor = "    " identifier "=" expression* ";" annotation?;
+    constructor = "    " identifier "=" expression+ ";" annotation?;
 
 newline:
     unix = "\n";

@@ -1,55 +1,33 @@
 use miette::GraphicalReportHandler;
 use rust_lwb::parser::peg::parser::parse_file;
 use rust_lwb::sources::source_file::SourceFile;
+use rust_lwb::parser::syntax_file::SyntaxFile;
+
 macro_rules! peg_test {
     (name: $name:ident, syntax: $syntax:literal, passing tests: $($input_pass:literal)* failing tests: $($input_fail:literal)*) => {
         #[test]
         fn $name() {
-            let sf = SourceFile::new($syntax.to_string(), "test.syntax".to_string());
-            let ast = rust_lwb::parser::bootstrap::parse(&sf).unwrap();
-
             $(
-            println!("== Parsing (should be ok): {}", $input_pass);
             let sf2 = SourceFile::new($input_pass.to_string(), "input.language".to_string());
-            let parsed = parse_file(&ast, &sf2);
+            let parsed = SyntaxFile::parse(&sf2);
             match parsed {
-                Ok(ok) => {
-                    println!("{:?}", ok);
-                }
+                Ok(_) => {}
                 Err(err) => {
-                    println!("{:?}", err);
-                    if $input_pass != "" {
-                        let mut s = String::new();
-                        GraphicalReportHandler::new()
-                            .with_links(true)
-                            .render_report(&mut s, &err)
-                            .unwrap();
-                        print!("{}", s);
-                    }
+                    panic!("{}", err)
                 }
             }
             )*
 
             $(
-            println!("== Parsing (should be err): {}", $input_fail);
             let sf2 = SourceFile::new($input_fail.to_string(), "input.language".to_string());
-            let parsed = parse_file(&ast, &sf2);
+            let parsed = SyntaxFile::parse(&sf2);
             match parsed {
                 Ok(ok) => {
-                    println!("{:?}", ok);
+                    println!("Unexpected ok while parsing: {}", $input_fail);
+                    // print!("{:?}", ok); // TODO: derive debug
                     assert!(false);
                 }
-                Err(err) => {
-                    println!("{:?}", err);
-                    if $input_fail != "" {
-                        let mut s = String::new();
-                        GraphicalReportHandler::new()
-                            .with_links(true)
-                            .render_report(&mut s, &err)
-                            .unwrap();
-                        print!("{}", s);
-                    }
-                }
+                Err(_) => {}
             }
             )*
         }
