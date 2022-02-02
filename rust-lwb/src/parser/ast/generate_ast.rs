@@ -1,5 +1,5 @@
 use crate::codegen_prelude::{AstInfo, GenerateAstInfo, ParsePairSort};
-use crate::parser::ast::{AstNode, SpannedAstInfo};
+use crate::parser::ast::{AstNode, NodeId, SpannedAstInfo};
 use crate::sources::span::Span;
 use serde::{Deserialize, Serialize};
 
@@ -8,7 +8,11 @@ pub struct BasicAstInfo {
     span: Span,
 }
 
-impl AstInfo for BasicAstInfo {}
+impl AstInfo for BasicAstInfo {
+    fn node_id(&self) -> NodeId {
+        todo!()
+    }
+}
 impl SpannedAstInfo for BasicAstInfo {
     fn span(&self) -> &Span {
         &self.span

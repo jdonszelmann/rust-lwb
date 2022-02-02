@@ -8,15 +8,12 @@ pub trait SpannedAstInfo: AstInfo {
     fn span(&self) -> &Span;
 }
 
-impl AstInfo for Span {}
+#[derive(Hash, Eq, PartialEq)]
+pub struct NodeId(usize);
 
-impl SpannedAstInfo for Span {
-    fn span(&self) -> &Span {
-        self
-    }
+pub trait AstInfo {
+    fn node_id(&self) -> NodeId;
 }
-
-pub trait AstInfo {}
 
 pub trait AstNode<M: AstInfo>: FromPairs<M> {
     fn ast_info(&self) -> &M {
