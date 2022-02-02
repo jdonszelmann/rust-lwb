@@ -1,7 +1,7 @@
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::SyntaxFileAst;
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
-use crate::parser::peg::parser::{ParserCache, ParserState};
+use crate::parser::peg::parser::{ParserState, ParserContext};
 use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::source_file::SourceFile;
 use crate::sources::span::Span;
@@ -15,7 +15,7 @@ pub fn parse_file<'src>(
     file: &'src SourceFile,
 ) -> Result<ParsePairSort<'src>, PEGParseError> {
     //Create a new parser state
-    let mut state = ParserState {
+    let mut state = ParserContext {
         file,
         rules: HashMap::new(),
         layout: syntax.layout.clone(),
@@ -24,7 +24,7 @@ pub fn parse_file<'src>(
         state.rules.insert(&rule.name, rule);
     });
 
-    let mut cache = ParserCache {
+    let mut cache = ParserState {
         cache: HashMap::new(),
         cache_stack: VecDeque::new(),
         best_error: None,

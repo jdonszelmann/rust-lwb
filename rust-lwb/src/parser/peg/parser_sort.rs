@@ -4,7 +4,7 @@ use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
 use crate::parser::bootstrap::ast::{Annotation, Sort};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_result::ParseResult;
-use crate::parser::peg::parser::{ParserCache, ParserState};
+use crate::parser::peg::parser::{ParserState, ParserContext};
 use crate::parser::peg::parser_expression::parse_expression;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
@@ -12,8 +12,8 @@ use crate::sources::span::Span;
 /// Given the name of a sort and the current position, attempts to parse this sort.
 /// The name of the provided sort must exist.
 pub fn parse_sort<'src>(
-    state: &ParserState<'src>,
-    cache: &mut ParserCache<'src>,
+    state: &ParserContext<'src>,
+    cache: &mut ParserState<'src>,
     sort: &'src Sort,
     pos: SourceFileIterator<'src>,
 ) -> ParseResult<'src, ParsePairSort<'src>> {
@@ -98,8 +98,8 @@ pub fn parse_sort<'src>(
     res
 }
 fn parse_sort_sub<'src>(
-    state: &ParserState<'src>,
-    cache: &mut ParserCache<'src>,
+    state: &ParserContext<'src>,
+    cache: &mut ParserState<'src>,
     sort: &'src Sort,
     pos: SourceFileIterator<'src>,
 ) -> ParseResult<'src, ParsePairSort<'src>> {

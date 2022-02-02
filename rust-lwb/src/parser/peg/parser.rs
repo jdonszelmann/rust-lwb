@@ -7,7 +7,7 @@ use crate::sources::source_file::SourceFile;
 use std::collections::{HashMap, VecDeque};
 
 /// This stores the immutable data that is used during the parsing process.
-pub struct ParserState<'src> {
+pub struct ParserContext<'src> {
     pub(crate) file: &'src SourceFile,
     pub(crate) rules: HashMap<&'src str, &'src Sort>,
     pub layout: CharacterClass,
@@ -16,7 +16,7 @@ pub struct ParserState<'src> {
 /// This stores the mutable data that is used during the parsing process.
 /// It contains a cache of the results of each (source position, rule).
 /// It also has a stack which contains information about the order in which the keys were inserted, so they can be removed in order when needed.
-pub struct ParserCache<'src> {
+pub struct ParserState<'src> {
     pub(crate) cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
     pub(crate) cache_stack: VecDeque<(usize, &'src str)>,
     pub best_error: Option<PEGParseError>,
@@ -32,7 +32,7 @@ pub struct ParserCacheEntry<'src> {
     value: ParseResult<'src, ParsePairSort<'src>>,
 }
 
-impl<'src> ParserCache<'src> {
+impl<'src> ParserState<'src> {
     /// Get a mutable reference to an entry
     pub fn get_mut(
         &mut self,

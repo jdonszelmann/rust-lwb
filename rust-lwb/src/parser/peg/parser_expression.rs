@@ -4,15 +4,15 @@ use crate::codegen_prelude::ParsePairExpression;
 use crate::parser::bootstrap::ast::{Expression, Sort};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_result::ParseResult;
-use crate::parser::peg::parser::{ParserCache, ParserState};
+use crate::parser::peg::parser::{ParserState, ParserContext};
 use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
 
 /// Given an expression and the current position, attempts to parse this constructor.
 pub fn parse_expression<'src>(
-    state: &ParserState<'src>,
-    cache: &mut ParserCache<'src>,
+    state: &ParserContext<'src>,
+    cache: &mut ParserState<'src>,
     constructor: &'src Expression,
     mut pos: SourceFileIterator<'src>,
 ) -> ParseResult<'src, ParsePairExpression<'src>> {
