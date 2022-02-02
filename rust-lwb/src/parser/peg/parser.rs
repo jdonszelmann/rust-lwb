@@ -7,7 +7,6 @@ use crate::sources::character_class::CharacterClass;
 use crate::sources::source_file::SourceFile;
 use crate::sources::span::Span;
 use std::collections::{HashMap, VecDeque};
-use std::fmt::{Display, Formatter};
 
 /// This stores the immutable data that is used during the parsing process.
 pub struct ParserState<'src> {
@@ -22,42 +21,13 @@ pub struct ParserState<'src> {
 pub struct ParserCache<'src> {
     cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
     cache_stack: VecDeque<(usize, &'src str)>,
-    pub trace: VecDeque<&'src str>
+    pub trace: VecDeque<&'src Sort>,
+    pub allow_layout: bool, // True if layout should be allowed at the moment
+    pub no_layout_nest_count: usize, // How many times no layout has been nested
 }
 
 #[derive(Copy, Clone)]
-pub struct FullConstructorName<'src> {
-    pub sort: &'src str,
-    pub constructor: &'src str,
-}
-
-impl<'src> FullConstructorName<'src> {
-    pub fn new(sort: &'src str, constructor: &'src str) -> Self {
-        Self {
-            sort,
-            constructor
-        }
-    }
-}
-
-impl<'src> Display for FullConstructorName<'src> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}.{}", self.sort, self.constructor)
-    }
-}
-
-#[derive(Copy, Clone)]
-pub struct ParserFlags<'src> {
-
-    // BOTH THESE FIELDS ARE NONE IF LAYOUT *SHOULD* BE PROCESSED
-    pub no_layout_now: Option<FullConstructorName<'src>>,
-    pub no_layout_future: Option<FullConstructorName<'src>>,
-}
-
-impl<'src> ParserFlags<'src> {
-    pub fn do_layout(&self) -> bool {
-        self.no_layout_now.is_none() || self.no_layout_future.is_none()
-    }
+pub struct ParserFlags {
 }
 
 impl<'src> ParserCache<'src> {
@@ -114,7 +84,7 @@ pub struct ParserCacheEntry<'src> {
 /// When unsuccessful, it returns a `ParseError`.
 pub fn parse_file<'src>(
     syntax: &'src SyntaxFileAst, // TODO: are these lifetimes truly the same?
-    file: &'src SourceFile, // TODO: the same as this one I mean
+    file: &'src SourceFile,      // TODO: the same as this one I mean
 ) -> Result<ParsePairSort<'src>, PEGParseError> {
     //Create a new parser state
     let mut state = ParserState {
@@ -130,18 +100,21 @@ pub fn parse_file<'src>(
         cache: HashMap::new(),
         cache_stack: VecDeque::new(),
         trace: VecDeque::new(),
+        no_layout_nest_count: 0usize,
+        allow_layout: true,
     };
 
-    let flags = ParserFlags { no_layout_now: None, no_layout_future: None };
+    let flags = ParserFlags {
+
+    };
 
     //Parse the starting sort
-    let mut ok: ParseSuccess<ParsePairSort<'src>> = parse_sort(
-        &state,
-        &mut cache,
-        &syntax.starting_sort,
-        file.iter(),
-        flags,
-    )?;
+    let starting_sort = state
+        .rules
+        .get(&syntax.starting_sort[..])
+        .expect("Starting sort exists");
+    let mut ok: ParseSuccess<ParsePairSort<'src>> =
+        parse_sort(&state, &mut cache, flags, starting_sort, file.iter())?;
 
     //If there is no input left, return Ok.
     if ok.pos.peek().is_none() {

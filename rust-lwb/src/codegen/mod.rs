@@ -1,8 +1,8 @@
+use crate::parser::bootstrap::ast::Annotation::{NoLayout, SingleString};
 use crate::parser::bootstrap::ast::{Expression, SyntaxFileAst};
 use codegen::{Function, Scope};
 use convert_case::{Case, Casing};
 use std::ops::Deref;
-use crate::parser::bootstrap::ast::Annotation::{NoLayout, SingleString};
 
 pub mod manager;
 
@@ -28,7 +28,6 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
 }}"#
         ),
         Expression::Repeat { min, max, c } => {
-
             let ue = generate_unpack_expression(c, sort, "x");
 
             match (min, max) {
@@ -51,7 +50,7 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}
                     "#,
-                       ue
+                        ue
                     )
                 }
                 _ if ue == "()" => {
@@ -123,10 +122,18 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) ->
     }
 }
 
-fn generate_unpack(f: &mut Function, sort: &str, constructor: &str, expression: &Expression, no_layout: bool) {
+fn generate_unpack(
+    f: &mut Function,
+    sort: &str,
+    constructor: &str,
+    expression: &Expression,
+    no_layout: bool,
+) {
     // if its a no-layout constructor then just return the contents as a string
     if no_layout {
-        f.line(format!("Self::{constructor}(info, pair.constructor_value.span().as_str().to_string())"));
+        f.line(format!(
+            "Self::{constructor}(info, pair.constructor_value.span().as_str().to_string())"
+        ));
         return;
     }
 
@@ -159,7 +166,6 @@ fn generate_unpack(f: &mut Function, sort: &str, constructor: &str, expression: 
                     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
                 }}"#
                            , expressions.join(",")));
-
         }
         a @ Expression::Repeat { .. } => {
             f.line(format!(

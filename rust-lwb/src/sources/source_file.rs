@@ -1,10 +1,10 @@
 use crate::sources::character_class::CharacterClass;
+use serde::{Deserialize, Serialize};
 use std::io;
 use std::io::Read;
 use std::iter::Peekable;
 use std::path::Path;
 use std::sync::Arc;
-use serde::{Serialize, Deserialize};
 
 #[doc(hidden)]
 #[derive(Debug, Serialize, Deserialize)]

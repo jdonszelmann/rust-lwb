@@ -42,99 +42,99 @@ macro_rules! peg_test {
     };
 }
 
-// peg_test! {
-// name: as_rightrec,
-// syntax: r#"
-// As:
-//     More = 'a' As;
-//     NoMore = '';
-// start at As;
-// "#,
-// passing tests:
-//     ""
-//     "a"
-//     "aa"
-//     "aaa"
-// failing tests:
-//     "b"
-//     "ab"
-//     "ba"
-//     "aac"
-// }
-//
-// peg_test! {
-// name: as_leftrec,
-// syntax: r#"
-// As:
-//     More = As 'a';
-//     NoMore = '';
-// start at As;
-// "#,
-// passing tests:
-//     ""
-//     "a"
-//     "aa"
-//     "aaa"
-// failing tests:
-//     "b"
-//     "ab"
-//     "ba"
-//     "aac"
-// }
-//
-// peg_test! {
-// name: bad_leftrec,
-// syntax: r#"
-// X:
-//     Fail = X;
-// start at X;
-// "#,
-// passing tests:
-// failing tests:
-//     ""
-//     "a"
-//     "aa"
-//     "aaa"
-//     "aaaa"
-// }
-//
-// peg_test! {
-// name: bad_loop,
-// syntax: r#"
-// X:
-//     Fail = ''*;
-// start at X;
-// "#,
-// passing tests:
-// failing tests:
-//     "a"
-//     "aa"
-//     "aaa"
-//     "aaaa"
-//     ""
-// }
-//
-// peg_test! {
-// name: recovery,
-// syntax: r#"
-// X:
-//     X = 'x'+ ';';
-// XS:
-//     XS = X*;
-// start at XS;
-// "#,
-// passing tests:
-//     "x;"
-//     "xx;"
-//     "xx;x;"
-//     "x;xx;x;xxx;"
-// failing tests:
-//     "x"
-//     "xx"
-//     "x;x"
-//     "xx;;"
-//     ";"
-// }
+peg_test! {
+name: as_rightrec,
+syntax: r#"
+As:
+    More = 'a' As;
+    NoMore = '';
+start at As;
+"#,
+passing tests:
+    ""
+    "a"
+    "aa"
+    "aaa"
+failing tests:
+    "b"
+    "ab"
+    "ba"
+    "aac"
+}
+
+peg_test! {
+name: as_leftrec,
+syntax: r#"
+As:
+    More = As 'a';
+    NoMore = '';
+start at As;
+"#,
+passing tests:
+    ""
+    "a"
+    "aa"
+    "aaa"
+failing tests:
+    "b"
+    "ab"
+    "ba"
+    "aac"
+}
+
+peg_test! {
+name: bad_leftrec,
+syntax: r#"
+X:
+    Fail = X;
+start at X;
+"#,
+passing tests:
+failing tests:
+    ""
+    "a"
+    "aa"
+    "aaa"
+    "aaaa"
+}
+
+peg_test! {
+name: bad_loop,
+syntax: r#"
+X:
+    Fail = ''*;
+start at X;
+"#,
+passing tests:
+failing tests:
+    "a"
+    "aa"
+    "aaa"
+    "aaaa"
+    ""
+}
+
+peg_test! {
+name: recovery,
+syntax: r#"
+X:
+    X = 'x'+ ';';
+XS:
+    XS = X*;
+start at XS;
+"#,
+passing tests:
+    "x;"
+    "xx;"
+    "xx;x;"
+    "x;xx;x;xxx;"
+failing tests:
+    "x"
+    "xx"
+    "x;x"
+    "xx;;"
+    ";"
+}
 
 peg_test! {
 name: layout,

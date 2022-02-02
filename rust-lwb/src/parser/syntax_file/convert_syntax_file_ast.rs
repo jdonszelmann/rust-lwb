@@ -62,9 +62,7 @@ pub fn convert_syntax_file_ast<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionR
 
 fn convert_identifier<M: AstInfo>(inp: ast::Identifier<M>) -> String {
     match inp {
-        Identifier::Identifier(_, name) => {
-            name
-        }
+        Identifier::Identifier(_, name) => name,
     }
 }
 

@@ -9,7 +9,6 @@ use crate::sources::source_file::SourceFile;
 use thiserror::Error;
 use crate::parser::peg::parse_error::PEGParseError;
 
-mod convert_syntax_file_ast;
 mod ast;
 
 const SERIALIZED_AST: &[u8] = include_bytes!("serialized-ast.bin");
@@ -47,4 +46,3 @@ pub fn parse_language<AST: BasicAstNode>(input: &SourceFile) -> Result<AST, Pars
 
     Ok(ast)
 }
-
