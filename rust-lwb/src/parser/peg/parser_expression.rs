@@ -1,6 +1,6 @@
 #![allow(clippy::result_unit_err)]
 
-use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
+use crate::codegen_prelude::ParsePairExpression;
 use crate::parser::bootstrap::ast::{Expression, Sort};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_result::ParseResult;
@@ -112,7 +112,6 @@ pub fn parse_expression<'src>(
                     } else {
                         break;
                     }
-
                 }
                 //If the position hasn't changed, then we're in an infinite loop
                 if last_pos == pos.position() {
@@ -131,17 +130,27 @@ pub fn parse_expression<'src>(
         //If none of the constructors succeed, we will return this error.
         Expression::Choice(subconstructors) => {
             let mut results = vec![];
-            assert!(subconstructors.len() > 0);
+            assert!(!subconstructors.is_empty());
             for (i, subconstructor) in subconstructors.iter().enumerate() {
                 let res = parse_expression(state, cache, subconstructor, pos.clone());
                 if res.ok {
-                    return ParseResult::new_ok(ParsePairExpression::Choice(res.result.span(), i, Box::new(res.result)), res.pos);
+                    return ParseResult::new_ok(
+                        ParsePairExpression::Choice(res.result.span(), i, Box::new(res.result)),
+                        res.pos,
+                    );
                 } else {
                     results.push(res);
                 }
             }
-            let (i, res) = results.into_iter().enumerate().max_by_key(|(_, r)| r.pos.position()).unwrap();
-            ParseResult::new_err(ParsePairExpression::Choice(res.result.span(), i, Box::new(res.result)), res.pos)
+            let (i, res) = results
+                .into_iter()
+                .enumerate()
+                .max_by_key(|(_, r)| r.pos.position())
+                .unwrap();
+            ParseResult::new_err(
+                ParsePairExpression::Choice(res.result.span(), i, Box::new(res.result)),
+                res.pos,
+            )
         }
 
         Expression::Negative(_) => {

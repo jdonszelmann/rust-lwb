@@ -1,6 +1,5 @@
 #![allow(clippy::result_unit_err)]
 
-use thiserror::private::AsDynError;
 use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
 use crate::parser::bootstrap::ast::{Annotation, Sort};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
@@ -27,13 +26,21 @@ pub fn parse_sort<'src>(
     //Before executing, put a value for the current position in the cache.
     //This value is used if the rule is left-recursive
     let cache_state = cache.state_current();
-    cache.insert(key, ParseResult::new_err(
-        ParsePairSort {
-            sort: &sort.name,
-            constructor_name: "ERROR",
-            constructor_value: ParsePairExpression::Error(Span::from_length(state.file, pos.position(), 0))
-        },
-        pos.clone()));
+    cache.insert(
+        key,
+        ParseResult::new_err(
+            ParsePairSort {
+                sort: &sort.name,
+                constructor_name: "ERROR",
+                constructor_value: ParsePairExpression::Error(Span::from_length(
+                    state.file,
+                    pos.position(),
+                    0,
+                )),
+            },
+            pos.clone(),
+        ),
+    );
     cache.trace.push_back(sort);
 
     //Now execute the actual rule, taking into account left recursion
@@ -58,8 +65,12 @@ pub fn parse_sort<'src>(
 
                 //Grow the seed
                 let new_res = parse_sort_sub(state, cache, sort, pos.clone());
-                if !new_res.ok { break; }
-                if new_res.pos.position() <= res.pos.position() { break; }
+                if !new_res.ok {
+                    break;
+                }
+                if new_res.pos.position() <= res.pos.position() {
+                    break;
+                }
                 res = new_res;
             }
             //The seed is at its maximum size
@@ -111,11 +122,14 @@ fn parse_sort_sub<'src>(
         }
 
         if res.ok {
-            return ParseResult::new_ok(ParsePairSort {
-                sort: &sort.name,
-                constructor_name: &constructor.name,
-                constructor_value: res.result,
-            }, res.pos)
+            return ParseResult::new_ok(
+                ParsePairSort {
+                    sort: &sort.name,
+                    constructor_name: &constructor.name,
+                    constructor_value: res.result,
+                },
+                res.pos,
+            );
         }
         if constructor.annotations.contains(&Annotation::NoLayout) {
             let span = Span::from_length(state.file, pos.position(), 1);
@@ -128,10 +142,17 @@ fn parse_sort_sub<'src>(
         results.push(res);
     }
     //Chose best candidate
-    let (i, res) = results.into_iter().enumerate().max_by_key(|(_, r)| r.pos.position()).unwrap();
-    return ParseResult::new_err(ParsePairSort {
-        sort: &sort.name,
-        constructor_name: &sort.constructors[i].name,
-        constructor_value: res.result,
-    }, res.pos)
+    let (i, res) = results
+        .into_iter()
+        .enumerate()
+        .max_by_key(|(_, r)| r.pos.position())
+        .unwrap();
+    ParseResult::new_err(
+        ParsePairSort {
+            sort: &sort.name,
+            constructor_name: &sort.constructors[i].name,
+            constructor_value: res.result,
+        },
+        res.pos,
+    )
 }

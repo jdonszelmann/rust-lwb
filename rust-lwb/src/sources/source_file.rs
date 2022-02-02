@@ -33,7 +33,7 @@ impl<'de> Deserialize<'de> for SourceFile {
     where
         D: Deserializer<'de>,
     {
-        Ok(SourceFile::new("".to_string(), "dummmy".to_string()))
+        Ok(SourceFile::new("", "dummmy"))
     }
 }
 
@@ -59,7 +59,7 @@ impl SourceFile {
     }
 
     pub fn new_for_test(s: impl AsRef<str>) -> Self {
-        Self::new(s.as_ref().to_string(), "test".to_string())
+        Self::new(s.as_ref(), "test")
     }
 
     pub fn iter(&self) -> SourceFileIterator {
