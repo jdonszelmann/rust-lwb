@@ -95,14 +95,19 @@ pub fn parse_expression<'src>(
 
             //Parse at most maximum times
             for i in 0..max.unwrap_or(u64::MAX) {
-                let res = parse_expression(state, cache, c.as_ref(), pos);
-                pos = res.pos;
-                results.push(res.result);
-                if !res.ok {
-                    let span = Span::from_end(state.file, start_pos, pos.position());
+                let res = parse_expression(state, cache, c.as_ref(), pos.clone());
+                if res.ok {
+                    pos = res.pos;
+                    results.push(res.result);
+                } else {
                     //If we have not yet reached the minimum, we error.
                     //Otherwise, we break and ok after the loop body.
+                    //In case we reached the minimum, we don't push the error, even though the failure might've been an error.
+                    //This is because it's probably OK, and we want no Error pairs in the parse tree when it's OK.
                     if i < *min {
+                        pos = res.pos;
+                        results.push(res.result);
+                        let span = Span::from_end(state.file, start_pos, pos.position());
                         return ParseResult::new_err(ParsePairExpression::List(span, results), pos);
                     } else {
                         break;
@@ -124,10 +129,10 @@ pub fn parse_expression<'src>(
         }
         //To parse a choice, try each constructor, keeping track of the best error that occurred while doing so.
         //If none of the constructors succeed, we will return this error.
-        Expression::Choice(constructors) => {
+        Expression::Choice(subconstructors) => {
             let mut results = vec![];
-            assert!(constructors.len() > 0);
-            for (i, subconstructor) in constructors.iter().enumerate() {
+            assert!(subconstructors.len() > 0);
+            for (i, subconstructor) in subconstructors.iter().enumerate() {
                 let res = parse_expression(state, cache, subconstructor, pos.clone());
                 if res.ok {
                     return ParseResult::new_ok(ParsePairExpression::Choice(res.result.span(), i, Box::new(res.result)), res.pos);

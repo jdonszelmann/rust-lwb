@@ -1,4 +1,6 @@
 #![allow(clippy::result_unit_err)]
+
+use thiserror::private::AsDynError;
 use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
 use crate::parser::bootstrap::ast::{Annotation, Sort};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
@@ -41,8 +43,8 @@ pub fn parse_sort<'src>(
     //- Try to parse the current (rule, position). If this fails, there is definitely no left recursion. Otherwise, we now have a seed.
     //- Put the new seed in the cache, and rerun on the current (rule, position). Make sure to revert the cache to the previous state.
     //- At some point, the above will fail. Either because no new input is parsed, or because the entire parse now failed. At this point, we have reached the maximum size.
-    let res = parse_sort_sub(state, cache, sort, pos.clone());
-    let new_res = if res.ok {
+    let mut res = parse_sort_sub(state, cache, sort, pos.clone());
+    let res = if res.ok {
         //Do we have a leftrec case?
         if !cache.is_read(&key).unwrap() {
             //There was no leftrec, just return the value
@@ -52,24 +54,17 @@ pub fn parse_sort<'src>(
             loop {
                 //Insert the current seed into the cache
                 cache.state_revert(cache_state);
-                cache.insert(key, Ok(ok.clone()));
+                cache.insert(key, res.clone());
 
                 //Grow the seed
-                match parse_sort_sub(state, cache, sort, pos.clone()) {
-                    Ok(new_ok) => {
-                        if new_ok.pos.position() <= ok.pos.position() {
-                            break;
-                        }
-                        ok = new_ok;
-                    }
-                    Err(_) => {
-                        break;
-                    }
-                }
+                let new_res = parse_sort_sub(state, cache, sort, pos.clone());
+                if !new_res.ok { break; }
+                if new_res.pos.position() <= res.pos.position() { break; }
+                res = new_res;
             }
             //The seed is at its maximum size
-            cache.insert(key, Ok(ok.clone()));
-            Ok(ok)
+            cache.insert(key, res.clone());
+            res
         }
     } else {
         // Left recursion value was used, but did not make a seed.
@@ -81,8 +76,8 @@ pub fn parse_sort<'src>(
                 0,
             )));
         }
-        Err(())
-    }
+        res
+    };
 
     cache.insert(key, res.clone());
 
@@ -99,6 +94,7 @@ fn parse_sort_sub<'src>(
 ) -> ParseResult<'src, ParsePairSort<'src>> {
     //Try each constructor, keeping track of the best error that occurred while doing so.
     //If none of the constructors succeed, we will return this error.
+    let mut results = vec![];
     assert!(!sort.constructors.is_empty());
     for constructor in &sort.constructors {
         if constructor.annotations.contains(&Annotation::NoLayout) {
@@ -114,28 +110,28 @@ fn parse_sort_sub<'src>(
             }
         }
 
-        match res {
-            Ok(ok) => {
-                return Ok(ParseSuccess {
-                    result: ParsePairSort {
-                        sort: &sort.name,
-                        constructor_name: &constructor.name,
-                        constructor_value: ok.result,
-                    },
-                    pos: ok.pos,
-                });
-            }
-            Err(_) => {
-                if constructor.annotations.contains(&Annotation::NoLayout) {
-                    let span = Span::from_length(state.file, pos.position(), 1);
-                    let err = PEGParseError::expect(
-                        span,
-                        Expect::ExpectSort(sort.name.clone(), constructor.name.clone()),
-                    );
-                    cache.add_error(err);
-                }
-            }
+        if res.ok {
+            return ParseResult::new_ok(ParsePairSort {
+                sort: &sort.name,
+                constructor_name: &constructor.name,
+                constructor_value: res.result,
+            }, res.pos)
         }
+        if constructor.annotations.contains(&Annotation::NoLayout) {
+            let span = Span::from_length(state.file, pos.position(), 1);
+            let err = PEGParseError::expect(
+                span,
+                Expect::ExpectSort(sort.name.clone(), constructor.name.clone()),
+            );
+            cache.add_error(err);
+        }
+        results.push(res);
     }
-    Err(())
+    //Chose best candidate
+    let (i, res) = results.into_iter().enumerate().max_by_key(|(_, r)| r.pos.position()).unwrap();
+    return ParseResult::new_err(ParsePairSort {
+        sort: &sort.name,
+        constructor_name: &sort.constructors[i].name,
+        constructor_value: res.result,
+    }, res.pos)
 }
