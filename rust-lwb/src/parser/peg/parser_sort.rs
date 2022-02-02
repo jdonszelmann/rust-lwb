@@ -1,6 +1,6 @@
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::{Annotation, Sort};
-use crate::parser::peg::parse_error::ParseError;
+use crate::parser::peg::parse_error::PEGParseError;
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::peg::parser::{FullConstructorName, ParserCache, ParserFlags, ParserState};
 use crate::parser::peg::parser_expression::parse_expression;
@@ -15,7 +15,7 @@ pub fn parse_sort<'src>(
     sort_name: &'src str,
     pos: SourceFileIterator<'src>,
     flags: ParserFlags,
-) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
+) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, PEGParseError> {
     //Check if this result is cached
     let key = (pos.position(), sort_name);
     if let Some(cached) = cache.get_mut(&key) {
@@ -27,7 +27,7 @@ pub fn parse_sort<'src>(
     let cache_state = cache.state_current();
     cache.insert(
         key,
-        Err(ParseError::fail_left_recursion(Span::from_length(
+        Err(PEGParseError::fail_left_recursion(Span::from_length(
             state.file,
             pos.position(),
             0,
@@ -59,7 +59,7 @@ pub fn parse_sort<'src>(
                     match parse_sort_sub(state, cache, sort_name, pos.clone(), flags) {
                         Ok(new_ok) => {
                             if new_ok.pos.position() <= ok.pos.position() {
-                                ok.best_error = ParseError::combine_option_parse_error(
+                                ok.best_error = PEGParseError::combine_option_parse_error(
                                     ok.best_error,
                                     new_ok.best_error,
                                 );
@@ -68,7 +68,7 @@ pub fn parse_sort<'src>(
                             ok = new_ok;
                         }
                         Err(new_err) => {
-                            ok.best_error = ParseError::combine_option_parse_error(
+                            ok.best_error = PEGParseError::combine_option_parse_error(
                                 ok.best_error,
                                 Some(new_err),
                             );
@@ -97,13 +97,13 @@ fn parse_sort_sub<'src>(
     sort_name: &'src str,
     pos: SourceFileIterator<'src>,
     flags: ParserFlags,
-) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
+) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, PEGParseError> {
     //Obtain the sort
     let sort: &'src Sort = state.rules.get(sort_name).expect("Name is guaranteed to exist");
 
     //Try each constructor, keeping track of the best error that occurred while doing so.
     //If none of the constructors succeed, we will return this error.
-    let mut best_error: Option<ParseError> = None;
+    let mut best_error: Option<PEGParseError> = None;
     for constructor in &sort.constructors {
         let flags = ParserFlags {
             no_layout_now: flags.no_layout_now,
@@ -112,7 +112,7 @@ fn parse_sort_sub<'src>(
                     .then(|| FullConstructorName::new(sort.name.as_str(), constructor.name.as_str()))
                 ),
         };
-        match parse_expression(state, cache, &constructor.constructor, pos.clone(), flags) {
+        match parse_expression(state, cache, &constructor.expression, pos.clone(), flags) {
             Ok(ok) => {
                 return Ok(ParseSuccess {
                     result: ParsePairSort {
@@ -125,7 +125,7 @@ fn parse_sort_sub<'src>(
                     pos: ok.pos,
                 });
             }
-            Err(err) => best_error = ParseError::combine_option_parse_error(best_error, Some(err)),
+            Err(err) => best_error = PEGParseError::combine_option_parse_error(best_error, Some(err)),
         }
     }
     Err(best_error.expect("Each sort has at least one constructor"))

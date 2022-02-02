@@ -1,4 +1,4 @@
-use crate::parser::peg::parse_error::ParseError;
+use crate::parser::peg::parse_error::PEGParseError;
 use crate::sources::source_file::SourceFileIterator;
 
 /// Represents a parser that parsed its value successfully.
@@ -7,7 +7,7 @@ use crate::sources::source_file::SourceFileIterator;
 #[derive(Clone)]
 pub struct ParseSuccess<'src, O: Clone> {
     pub result: O,
-    pub best_error: Option<ParseError>,
+    pub best_error: Option<PEGParseError>,
     pub pos: SourceFileIterator<'src>,
 }
 

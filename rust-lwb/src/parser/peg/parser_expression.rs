@@ -1,6 +1,6 @@
 use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
 use crate::parser::bootstrap::ast::Expression;
-use crate::parser::peg::parse_error::ParseError;
+use crate::parser::peg::parse_error::PEGParseError;
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::peg::parser::{ParserCache, ParserFlags, ParserState};
 use crate::parser::peg::parser_sort::parse_sort;
@@ -14,7 +14,7 @@ pub fn parse_expression<'src>(
     constructor: &'src Expression,
     mut pos: SourceFileIterator<'src>,
     mut flags: ParserFlags,
-) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ParseError> {
+) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, PEGParseError> {
     match constructor {
         //To parse a sort, call parse_sort recursively.
         Expression::Sort(rule) => Ok(parse_sort(state, cache, rule, pos, flags)?
@@ -33,9 +33,9 @@ pub fn parse_expression<'src>(
             } else if let Some(last_rule_with_layout) = flags.no_layout_future {
                 // report the last known rule *with* layout in the error instead
                 // of the exact character we're erroring on right now.
-                Err(ParseError::expect_string(span, last_rule_with_layout.to_string()))
+                Err(PEGParseError::expect_string(span, last_rule_with_layout.to_string()))
             } else {
-                Err(ParseError::expect_string(span, lit.clone()))
+                Err(PEGParseError::expect_string(span, lit.clone()))
             }
         }
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
@@ -52,9 +52,9 @@ pub fn parse_expression<'src>(
             } else if let Some(last_rule_with_layout) = flags.no_layout_future {
                 // report the last known rule *with* layout in the error instead
                 // of the exact character we're erroring on right now.
-                Err(ParseError::expect_string(span, last_rule_with_layout.to_string()))
+                Err(PEGParseError::expect_string(span, last_rule_with_layout.to_string()))
             } else {
-                Err(ParseError::expect_char_class(span, characters.clone()))
+                Err(PEGParseError::expect_char_class(span, characters.clone()))
             }
         }
         //To parse a sequence, parse each constructor in the sequence.
@@ -71,11 +71,11 @@ pub fn parse_expression<'src>(
                     Ok(ok) => {
                         pos = ok.pos;
                         best_error =
-                            ParseError::combine_option_parse_error(best_error, ok.best_error);
+                            PEGParseError::combine_option_parse_error(best_error, ok.best_error);
                         results.push(ok.result);
                     }
                     Err(err) => {
-                        best_error = ParseError::combine_option_parse_error(best_error, Some(err));
+                        best_error = PEGParseError::combine_option_parse_error(best_error, Some(err));
                         return Err(best_error.unwrap());
                     }
                 }
@@ -106,10 +106,10 @@ pub fn parse_expression<'src>(
                         results.push(ok.result);
                         pos = ok.pos;
                         best_error =
-                            ParseError::combine_option_parse_error(best_error, ok.best_error);
+                            PEGParseError::combine_option_parse_error(best_error, ok.best_error);
                     }
                     Err(err) => {
-                        best_error = ParseError::combine_option_parse_error(best_error, Some(err));
+                        best_error = PEGParseError::combine_option_parse_error(best_error, Some(err));
                         return Err(best_error.unwrap());
                     }
                 }
@@ -117,7 +117,7 @@ pub fn parse_expression<'src>(
                 if last_pos == pos.position() {
                     let span = Span::from_length(state.file, pos.position(), 0);
                     // best_error = ParseError::combine_option_parse_error(best_error, Some(ParseError::fail_loop(span)));
-                    return Err(ParseError::fail_loop(span));
+                    return Err(PEGParseError::fail_loop(span));
                 }
                 last_pos = pos.position();
             }
@@ -129,10 +129,10 @@ pub fn parse_expression<'src>(
                         results.push(ok.result);
                         pos = ok.pos;
                         best_error =
-                            ParseError::combine_option_parse_error(best_error, ok.best_error);
+                            PEGParseError::combine_option_parse_error(best_error, ok.best_error);
                     }
                     Err(err) => {
-                        best_error = ParseError::combine_option_parse_error(best_error, Some(err));
+                        best_error = PEGParseError::combine_option_parse_error(best_error, Some(err));
                         break;
                     }
                 }
@@ -140,7 +140,7 @@ pub fn parse_expression<'src>(
                 if last_pos == pos.position() {
                     let span = Span::from_length(state.file, pos.position(), 0);
                     // best_error = ParseError::combine_option_parse_error(best_error, Some(ParseError::fail_loop(span)));
-                    return Err(ParseError::fail_loop(span));
+                    return Err(PEGParseError::fail_loop(span));
                 }
                 last_pos = pos.position();
             }
@@ -161,7 +161,7 @@ pub fn parse_expression<'src>(
                 match parse_expression(state, cache, subconstructor, pos.clone(), flags) {
                     Ok(suc) => {
                         best_error =
-                            ParseError::combine_option_parse_error(best_error, suc.best_error);
+                            PEGParseError::combine_option_parse_error(best_error, suc.best_error);
                         return Ok(ParseSuccess {
                             result: ParsePairExpression::Choice(
                                 suc.result.span(),
@@ -173,7 +173,7 @@ pub fn parse_expression<'src>(
                         });
                     }
                     Err(err) => {
-                        best_error = ParseError::combine_option_parse_error(best_error, Some(err))
+                        best_error = PEGParseError::combine_option_parse_error(best_error, Some(err))
                     }
                 }
             }

@@ -1,6 +1,5 @@
 use std::error::Error;
 use std::io::Write;
-use std::path::PathBuf;
 use miette::GraphicalReportHandler;
 use rust_lwb::parser::bootstrap::parse;
 use rust_lwb::sources::source_file::SourceFile;

@@ -1,6 +1,6 @@
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::{Sort, SyntaxFileAst};
-use crate::parser::peg::parse_error::ParseError;
+use crate::parser::peg::parse_error::PEGParseError;
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::character_class::CharacterClass;
@@ -60,21 +60,12 @@ impl<'src> ParserFlags<'src> {
     }
 }
 
-#[cfg(test)]
-#[test]
-pub fn test_parser_flags() {
-    assert!(ParserFlags{ no_layout_now: None, no_layout_future: None }.do_layout().is_none());
-    assert!(ParserFlags{ no_layout_now: None, no_layout_future: Some("") }.do_layout().is_none());
-    assert!(ParserFlags{ no_layout_now: Some(""), no_layout_future: None }.do_layout().is_none());
-    assert!(ParserFlags{ no_layout_now: Some(""), no_layout_future: Some("") }.do_layout().is_some());
-}
-
 impl<'src> ParserCache<'src> {
     /// Get a mutable reference to an entry
     pub fn get_mut(
         &mut self,
         key: &(usize, &'src str),
-    ) -> Option<&mut Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError>> {
+    ) -> Option<&mut Result<ParseSuccess<'src, ParsePairSort<'src>>, PEGParseError>> {
         if let Some(v) = self.cache.get_mut(key) {
             v.read = true;
             Some(&mut v.value)
@@ -92,7 +83,7 @@ impl<'src> ParserCache<'src> {
     pub fn insert(
         &mut self,
         key: (usize, &'src str),
-        value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError>,
+        value: Result<ParseSuccess<'src, ParsePairSort<'src>>, PEGParseError>,
     ) {
         self.cache
             .insert(key, ParserCacheEntry { read: false, value });
@@ -115,7 +106,7 @@ impl<'src> ParserCache<'src> {
 /// A single entry in the cache. Contains the value, and a flag whether it has been read.
 pub struct ParserCacheEntry<'src> {
     read: bool,
-    value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError>,
+    value: Result<ParseSuccess<'src, ParsePairSort<'src>>, PEGParseError>,
 }
 
 /// Parses a file, given the syntax to parse it with, and the file.
@@ -124,7 +115,7 @@ pub struct ParserCacheEntry<'src> {
 pub fn parse_file<'src>(
     syntax: &'src SyntaxFileAst, // TODO: are these lifetimes truly the same?
     file: &'src SourceFile, // TODO: the same as this one I mean
-) -> Result<ParsePairSort<'src>, ParseError> {
+) -> Result<ParsePairSort<'src>, PEGParseError> {
     //Create a new parser state
     let mut state = ParserState {
         file,
@@ -164,7 +155,7 @@ pub fn parse_file<'src>(
                 let curpos = ok.pos.position();
                 while ok.pos.next().is_some() {}
                 let endpos = ok.pos.position();
-                Err(ParseError::not_entire_input(Span::from_end(
+                Err(PEGParseError::not_entire_input(Span::from_end(
                     file, curpos, endpos,
                 )))
             }

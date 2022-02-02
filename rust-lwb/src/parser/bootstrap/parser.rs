@@ -1,5 +1,5 @@
 use crate::parser::bootstrap::ast::{Annotation, Constructor, Expression, Sort, SyntaxFileAst};
-use crate::parser::bootstrap::parser::ParseError::{
+use crate::parser::bootstrap::parser::BootstrapParseError::{
     DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedEndOfFile,
 };
 use crate::sources::character_class::CharacterClass;
@@ -9,7 +9,7 @@ use lazy_static::lazy_static;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum ParseError {
+pub enum BootstrapParseError {
     #[error("found duplicate starting rule definition found")]
     DuplicateStartingRule,
 
@@ -34,7 +34,7 @@ pub enum ParseError {
     InvalidCharacterRange,
 }
 
-type ParseResult<T> = Result<T, ParseError>;
+type ParseResult<T> = Result<T, BootstrapParseError>;
 
 lazy_static! {
     static ref SYNTAX_FILE_LAYOUT: CharacterClass =
@@ -167,7 +167,7 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
 
             constructors.push(Constructor {
                 name,
-                constructor,
+                expression: constructor,
                 annotations,
             })
         }
@@ -418,7 +418,7 @@ fn parse_character_class(i: &mut SourceFileIterator) -> ParseResult<CharacterCla
                 i.advance();
                 if let Some(upper) = i.next() {
                     if lower as u32 > upper as u32 {
-                        return Err(ParseError::InvalidCharacterRange);
+                        return Err(BootstrapParseError::InvalidCharacterRange);
                     }
 
                     res = res.combine((lower..=upper).into());

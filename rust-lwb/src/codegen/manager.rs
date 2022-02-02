@@ -1,6 +1,6 @@
 use crate::codegen::generate_language;
 use crate::parser::bootstrap::parse;
-use crate::parser::bootstrap::ParseError;
+use crate::parser::bootstrap::BootstrapParseError;
 use crate::sources::source_file::SourceFile;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -12,7 +12,7 @@ pub enum CodegenError {
     Io(#[from] std::io::Error),
 
     #[error("a parse error occurred: {0}")]
-    ParseError(#[from] ParseError),
+    ParseError(#[from] BootstrapParseError),
 }
 
 pub struct CodeGenJob {
