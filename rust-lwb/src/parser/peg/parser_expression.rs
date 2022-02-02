@@ -1,5 +1,5 @@
 use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
-use crate::parser::bootstrap::ast::Expression;
+use crate::parser::bootstrap::ast::{Expression, Sort};
 use crate::parser::peg::parse_error::ParseError;
 use crate::parser::peg::parse_success::ParseSuccess;
 use crate::parser::peg::parser::{ParserCache, ParserFlags, ParserState};
@@ -11,14 +11,20 @@ use crate::sources::span::Span;
 pub fn parse_expression<'src>(
     state: &ParserState<'src>,
     cache: &mut ParserCache<'src>,
+    mut flags: ParserFlags,
     constructor: &'src Expression,
     mut pos: SourceFileIterator<'src>,
-    mut flags: ParserFlags,
 ) -> Result<ParseSuccess<'src, ParsePairExpression<'src>>, ParseError> {
     match constructor {
         //To parse a sort, call parse_sort recursively.
-        Expression::Sort(rule) => Ok(parse_sort(state, cache, rule, pos, flags)?
-            .map(|s: ParsePairSort<'src>| ParsePairExpression::Sort(s.span(), Box::new(s)))),
+        Expression::Sort(sort_name) => {
+            let sort: &'src Sort = state
+                .rules
+                .get(&sort_name[..])
+                .expect("Name is guaranteed to exist");
+            Ok(parse_sort(state, cache, flags, sort, pos)?
+                .map(|s: ParsePairSort<'src>| ParsePairExpression::Sort(s.span(), Box::new(s))))
+        }
         //To parse a literal, use accept_str to check if it parses.
         Expression::Literal(lit) => {
             while flags.do_layout() && !pos.clone().accept_str(lit) && pos.accept(&state.layout) {}
@@ -33,14 +39,19 @@ pub fn parse_expression<'src>(
             } else if let Some(last_rule_with_layout) = flags.no_layout_future {
                 // report the last known rule *with* layout in the error instead
                 // of the exact character we're erroring on right now.
-                Err(ParseError::expect_string(span, last_rule_with_layout.to_string()))
+                Err(ParseError::expect_string(
+                    span,
+                    last_rule_with_layout.to_string(),
+                ))
             } else {
                 Err(ParseError::expect_string(span, lit.clone()))
             }
         }
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
         Expression::CharacterClass(characters) => {
-            while flags.do_layout() && !pos.clone().accept(characters) && pos.accept(&state.layout) {}
+            while flags.do_layout() && !pos.clone().accept(characters) && pos.accept(&state.layout)
+            {
+            }
             let span = Span::from_length(state.file, pos.position(), 1);
             if pos.accept(characters) {
                 flags.no_layout_now = flags.no_layout_future;
@@ -52,7 +63,10 @@ pub fn parse_expression<'src>(
             } else if let Some(last_rule_with_layout) = flags.no_layout_future {
                 // report the last known rule *with* layout in the error instead
                 // of the exact character we're erroring on right now.
-                Err(ParseError::expect_string(span, last_rule_with_layout.to_string()))
+                Err(ParseError::expect_string(
+                    span,
+                    last_rule_with_layout.to_string(),
+                ))
             } else {
                 Err(ParseError::expect_char_class(span, characters.clone()))
             }
@@ -67,7 +81,7 @@ pub fn parse_expression<'src>(
 
             //Parse all subconstructors in sequence
             for subconstructor in constructors {
-                match parse_expression(state, cache, subconstructor, pos, flags) {
+                match parse_expression(state, cache, flags, subconstructor, pos) {
                     Ok(ok) => {
                         pos = ok.pos;
                         best_error =
@@ -101,7 +115,7 @@ pub fn parse_expression<'src>(
 
             //Parse minimum amount that is needed
             for _ in 0..*min {
-                match parse_expression(state, cache, c.as_ref(), pos, flags) {
+                match parse_expression(state, cache, flags, c.as_ref(), pos) {
                     Ok(ok) => {
                         results.push(ok.result);
                         pos = ok.pos;
@@ -124,7 +138,7 @@ pub fn parse_expression<'src>(
 
             //Parse until maximum amount is reached
             for _ in *min..max.unwrap_or(u64::MAX) {
-                match parse_expression(state, cache, c.as_ref(), pos.clone(), flags) {
+                match parse_expression(state, cache, flags, c.as_ref(), pos.clone()) {
                     Ok(ok) => {
                         results.push(ok.result);
                         pos = ok.pos;
@@ -158,7 +172,7 @@ pub fn parse_expression<'src>(
         Expression::Choice(constructors) => {
             let mut best_error = None;
             for (i, subconstructor) in constructors.iter().enumerate() {
-                match parse_expression(state, cache, subconstructor, pos.clone(), flags) {
+                match parse_expression(state, cache, flags, subconstructor, pos.clone()) {
                     Ok(suc) => {
                         best_error =
                             ParseError::combine_option_parse_error(best_error, suc.best_error);
@@ -179,36 +193,12 @@ pub fn parse_expression<'src>(
             }
             Err(best_error.unwrap())
         }
-        //To parse a negative, try parsing the constructor.
-        //If it succeeds, we need to make an error, not sure how
-        //If it fails, we return ok.
+
         Expression::Negative(constructor) => {
-            match parse_expression(state, cache, constructor.as_ref(), pos.clone(), flags) {
-                Ok(_) => {
-                    todo!() //Negatives are complicated with errors
-                }
-                Err(err) => {
-                    Ok(ParseSuccess {
-                        result: ParsePairExpression::Empty(err.span),
-                        best_error: None,
-                        pos, //Return old position
-                    })
-                }
-            }
+            todo!()
         }
-        //To parse a positive, try parsing the constructor.
-        //If it succeeds, we return ok. Otherwise, we return the error.
         Expression::Positive(constructor) => {
-            match parse_expression(state, cache, constructor.as_ref(), pos.clone(), flags) {
-                Ok(ok) => {
-                    Ok(ParseSuccess {
-                        result: ParsePairExpression::Empty(ok.result.span()),
-                        best_error: None, //If the positive passed, then we don't care about any "better" parses inside it
-                        pos,              //Return old position
-                    })
-                }
-                Err(err) => Err(err),
-            }
+            todo!()
         }
     }
 }

@@ -1,7 +1,7 @@
 use crate::sources::character_class::CharacterClass;
 use derive_more::Display;
 use enum_iterator::IntoEnumIterator;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Constructor {

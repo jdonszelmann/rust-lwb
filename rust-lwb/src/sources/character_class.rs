@@ -1,7 +1,7 @@
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::ops::{Range, RangeInclusive};
-use serde::{Serialize, Deserialize};
 
 /// Represent a class of characters like in a regex
 /// such as [a-z] or [^0-9]
@@ -31,7 +31,7 @@ pub enum CharacterClass {
 impl Display for CharacterClass {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            CharacterClass::RangeInclusive {from, to} if from == to => {
+            CharacterClass::RangeInclusive { from, to } if from == to => {
                 write!(f, "{}", from)
             }
             CharacterClass::RangeInclusive { from, to } => {

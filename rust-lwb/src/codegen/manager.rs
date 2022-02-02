@@ -55,7 +55,6 @@ impl CodeGenJob {
         self
     }
 
-
     pub fn codegen(self) -> Result<(), CodegenError> {
         let sf = SourceFile::open(self.location)?;
         let ast = parse(&sf)?; // TODO: replace with bootstrapped parser

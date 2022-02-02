@@ -1,7 +1,7 @@
+use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct BootstrapConfig {
@@ -25,8 +25,8 @@ pub fn load(path_from_root: impl AsRef<Path>) -> BootstrapConfig {
 
     let mut file = File::open(f).expect("failed to open config file");
     let mut contents = String::new();
-    file.read_to_string(&mut contents).expect("failed to read config file");
-
+    file.read_to_string(&mut contents)
+        .expect("failed to read config file");
 
     toml::from_str(&contents).expect("failed to parse config file")
 }

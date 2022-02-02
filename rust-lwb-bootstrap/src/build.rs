@@ -1,8 +1,8 @@
 mod bootstrap_config;
 
-use std::error::Error;
-use rust_lwb::codegen::manager::CodegenManager;
 use crate::bootstrap_config::from_root;
+use rust_lwb::codegen::manager::CodegenManager;
+use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let config = bootstrap_config::load("bootstrap.toml");

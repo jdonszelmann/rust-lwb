@@ -4,8 +4,8 @@ use crate::parser::bootstrap;
 use crate::parser::peg::parser::parse_file;
 use crate::sources::source_file::SourceFile;
 
-mod convert_syntax_file_ast;
 mod ast;
+mod convert_syntax_file_ast;
 language!(SDF at mod ast);
 
 pub fn parse_language<M: AstInfo, AST: AstNode<M>>(input: &SourceFile) -> AST {
@@ -13,4 +13,3 @@ pub fn parse_language<M: AstInfo, AST: AstNode<M>>(input: &SourceFile) -> AST {
     // parse_file(, input)
     todo!()
 }
-

@@ -22,7 +22,7 @@ pub struct ParserState<'src> {
 pub struct ParserCache<'src> {
     cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
     cache_stack: VecDeque<(usize, &'src str)>,
-    pub trace: VecDeque<&'src str>
+    pub trace: VecDeque<&'src Sort>,
 }
 
 #[derive(Copy, Clone)]
@@ -33,10 +33,7 @@ pub struct FullConstructorName<'src> {
 
 impl<'src> FullConstructorName<'src> {
     pub fn new(sort: &'src str, constructor: &'src str) -> Self {
-        Self {
-            sort,
-            constructor
-        }
+        Self { sort, constructor }
     }
 }
 
@@ -48,7 +45,6 @@ impl<'src> Display for FullConstructorName<'src> {
 
 #[derive(Copy, Clone)]
 pub struct ParserFlags<'src> {
-
     // BOTH THESE FIELDS ARE NONE IF LAYOUT *SHOULD* BE PROCESSED
     pub no_layout_now: Option<FullConstructorName<'src>>,
     pub no_layout_future: Option<FullConstructorName<'src>>,
@@ -58,15 +54,6 @@ impl<'src> ParserFlags<'src> {
     pub fn do_layout(&self) -> bool {
         self.no_layout_now.is_none() || self.no_layout_future.is_none()
     }
-}
-
-#[cfg(test)]
-#[test]
-pub fn test_parser_flags() {
-    assert!(ParserFlags{ no_layout_now: None, no_layout_future: None }.do_layout().is_none());
-    assert!(ParserFlags{ no_layout_now: None, no_layout_future: Some("") }.do_layout().is_none());
-    assert!(ParserFlags{ no_layout_now: Some(""), no_layout_future: None }.do_layout().is_none());
-    assert!(ParserFlags{ no_layout_now: Some(""), no_layout_future: Some("") }.do_layout().is_some());
 }
 
 impl<'src> ParserCache<'src> {
@@ -123,7 +110,7 @@ pub struct ParserCacheEntry<'src> {
 /// When unsuccessful, it returns a `ParseError`.
 pub fn parse_file<'src>(
     syntax: &'src SyntaxFileAst, // TODO: are these lifetimes truly the same?
-    file: &'src SourceFile, // TODO: the same as this one I mean
+    file: &'src SourceFile,      // TODO: the same as this one I mean
 ) -> Result<ParsePairSort<'src>, ParseError> {
     //Create a new parser state
     let mut state = ParserState {
@@ -141,16 +128,18 @@ pub fn parse_file<'src>(
         trace: VecDeque::new(),
     };
 
-    let flags = ParserFlags { no_layout_now: None, no_layout_future: None };
+    let flags = ParserFlags {
+        no_layout_now: None,
+        no_layout_future: None,
+    };
 
     //Parse the starting sort
-    let mut ok: ParseSuccess<ParsePairSort<'src>> = parse_sort(
-        &state,
-        &mut cache,
-        &syntax.starting_sort,
-        file.iter(),
-        flags,
-    )?;
+    let starting_sort = state
+        .rules
+        .get(&syntax.starting_sort[..])
+        .expect("Starting sort exists");
+    let mut ok: ParseSuccess<ParsePairSort<'src>> =
+        parse_sort(&state, &mut cache, flags, starting_sort, file.iter())?;
 
     //If there is no input left, return Ok.
     if ok.pos.peek().is_none() {

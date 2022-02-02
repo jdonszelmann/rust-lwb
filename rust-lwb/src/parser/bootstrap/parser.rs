@@ -404,10 +404,8 @@ fn parse_character_class(i: &mut SourceFileIterator) -> ParseResult<CharacterCla
                     'n' => '\n',
                     't' => '\t',
                     'r' => '\r',
-                    a => a
+                    a => a,
                 }
-
-
             } else if c == ']' {
                 break;
             }
