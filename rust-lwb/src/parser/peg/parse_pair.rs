@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+use itertools::Itertools;
 use crate::sources::span::Span;
 
 /// A parse pair is a way of representing an AST, without actually using any datatypes that depend on the language definition.
@@ -15,6 +17,15 @@ impl ParsePairSort<'_> {
         self.constructor_value.span()
     }
 }
+
+
+impl<'src> Display for ParsePairSort<'src> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        // write!(f, "{}.{}({})", self.sort, self.constructor_name, self.constructor_value)
+        write!(f, "{}({})", self.constructor_name, self.constructor_value)
+    }
+}
+
 
 /// A parse pair is a way of representing an AST, without actually using any datatypes that depend on the language definition.
 /// This represents a parse pair for a constructor. Each constructor generates one of the variants of this enum.
@@ -43,5 +54,27 @@ impl<'src> ParsePairExpression<'src> {
             ParsePairExpression::Empty(span) => span,
         }
         .clone()
+    }
+}
+
+impl<'src> Display for ParsePairExpression<'src> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParsePairExpression::Sort(_, sort) => {
+                write!(f, "{}", sort)
+            }
+            ParsePairExpression::List(_, exprs) => {
+                write!(f, "[{}]", exprs.iter().map(|e| e.to_string()).join(", "))
+            }
+            ParsePairExpression::Choice(_, num, child) => {
+                write!(f, "{}:{}", num, child)
+            }
+            ParsePairExpression::Empty(_) => {
+                write!(f, "_")
+            }
+            // ParsePairExpression::Error(_) => {
+            //     write!(f, "#")
+            // }
+        }
     }
 }

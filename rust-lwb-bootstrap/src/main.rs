@@ -23,7 +23,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let ast = parse(&sf)?; // TODO: replace with bootstrapped parser
 
     let bootstrapped_syntax_file_ast_pairs = match parse_file(&ast, &sf) {
-        Ok(i) => i,
+        Ok(i) => {
+            println!("{}", i);
+            i
+        },
         Err(e) => {
             let mut s = String::new();
             GraphicalReportHandler::new()

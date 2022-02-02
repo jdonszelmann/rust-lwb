@@ -22,6 +22,7 @@ pub struct ParserState<'src> {
 pub struct ParserCache<'src> {
     cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
     cache_stack: VecDeque<(usize, &'src str)>,
+    pub trace: VecDeque<&'src str>
 }
 
 #[derive(Copy, Clone)]
@@ -137,6 +138,7 @@ pub fn parse_file<'src>(
     let mut cache = ParserCache {
         cache: HashMap::new(),
         cache_stack: VecDeque::new(),
+        trace: VecDeque::new(),
     };
 
     let flags = ParserFlags { no_layout_now: None, no_layout_future: None };

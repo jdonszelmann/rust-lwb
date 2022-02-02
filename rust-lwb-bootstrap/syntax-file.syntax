@@ -22,8 +22,6 @@ character-class:
     class =  "[" "^"? character-class-item* "]"; {no-layout}
 
 expression:
-    paren = "(" expression* ")"; {injection}
-
     star = expression "*";
     plus = expression "+";
     maybe = expression "?";
@@ -32,6 +30,8 @@ expression:
     literal = "\"" string-char* "\""; {no-layout, single-string}
     sort = identifier;
     class = character-class;
+
+    paren = "(" expression* ")"; {injection}
 
 annotation:
     annotation = "{" identifier? ("," identifier)* ","? "}";
@@ -47,8 +47,8 @@ sort:
     sort = identifier ":" constructor*;
 
 meta:
-    layout = "layout" "=" character-class;
-    start = "start" "at" identifier;
+    layout = "layout" "=" character-class ";";
+    start = "start" "at" identifier ";";
 
 sort-or-meta:
     meta = meta;

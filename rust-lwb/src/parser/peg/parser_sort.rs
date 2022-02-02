@@ -12,12 +12,12 @@ use crate::sources::span::Span;
 pub fn parse_sort<'src>(
     state: &ParserState<'src>,
     cache: &mut ParserCache<'src>,
-    sort: &'src str,
+    sort_name: &'src str,
     pos: SourceFileIterator<'src>,
     flags: ParserFlags,
 ) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
     //Check if this result is cached
-    let key = (pos.position(), sort);
+    let key = (pos.position(), sort_name);
     if let Some(cached) = cache.get_mut(&key) {
         return cached.clone();
     }
@@ -33,6 +33,7 @@ pub fn parse_sort<'src>(
             0,
         ))),
     );
+    cache.trace.push_back(sort_name);
 
     //Now execute the actual rule, taking into account left recursion
     //The way this is done is heavily inspired by http://web.cs.ucla.edu/~todd/research/pepm08.pdf
@@ -41,7 +42,7 @@ pub fn parse_sort<'src>(
     //- Try to parse the current (rule, position). If this fails, there is definitely no left recursion. Otherwise, we now have a seed.
     //- Put the new seed in the cache, and rerun on the current (rule, position). Make sure to revert the cache to the previous state.
     //- At some point, the above will fail. Either because no new input is parsed, or because the entire parse now failed. At this point, we have reached the maximum size.
-    let res = match parse_sort_sub(state, cache, sort, pos.clone(), flags) {
+    let res = match parse_sort_sub(state, cache, sort_name, pos.clone(), flags) {
         Ok(mut ok) => {
             //Do we have a leftrec case?
             if !cache.is_read(&key).unwrap() {
@@ -55,7 +56,7 @@ pub fn parse_sort<'src>(
                     cache.insert(key, Ok(ok.clone()));
 
                     //Grow the seed
-                    match parse_sort_sub(state, cache, sort, pos.clone(), flags) {
+                    match parse_sort_sub(state, cache, sort_name, pos.clone(), flags) {
                         Ok(new_ok) => {
                             if new_ok.pos.position() <= ok.pos.position() {
                                 ok.best_error = ParseError::combine_option_parse_error(
@@ -85,18 +86,20 @@ pub fn parse_sort<'src>(
     };
     cache.insert(key, res.clone());
 
+    cache.trace.pop_back();
+
     //Return result
     res
 }
 fn parse_sort_sub<'src>(
     state: &ParserState<'src>,
     cache: &mut ParserCache<'src>,
-    sort: &'src str,
+    sort_name: &'src str,
     pos: SourceFileIterator<'src>,
     flags: ParserFlags,
 ) -> Result<ParseSuccess<'src, ParsePairSort<'src>>, ParseError> {
     //Obtain the sort
-    let sort: &'src Sort = state.rules.get(sort).expect("Name is guaranteed to exist");
+    let sort: &'src Sort = state.rules.get(sort_name).expect("Name is guaranteed to exist");
 
     //Try each constructor, keeping track of the best error that occurred while doing so.
     //If none of the constructors succeed, we will return this error.
