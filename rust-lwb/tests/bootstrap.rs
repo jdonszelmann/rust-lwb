@@ -1,3 +1,4 @@
+use rust_lwb::language::Language;
 use rust_lwb::parser::syntax_file::SyntaxFile;
 use rust_lwb::sources::source_file::SourceFile;
 use std::env;

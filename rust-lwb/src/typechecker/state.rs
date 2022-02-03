@@ -1,8 +1,6 @@
 use crate::codegen_prelude::AstInfo;
 use crate::typechecker::constraints::Variable::Free;
-use crate::typechecker::constraints::{
-    new_variable_id, Constraint, FreeVariable, Variable
-};
+use crate::typechecker::constraints::{new_variable_id, Constraint, FreeVariable, Variable};
 use crate::typechecker::{Type, TypeCheckable};
 use std::collections::VecDeque;
 use std::rc::Rc;

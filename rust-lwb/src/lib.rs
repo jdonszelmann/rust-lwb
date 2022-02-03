@@ -32,3 +32,6 @@ pub mod sources;
 /// files (to avoid listing many imports in them). Should
 /// not generally be used directly by users of rust-lwb
 pub mod codegen_prelude;
+
+/// Utilities to typecheck an abstract syntax tree.
+pub mod typechecker;

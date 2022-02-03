@@ -33,7 +33,6 @@ impl<M, CTX, TYPE> Default for TypeChecker<M, CTX, TYPE> {
     }
 }
 
-
 impl<M: AstInfo, CTX, TYPE: Type> TypeChecker<M, CTX, TYPE> {
     pub fn new() -> Self {
         Default::default()

@@ -4,7 +4,7 @@ use crate::codegen_prelude::ParsePairExpression;
 use crate::parser::bootstrap::ast::{Expression, Sort};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_result::ParseResult;
-use crate::parser::peg::parser::{ParserState, ParserContext};
+use crate::parser::peg::parser::{ParserContext, ParserState};
 use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;

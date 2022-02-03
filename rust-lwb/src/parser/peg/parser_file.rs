@@ -1,7 +1,7 @@
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::SyntaxFileAst;
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
-use crate::parser::peg::parser::{ParserState, ParserContext};
+use crate::parser::peg::parser::{ParserContext, ParserState};
 use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::source_file::SourceFile;
 use crate::sources::span::Span;
