@@ -1,13 +1,13 @@
 use crate::codegen_prelude::ParsePairSort;
 use crate::parser::bootstrap::ast::Sort;
 use crate::parser::peg::parse_error::PEGParseError;
-use crate::parser::peg::parse_success::ParseSuccess;
+use crate::parser::peg::parse_result::ParseResult;
 use crate::sources::character_class::CharacterClass;
 use crate::sources::source_file::SourceFile;
 use std::collections::{HashMap, VecDeque};
 
 /// This stores the immutable data that is used during the parsing process.
-pub struct ParserState<'src> {
+pub struct ParserContext<'src> {
     pub(crate) file: &'src SourceFile,
     pub(crate) rules: HashMap<&'src str, &'src Sort>,
     pub layout: CharacterClass,
@@ -16,7 +16,7 @@ pub struct ParserState<'src> {
 /// This stores the mutable data that is used during the parsing process.
 /// It contains a cache of the results of each (source position, rule).
 /// It also has a stack which contains information about the order in which the keys were inserted, so they can be removed in order when needed.
-pub struct ParserCache<'src> {
+pub struct ParserState<'src> {
     pub(crate) cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
     pub(crate) cache_stack: VecDeque<(usize, &'src str)>,
     pub best_error: Option<PEGParseError>,
@@ -29,18 +29,15 @@ pub struct ParserCache<'src> {
 /// A single entry in the cache. Contains the value, and a flag whether it has been read.
 pub struct ParserCacheEntry<'src> {
     read: bool,
-    value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ()>,
+    value: ParseResult<'src, ParsePairSort<'src>>,
 }
 
-#[derive(Copy, Clone)]
-pub struct ParserFlags {}
-
-impl<'src> ParserCache<'src> {
+impl<'src> ParserState<'src> {
     /// Get a mutable reference to an entry
     pub fn get_mut(
         &mut self,
         key: &(usize, &'src str),
-    ) -> Option<&mut Result<ParseSuccess<'src, ParsePairSort<'src>>, ()>> {
+    ) -> Option<&mut ParseResult<'src, ParsePairSort<'src>>> {
         if let Some(v) = self.cache.get_mut(key) {
             v.read = true;
             Some(&mut v.value)
@@ -58,7 +55,7 @@ impl<'src> ParserCache<'src> {
     pub fn insert(
         &mut self,
         key: (usize, &'src str),
-        value: Result<ParseSuccess<'src, ParsePairSort<'src>>, ()>,
+        value: ParseResult<'src, ParsePairSort<'src>>,
     ) {
         self.cache
             .insert(key, ParserCacheEntry { read: false, value });
