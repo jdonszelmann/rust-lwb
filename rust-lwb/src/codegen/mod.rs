@@ -192,7 +192,12 @@ fn generate_unpack(
     }
 }
 
-pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bool, serialized_parser: Option<&[u8]>) -> String {
+pub fn generate_language(
+    syntax: SyntaxFileAst,
+    import_location: &str,
+    serde: bool,
+    serialized_parser: Option<&[u8]>,
+) -> String {
     let mut scope = Scope::new();
 
     scope.import(&format!("{}::codegen_prelude", import_location), "*");

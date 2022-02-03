@@ -30,8 +30,14 @@ pub trait AstNode<M: AstInfo>: FromPairs<M> {
     }
 }
 
-impl<M: AstInfo, T> FromPairs<M> for Box<T> where T: AstNode<M> {
-    fn from_pairs<G: GenerateAstInfo<Result=M>>(pair: &ParsePairSort, generator: &mut G) -> Self where Self: Sized {
+impl<M: AstInfo, T> FromPairs<M> for Box<T>
+where
+    T: AstNode<M>,
+{
+    fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self
+    where
+        Self: Sized,
+    {
         Box::new(T::from_pairs(pair, generator))
     }
 }

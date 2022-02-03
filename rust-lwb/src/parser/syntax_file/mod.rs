@@ -14,9 +14,7 @@ language!(pub SyntaxFile at mod ast);
 
 #[derive(Debug, Error)]
 pub enum ParseError {
-    #[error(
-        "failed to deserialize saved parser"
-    )]
+    #[error("failed to deserialize saved parser")]
     Bincode(#[from] bincode::Error),
 
     #[error("failed to convert saved syntax file definition ast to legacy syntax file definition ast (this is a bug! please report it)")]
@@ -26,7 +24,10 @@ pub enum ParseError {
     PEG(#[from] PEGParseError),
 }
 
-pub fn parse_language<AST: BasicAstNode>(input: &SourceFile, parser: &[u8]) -> Result<AST, ParseError> {
+pub fn parse_language<AST: BasicAstNode>(
+    input: &SourceFile,
+    parser: &[u8],
+) -> Result<AST, ParseError> {
     // let syntax_file_ast: ast::AST_ROOT<BasicAstInfo> = bincode::deserialize(SERIALIZED_AST).unwrap();
     // let legacy_ast = convert(syntax_file_ast)?; // TODO: make peg parser use new version of ast
     let syntax_file_ast: ast::AST_ROOT<BasicAstInfo> = bincode::deserialize(parser)?;

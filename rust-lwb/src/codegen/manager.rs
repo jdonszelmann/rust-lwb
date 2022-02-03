@@ -1,9 +1,9 @@
 use crate::codegen::generate_language;
+use crate::language::Language;
 use crate::sources::source_file::SourceFile;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
-use crate::language::Language;
 // use crate::parser::bootstrap::parse;
 use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError;
 use crate::parser::syntax_file::{convert_syntax_file_ast, ParseError, SyntaxFile};
@@ -20,7 +20,7 @@ pub enum CodegenError {
     ConvertAstError(#[from] AstConversionError),
 
     #[error("failed to serialize parser")]
-    Bincode(#[from] bincode::Error)
+    Bincode(#[from] bincode::Error),
 }
 
 pub struct CodeGenJob {
@@ -32,7 +32,7 @@ pub struct CodeGenJob {
     serde: bool,
 
     #[doc(hidden)]
-    pub write_serialized_ast: bool // always true except bootstrap.
+    pub write_serialized_ast: bool, // always true except bootstrap.
 }
 
 impl CodeGenJob {
@@ -90,7 +90,12 @@ impl CodeGenJob {
             None
         };
 
-        let res = generate_language(legacy_ast, &self.import_location, self.serde, serialized_parser);
+        let res = generate_language(
+            legacy_ast,
+            &self.import_location,
+            self.serde,
+            serialized_parser,
+        );
 
         let mut res_file = std::fs::File::create(self.destination)?;
         res_file.write_all(res.as_bytes())?;

@@ -7,7 +7,6 @@ pub trait Language {
     fn parse(source: &SourceFile) -> Result<Self::Ast, ParseError>;
 }
 
-
 #[macro_export]
 macro_rules! language {
     ($vis: vis $name: ident at mod $path: path) => {

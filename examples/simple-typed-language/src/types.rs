@@ -1,10 +1,8 @@
-use std::ops::Deref;
-use rust_lwb::codegen_prelude::AstInfo;
-use rust_lwb::typechecker::constraints::Constraint;
-use rust_lwb::typechecker::{Type, TypeCheckable};
-use rust_lwb::typechecker::state::State;
-use crate::AST::Expression;
 use crate::stl::{Program, Statement};
+use crate::AST::Expression;
+use rust_lwb::codegen_prelude::AstInfo;
+use rust_lwb::typechecker::state::State;
+use rust_lwb::typechecker::{Type, TypeCheckable};
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum StlType {
@@ -14,19 +12,20 @@ pub enum StlType {
 
 impl Type for StlType {}
 
-
 impl<M: AstInfo> TypeCheckable<M, (), StlType> for Program<M> {
-    fn create_constraints(&self, s: &mut State<M, (), StlType>, ctx: &()) {
-        match self { Program::Program(_, statements) => {
-            for i in statements {
-                s.type_ok(i);
+    fn create_constraints<'ast>(&'ast self, s: &mut State<'ast, M, (), StlType>, _: &()) {
+        match self {
+            Program::Program(_, statements) => {
+                for i in statements {
+                    s.type_ok(i);
+                }
             }
-        } }
+        }
     }
 }
 
 impl<M: AstInfo> TypeCheckable<M, (), StlType> for Statement<M> {
-    fn create_constraints(&self, s: &mut State<M, (), StlType>, ctx: &()) {
+    fn create_constraints<'ast>(&'ast self, s: &mut State<'ast, M, (), StlType>, _: &()) {
         match self {
             Statement::If(_, e, block) => {
                 let te = s.get_type(e);
@@ -45,9 +44,8 @@ impl<M: AstInfo> TypeCheckable<M, (), StlType> for Statement<M> {
     }
 }
 
-
 impl<M: AstInfo> TypeCheckable<M, (), StlType> for Expression<M> {
-    fn create_constraints(&self, s: &mut State<M, (), StlType>, ctx: &()) {
+    fn create_constraints<'ast>(&'ast self, s: &mut State<'ast, M, (), StlType>, _: &()) {
         match self {
             Expression::Add(_, a, b) => {
                 let ta = s.get_type(a);
@@ -63,10 +61,10 @@ impl<M: AstInfo> TypeCheckable<M, (), StlType> for Expression<M> {
                 s.add_constraint(ta.equiv(tb));
                 s.type_of_self(self).equiv(ta);
             }
-            Expression::Int(_, a) => {
+            Expression::Int(_, _a) => {
                 s.type_of_self(self).equiv(StlType::Int);
             }
-            Expression::Identifier(_, s) => {
+            Expression::Identifier(_, _s) => {
                 // something with scopes: TODO
             }
         }

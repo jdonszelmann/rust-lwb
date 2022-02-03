@@ -1,10 +1,10 @@
 use miette::GraphicalReportHandler;
+use rust_lwb::language::Language;
 use rust_lwb::parser::ast::generate_ast::generate_ast;
 use rust_lwb::parser::peg::parser_file::parse_file;
 use rust_lwb::sources::source_file::SourceFile;
 use std::error::Error;
 use std::io::Write;
-use rust_lwb::language::Language;
 // use rust_lwb::parser::bootstrap::parse;
 use crate::bootstrap_config::{from_root, temporary_location, unwrap};
 use rust_lwb::parser::syntax_file::convert_syntax_file_ast::convert;
@@ -61,8 +61,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("appending serialized ast");
     {
-        let mut file = std::fs::File::options().append(true).open(temporary_location())?;
-        file.write_all(format!(r##"pub const PARSER: &[u8] = &{:?};"##, serialized_ast).as_bytes())?;
+        let mut file = std::fs::File::options()
+            .append(true)
+            .open(temporary_location())?;
+        file.write_all(
+            format!(r##"pub const PARSER: &[u8] = &{:?};"##, serialized_ast).as_bytes(),
+        )?;
     }
 
     println!("moving ast types to {}", config.output_location);

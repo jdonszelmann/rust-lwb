@@ -1,10 +1,6 @@
-use std::cell::Cell;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
-use crate::codegen_prelude::AstInfo;
-use crate::parser::ast::{AstNode, NodeId};
+use crate::parser::ast::NodeId;
 use crate::typechecker::constraints::Variable::{Free, Known};
 use crate::typechecker::Type;
-use std::collections::HashMap;
 use std::ops::{BitAnd, BitOr, Not};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -71,7 +67,7 @@ impl<TYPE: Type> IntoVariable<TYPE> for TYPE {
     fn into(self) -> Variable<TYPE> {
         Variable::Known(Rc::new(KnownVariable {
             id: new_variable_id(),
-            value: self
+            value: self,
         }))
     }
 }
@@ -135,6 +131,7 @@ impl<TYPE: Type> Constraint<TYPE> {
         Constraint::Or(Box::new(self), Box::new(other))
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn not(self) -> Constraint<TYPE> {
         Not::not(self)
     }
@@ -163,4 +160,3 @@ impl<TYPE: Type> Not for Constraint<TYPE> {
         Constraint::Not(Box::new(self))
     }
 }
-

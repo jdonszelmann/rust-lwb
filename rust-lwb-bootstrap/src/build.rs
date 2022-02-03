@@ -17,6 +17,5 @@ fn main() {
         .serde(true)
         .dont_generate_serialized_ast();
 
-
     unwrap(m.codegen());
 }
