@@ -39,6 +39,7 @@ pub fn parse_sort<'src>(
                 )),
             },
             pos.clone(),
+            pos.clone(),
         ),
     );
     cache.trace.push_back(sort);
@@ -129,6 +130,7 @@ fn parse_sort_sub<'src>(
                     constructor_value: res.result,
                 },
                 res.pos,
+                res.pos_err,
             );
         }
         if constructor.annotations.contains(&Annotation::NoLayout) {
@@ -154,5 +156,6 @@ fn parse_sort_sub<'src>(
             constructor_value: res.result,
         },
         res.pos,
+        res.pos_err
     )
 }

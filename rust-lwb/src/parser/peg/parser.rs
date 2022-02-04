@@ -11,6 +11,7 @@ pub struct ParserContext<'src> {
     pub(crate) file: &'src SourceFile,
     pub(crate) rules: HashMap<&'src str, &'src Sort>,
     pub layout: CharacterClass,
+    pub errors: Vec<usize>,
 }
 
 /// This stores the mutable data that is used during the parsing process.

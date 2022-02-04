@@ -7,6 +7,7 @@ use crate::sources::source_file::SourceFileIterator;
 pub struct ParseResult<'src, O: Clone> {
     pub result: O,
     pub pos: SourceFileIterator<'src>,
+    pub pos_err: SourceFileIterator<'src>,
     pub ok: bool,
 }
 
@@ -19,22 +20,25 @@ impl<'src, O: Clone> ParseResult<'src, O> {
         ParseResult {
             result: mapfn(self.result),
             pos: self.pos,
+            pos_err: self.pos_err,
             ok: self.ok,
         }
     }
 
-    pub fn new_ok(result: O, pos: SourceFileIterator<'src>) -> Self {
+    pub fn new_ok(result: O, pos: SourceFileIterator<'src>, pos_err: SourceFileIterator<'src>) -> Self {
         ParseResult {
             result,
             pos,
+            pos_err,
             ok: true,
         }
     }
 
-    pub fn new_err(result: O, pos: SourceFileIterator<'src>) -> Self {
+    pub fn new_err(result: O, pos: SourceFileIterator<'src>, pos_err: SourceFileIterator<'src>) -> Self {
         ParseResult {
             result,
             pos,
+            pos_err,
             ok: false,
         }
     }
