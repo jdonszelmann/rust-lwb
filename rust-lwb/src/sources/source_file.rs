@@ -109,6 +109,12 @@ impl<'a> SourceFileIterator<'a> {
         }
     }
 
+    pub fn max_pos(&mut self, other: Self) {
+        if other.index > self.index {
+            *self = other;
+        }
+    }
+
     /// When the next value in the iterator is `c`, advance
     /// the iterator and return true. Otherwise, return false.
     ///

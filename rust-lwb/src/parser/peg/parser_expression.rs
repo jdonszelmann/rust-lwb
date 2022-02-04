@@ -68,11 +68,13 @@ pub fn parse_expression<'src>(
         Expression::Sequence(constructors) => {
             let mut results = vec![];
             let start_pos = pos.position();
+            let mut pos_err = pos.clone();
 
             //Parse all subconstructors in sequence
             for subconstructor in constructors {
                 let res = parse_expression(state, cache, subconstructor, pos);
                 pos = res.pos;
+                pos_err.max_pos(res.pos_err.clone());
                 results.push(res.result);
                 if !res.ok {
                     if let Some(&offset) = state.errors.get(&res.pos_err.position()) {
@@ -84,13 +86,13 @@ pub fn parse_expression<'src>(
                     }
 
                     let span = Span::from_end(state.file, start_pos, pos.position());
-                    return ParseResult::new_err(ParsePairExpression::List(span, results), pos, res.pos_err);
+                    return ParseResult::new_err(ParsePairExpression::List(span, results), pos, pos_err);
                 }
             }
 
             //Construct result
             let span = Span::from_end(state.file, start_pos, pos.position());
-            ParseResult::new_ok(ParsePairExpression::List(span, results), pos.clone(), pos)
+            ParseResult::new_ok(ParsePairExpression::List(span, results), pos, pos_err)
         }
         //To parse a sequence, first parse the minimum amount that is needed.
         //Then keep trying to parse the constructor until the maximum is reached.
@@ -105,9 +107,10 @@ pub fn parse_expression<'src>(
             //Parse at most maximum times
             for i in 0..max.unwrap_or(u64::MAX) {
                 let res = parse_expression(state, cache, c.as_ref(), pos.clone());
+                pos_err.max_pos(res.pos_err.clone());
+
                 if res.ok {
                     pos = res.pos;
-                    pos_err = res.pos_err;
                     results.push(res.result);
                 } else {
                     //If we know about this error, try to continue?
@@ -127,12 +130,10 @@ pub fn parse_expression<'src>(
                     //This is because it's probably OK, and we want no Error pairs in the parse tree when it's OK.
                     if i < *min {
                         pos = res.pos;
-                        pos_err = res.pos_err;
                         results.push(res.result);
                         let span = Span::from_end(state.file, start_pos, pos.position());
                         return ParseResult::new_err(ParsePairExpression::List(span, results), pos, pos_err);
                     } else {
-                        pos_err = res.pos_err;
                         break;
                     }
                 }
@@ -171,7 +172,7 @@ pub fn parse_expression<'src>(
             let (i, res) = results
                 .into_iter()
                 .enumerate()
-                .max_by_key(|(_, r)| r.pos.position())
+                .max_by_key(|(_, r)| r.pos_err.position())
                 .unwrap();
             ParseResult::new_err(
                 ParsePairExpression::Choice(res.result.span(), i, Box::new(res.result)),
