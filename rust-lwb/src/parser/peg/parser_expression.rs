@@ -75,6 +75,14 @@ pub fn parse_expression<'src>(
                 pos = res.pos;
                 results.push(res.result);
                 if !res.ok {
+                    if let Some(&offset) = state.errors.get(&res.pos_err.position()) {
+                        if cache.no_errors_nest_count == 0 {
+                            pos = res.pos_err;
+                            pos.skip_n(offset);
+                            continue;
+                        }
+                    }
+
                     let span = Span::from_end(state.file, start_pos, pos.position());
                     return ParseResult::new_err(ParsePairExpression::List(span, results), pos, res.pos_err);
                 }

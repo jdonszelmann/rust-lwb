@@ -8,11 +8,11 @@ use rust_lwb::sources::source_file::SourceFile;
 fn test_example() {
     let syntax = r#"
 S:
-    S = ("{" ("x"+ ";")* "}")*;
+    S = "0" "1" "2" "3" "4" "5" "6" "7" "8" "9";
 start at S;
     "#;
 
-    let input = "{x;x}{x;}{";
+    let input = "0234x679";
 
     let sf = SourceFile::new(syntax.to_string(), "test.syntax".to_string());
     let ast = match SyntaxFile::parse(&sf) {
