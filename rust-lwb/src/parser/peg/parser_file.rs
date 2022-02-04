@@ -6,7 +6,6 @@ use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::source_file::{SourceFile, SourceFileIterator};
 use crate::sources::span::Span;
 use std::collections::{HashMap, VecDeque};
-use miette::GraphicalReportHandler;
 use crate::parser::peg::parse_result::ParseResult;
 
 /// Parses a file, given the syntax to parse it with, and the file.

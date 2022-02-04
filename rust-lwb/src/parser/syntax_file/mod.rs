@@ -1,4 +1,3 @@
-use crate::error::display_miette_error;
 use crate::parser::ast::generate_ast::{generate_ast, BasicAstInfo, BasicAstNode};
 use crate::parser::peg::parse_error::PEGParseError;
 use crate::parser::peg::parser_file::parse_file;
