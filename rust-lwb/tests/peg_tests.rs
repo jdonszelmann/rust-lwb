@@ -207,7 +207,7 @@ start at S;
 "#,
 passing tests:
 failing tests:
-    "{x;;x;}"
+    "{x;;x;;x;}"
 }
 
 // "{x;{x;}"

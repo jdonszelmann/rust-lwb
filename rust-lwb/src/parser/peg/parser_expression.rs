@@ -105,10 +105,12 @@ pub fn parse_expression<'src>(
                     //If we know about this error, try to continue?
                     //Don't try to continue if we haven't made any progress (already failed on first character), since we will just fail again
                     //Also don't try to continue if we don't allow errors at the moment, since we don't want to try to recover inside of an no-errors segment
-                    if state.errors.contains(&res.pos_err.position()) && pos.position() != res.pos_err.position() && cache.no_errors_nest_count > 0 {
-                        pos = res.pos_err;
-                        results.push(res.result);
-                        continue;
+                    if let Some(&offset) = state.errors.get(&res.pos_err.position()) {
+                        if (offset > 0 || pos.position() != res.pos_err.position()) && cache.no_errors_nest_count == 0 {
+                            pos = res.pos_err;
+                            pos.skip_n(offset);
+                            continue;
+                        }
                     }
                     //If we have not yet reached the minimum, we error.
                     //Otherwise, we break and ok after the loop body.

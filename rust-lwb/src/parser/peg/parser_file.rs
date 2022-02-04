@@ -6,6 +6,7 @@ use crate::parser::peg::parser_sort::parse_sort;
 use crate::sources::source_file::{SourceFile, SourceFileIterator};
 use crate::sources::span::Span;
 use std::collections::{HashMap, VecDeque};
+use miette::GraphicalReportHandler;
 use crate::parser::peg::parse_result::ParseResult;
 
 /// Parses a file, given the syntax to parse it with, and the file.
@@ -20,7 +21,7 @@ pub fn parse_file<'src>(
         file,
         rules: HashMap::new(),
         layout: syntax.layout.clone(),
-        errors: Vec::new(),
+        errors: HashMap::new(),
     };
     syntax.sorts.iter().for_each(|rule| {
         state.rules.insert(&rule.name, rule);
@@ -33,13 +34,43 @@ pub fn parse_file<'src>(
         .expect("Starting sort exists");
 
     let mut errors = vec![];
-    let last_pos = 0usize;
+
+    let mut last_err_pos: Option<usize> = None;
+    let mut last_err_offset = 0usize;
     loop {
         let (res, err) = parse_file_sub(&state, starting_sort, file.iter());
         if !res.ok {
             let err = err.expect("Not ok means an error happened.");
-            state.errors.push(res.pos_err.position());
-            errors.push(err);
+
+            //If this is the first time we encounter this, error, log it and retry
+            if last_err_pos.is_none() || last_err_pos.unwrap() + last_err_offset < res.pos_err.position() {
+                errors.push(err);
+                last_err_pos = Some(res.pos_err.position());
+                last_err_offset = 0;
+                state.errors.insert(last_err_pos.unwrap(), last_err_offset);
+
+                continue;
+            } else {
+                last_err_offset += 1;
+                state.errors.insert(last_err_pos.unwrap(), last_err_offset);
+
+                let len_left = res.pos_err.clone().count();
+                //Error now spans rest of file
+                if last_err_offset == len_left {
+                    println!("Could not recover from error.");
+                    println!("Res: {}", res.result);
+                    for err in &errors {
+                        let mut s = String::new();
+                        GraphicalReportHandler::new()
+                            .with_links(true)
+                            .render_report(&mut s, err)
+                            .unwrap();
+                        print!("{}", s);
+                    }
+                    panic!();
+                    return (res.result, errors)
+                }
+            }
         } else {
             return (res.result, errors)
         }

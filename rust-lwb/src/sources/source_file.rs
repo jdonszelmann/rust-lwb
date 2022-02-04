@@ -102,6 +102,13 @@ impl<'a> SourceFileIterator<'a> {
         self.next();
     }
 
+    /// Skip n characters.
+    pub fn skip_n(&mut self, n: usize) {
+        for _ in 0..n {
+            self.advance();
+        }
+    }
+
     /// When the next value in the iterator is `c`, advance
     /// the iterator and return true. Otherwise, return false.
     ///
