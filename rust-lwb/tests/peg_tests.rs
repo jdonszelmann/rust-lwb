@@ -212,3 +212,19 @@ failing tests:
     "{x;x}{x;}"
 }
 
+peg_test! {
+name: recovery3,
+syntax: r#"
+S:
+    S = "0" "1" "2" "3" "4" "5" "6" "7" "8" "9";
+start at S;
+"#,
+passing tests:
+failing tests:
+    "0234x679"
+    "0234679"
+    "0134569"
+}
+
+
+
