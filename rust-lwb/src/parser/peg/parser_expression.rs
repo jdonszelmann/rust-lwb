@@ -109,6 +109,7 @@ pub fn parse_expression<'src>(
                         if (offset > 0 || pos.position() != res.pos_err.position()) && cache.no_errors_nest_count == 0 {
                             pos = res.pos_err;
                             pos.skip_n(offset);
+                            results.push(res.result);
                             continue;
                         }
                     }

@@ -51,25 +51,15 @@ pub fn parse_file<'src>(
 
                 continue;
             } else {
-                last_err_offset += 1;
-                state.errors.insert(last_err_pos.unwrap(), last_err_offset);
-
+                //If the error now spans rest of file, we could not recover
                 let len_left = res.pos_err.clone().count();
-                //Error now spans rest of file
-                if last_err_offset == len_left {
-                    println!("Could not recover from error.");
-                    println!("Res: {}", res.result);
-                    for err in &errors {
-                        let mut s = String::new();
-                        GraphicalReportHandler::new()
-                            .with_links(true)
-                            .render_report(&mut s, err)
-                            .unwrap();
-                        print!("{}", s);
-                    }
-                    panic!();
+                if last_err_offset >= len_left {
                     return (res.result, errors)
                 }
+
+                //Increase offset by 1 and repeat
+                last_err_offset += 1;
+                state.errors.insert(last_err_pos.unwrap(), last_err_offset);
             }
         } else {
             return (res.result, errors)
