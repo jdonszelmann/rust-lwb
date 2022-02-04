@@ -29,7 +29,7 @@ pub fn parse_expression<'src>(
         //To parse a literal, use accept_str to check if it parses.
         Expression::Literal(lit) => {
             while cache.allow_layout && !pos.clone().accept_str(lit) && pos.accept(&state.layout) {}
-            let span = Span::from_length(state.file, pos.position(), lit.len());
+            let span = Span::from_length(state.file, pos.position(), 1);
             if pos.accept_str(lit) {
                 if cache.no_layout_nest_count > 0 {
                     cache.allow_layout = false;
@@ -103,7 +103,9 @@ pub fn parse_expression<'src>(
                     results.push(res.result);
                 } else {
                     //If we know about this error, try to continue?
-                    if state.errors.contains(&res.pos_err.position()) && pos.position() != res.pos_err.position() {
+                    //Don't try to continue if we haven't made any progress (already failed on first character), since we will just fail again
+                    //Also don't try to continue if we don't allow errors at the moment, since we don't want to try to recover inside of an no-errors segment
+                    if state.errors.contains(&res.pos_err.position()) && pos.position() != res.pos_err.position() && cache.no_errors_nest_count > 0 {
                         pos = res.pos_err;
                         results.push(res.result);
                         continue;
