@@ -71,14 +71,15 @@ pub fn parse_expression<'src>(
             let mut pos_err = pos.clone();
 
             //Parse all subconstructors in sequence
-            for subconstructor in constructors {
+            for (i, subconstructor) in constructors.iter().enumerate() {
                 let res = parse_expression(state, cache, subconstructor, pos);
                 pos = res.pos;
                 pos_err.max_pos(res.pos_err.clone());
                 results.push(res.result);
                 if !res.ok {
                     if let Some(&offset) = state.errors.get(&res.pos_err.position()) {
-                        if cache.no_errors_nest_count == 0 {
+                        //The first token of the sequence can not be skipped, otherwise we can just parse a lot of empty sequences, if a sequence happens in a repeat
+                        if i != 0 && cache.no_errors_nest_count == 0 {
                             pos = res.pos_err;
                             pos.skip_n(offset);
                             continue;

@@ -3,6 +3,7 @@ use crate::sources::span::Span;
 use itertools::Itertools;
 use miette::{Diagnostic, LabeledSpan, Severity, SourceCode};
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
@@ -13,7 +14,7 @@ use thiserror::Error;
 #[error("A parse error occured!")]
 pub struct PEGParseError {
     pub span: Span,
-    pub expected: Vec<Expect>,
+    pub expected: HashSet<Expect>,
     pub fail_left_rec: bool,
     pub fail_loop: bool,
 }
@@ -68,7 +69,7 @@ impl PEGParseError {
     pub fn expect(span: Span, expect: Expect) -> Self {
         PEGParseError {
             span,
-            expected: vec![expect],
+            expected: HashSet::from([expect]),
             fail_left_rec: false,
             fail_loop: false,
         }
@@ -77,7 +78,7 @@ impl PEGParseError {
     pub fn fail_left_recursion(span: Span) -> Self {
         PEGParseError {
             span,
-            expected: vec![],
+            expected: HashSet::new(),
             fail_left_rec: true,
             fail_loop: false,
         }
@@ -86,7 +87,7 @@ impl PEGParseError {
     pub fn fail_loop(span: Span) -> Self {
         PEGParseError {
             span,
-            expected: vec![],
+            expected: HashSet::new(),
             fail_left_rec: false,
             fail_loop: true,
         }
@@ -94,7 +95,7 @@ impl PEGParseError {
 }
 
 /// Represents a single thing that went wrong at this position.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum Expect {
     /// Expect a character from a certain char class to be there, but it was not.
     ExpectCharClass(CharacterClass),
@@ -145,7 +146,7 @@ impl PEGParseError {
                 //The span is extended such that the longest one is kept.
                 self.span.length = self.span.length.max(other.span.length);
                 //Merge the expected tokens
-                self.expected.append(&mut other.expected);
+                other.expected.drain().for_each(|e| {self.expected.insert(e);});
                 //Left recursion
                 self.fail_left_rec |= other.fail_left_rec;
 
