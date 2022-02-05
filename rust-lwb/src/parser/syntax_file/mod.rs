@@ -1,4 +1,3 @@
-use crate::error::display_miette_error;
 use crate::parser::ast::generate_ast::{generate_ast, BasicAstInfo, BasicAstNode};
 use crate::parser::peg::parse_error::PEGParseError;
 use crate::parser::peg::parser_file::parse_file;
@@ -24,8 +23,8 @@ pub enum ParseError {
     #[error("failed to convert saved syntax file definition ast to legacy syntax file definition ast (this is a bug! please report it)")]
     ConvertAstError(#[from] AstConversionError),
 
-    #[error("parse error\n{}", display_miette_error(_0))]
-    PEG(#[from] PEGParseError),
+    #[error("PEG Errors:")]
+    PEG(Vec<PEGParseError>),
 }
 
 pub fn parse_language<AST: BasicAstNode>(input: &SourceFile) -> Result<AST, ParseError> {
@@ -35,7 +34,10 @@ pub fn parse_language<AST: BasicAstNode>(input: &SourceFile) -> Result<AST, Pars
     // let sf = SourceFile::open("rust-lwb-bootstrap/syntax-file.syntax").expect("open error");
     // let legacy_ast = bootstrap::parse(&sf).expect("should parse");
 
-    let pairs = parse_file(&legacy_ast, input)?;
+    let (pairs, errs) = parse_file(&legacy_ast, input);
+    if !errs.is_empty() {
+        return Err(ParseError::PEG(errs));
+    }
 
     let ast = generate_ast(&pairs);
 

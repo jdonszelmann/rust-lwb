@@ -33,20 +33,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         "reparsing {} with peg parser and output from previous parse",
         config.input_location
     );
-    let bootstrapped_syntax_file_ast_pairs = match parse_file(&legacy_ast, &sf) {
-        Ok(i) => {
-            // println!("{}", i);
-            i
-        }
-        Err(e) => {
-            let mut s = String::new();
-            GraphicalReportHandler::new()
-                .with_links(true)
-                .render_report(&mut s, &e)
-                .unwrap();
-            panic!("{}", s);
-        }
-    };
+    let (bootstrapped_syntax_file_ast_pairs, errs) = parse_file(&legacy_ast, &sf);
+    let mut s = String::new();
+    for err in &errs {
+        GraphicalReportHandler::new()
+            .with_links(true)
+            .render_report(&mut s, err)
+            .unwrap();
+    }
+    if !errs.is_empty() {
+        panic!("{}", s);
+    }
+
     println!("generating ast from pairs");
     let bootstrapped_syntax_file_ast: temp::AST_ROOT<_> =
         generate_ast(&bootstrapped_syntax_file_ast_pairs);
