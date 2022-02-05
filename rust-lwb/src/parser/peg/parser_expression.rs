@@ -34,7 +34,7 @@ pub fn parse_expression<'src>(
                 if cache.no_layout_nest_count > 0 {
                     cache.allow_layout = false;
                 }
-                ParseResult::new_ok(ParsePairExpression::Empty(span), pos.clone(), pos)
+                ParseResult::new_ok(ParsePairExpression::Empty(span), pos.clone(), pos, false)
             } else {
                 cache.add_error(PEGParseError::expect(
                     span.clone(),
@@ -53,7 +53,7 @@ pub fn parse_expression<'src>(
                 if cache.no_layout_nest_count > 0 {
                     cache.allow_layout = false;
                 }
-                ParseResult::new_ok(ParsePairExpression::Empty(span), pos.clone(), pos)
+                ParseResult::new_ok(ParsePairExpression::Empty(span), pos.clone(), pos, false)
             } else {
                 cache.add_error(PEGParseError::expect(
                     span.clone(),
@@ -69,6 +69,7 @@ pub fn parse_expression<'src>(
             let mut results = vec![];
             let start_pos = pos.position();
             let mut pos_err = pos.clone();
+            let mut recovered = false;
 
             //Parse all subconstructors in sequence
             for (i, subconstructor) in constructors.iter().enumerate() {
@@ -76,12 +77,14 @@ pub fn parse_expression<'src>(
                 pos = res.pos;
                 pos_err.max_pos(res.pos_err.clone());
                 results.push(res.result);
+                recovered |= res.recovered;
                 if !res.ok {
                     if let Some(&offset) = state.errors.get(&res.pos_err.position()) {
                         //The first token of the sequence can not be skipped, otherwise we can just parse a lot of empty sequences, if a sequence happens in a repeat
                         if i != 0 && cache.no_errors_nest_count == 0 {
                             pos = res.pos_err;
                             pos.skip_n(offset);
+                            recovered = true;
                             continue;
                         }
                     }
@@ -93,7 +96,7 @@ pub fn parse_expression<'src>(
 
             //Construct result
             let span = Span::from_end(state.file, start_pos, pos.position());
-            ParseResult::new_ok(ParsePairExpression::List(span, results), pos, pos_err)
+            ParseResult::new_ok(ParsePairExpression::List(span, results), pos, pos_err, recovered)
         }
         //To parse a sequence, first parse the minimum amount that is needed.
         //Then keep trying to parse the constructor until the maximum is reached.
@@ -104,11 +107,13 @@ pub fn parse_expression<'src>(
             let start_pos = pos.position();
             let mut last_pos = pos.position();
             let mut pos_err = pos.clone();
+            let mut recovered = false;
 
             //Parse at most maximum times
             for i in 0..max.unwrap_or(u64::MAX) {
                 let res = parse_expression(state, cache, c.as_ref(), pos.clone());
                 pos_err.max_pos(res.pos_err.clone());
+                recovered |= res.recovered;
 
                 if res.ok {
                     pos = res.pos;
@@ -122,6 +127,7 @@ pub fn parse_expression<'src>(
                             pos = res.pos_err;
                             pos.skip_n(offset);
                             results.push(res.result);
+                            recovered = true;
                             continue;
                         }
                     }
@@ -149,37 +155,38 @@ pub fn parse_expression<'src>(
 
             //Construct result
             let span = Span::from_end(state.file, start_pos, pos.position());
-            ParseResult::new_ok(ParsePairExpression::List(span, results), pos.clone(), pos_err)
+            ParseResult::new_ok(ParsePairExpression::List(span, results), pos.clone(), pos_err, recovered)
         }
         //To parse a choice, try each constructor, keeping track of the best error that occurred while doing so.
         //If none of the constructors succeed, we will return this error.
         Expression::Choice(subconstructors) => {
-            let mut results = vec![];
-            assert!(!subconstructors.is_empty());
-            for (i, subconstructor) in subconstructors.iter().enumerate() {
-                let res = parse_expression(state, cache, subconstructor, pos.clone());
-                if res.ok {
-                    results.push(res.clone());
-                    let max_err_pos = results.into_iter().max_by_key(|r| r.pos_err.position()).unwrap().pos_err;
-                    return ParseResult::new_ok(
-                        ParsePairExpression::Choice(res.result.span(), i, Box::new(res.result)),
-                        res.pos,
-                        max_err_pos
-                    );
-                } else {
-                    results.push(res);
-                }
-            }
-            let (i, res) = results
-                .into_iter()
-                .enumerate()
-                .max_by_key(|(_, r)| r.pos_err.position())
-                .unwrap();
-            ParseResult::new_err(
-                ParsePairExpression::Choice(res.result.span(), i, Box::new(res.result)),
-                res.pos,
-                res.pos_err
-            )
+            todo!()
+            // let mut results = vec![];
+            // assert!(!subconstructors.is_empty());
+            // for (i, subconstructor) in subconstructors.iter().enumerate() {
+            //     let res = parse_expression(state, cache, subconstructor, pos.clone());
+            //     if res.ok {
+            //         results.push(res.clone());
+            //         let max_err_pos = results.into_iter().max_by_key(|r| r.pos_err.position()).unwrap().pos_err;
+            //         return ParseResult::new_ok(
+            //             ParsePairExpression::Choice(res.result.span(), i, Box::new(res.result)),
+            //             res.pos,
+            //             max_err_pos
+            //         );
+            //     } else {
+            //         results.push(res);
+            //     }
+            // }
+            // let (i, res) = results
+            //     .into_iter()
+            //     .enumerate()
+            //     .max_by_key(|(_, r)| r.pos_err.position())
+            //     .unwrap();
+            // ParseResult::new_err(
+            //     ParsePairExpression::Choice(res.result.span(), i, Box::new(res.result)),
+            //     res.pos,
+            //     res.pos_err
+            // )
         }
 
         Expression::Negative(_) => {

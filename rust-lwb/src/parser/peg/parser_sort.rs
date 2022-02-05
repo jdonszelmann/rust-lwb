@@ -121,7 +121,7 @@ fn parse_sort_sub<'src>(
             }
         }
 
-        if res.ok {
+        if res.ok && !res.recovered {
             return ParseResult::new_ok(
                 ParsePairSort {
                     sort: &sort.name,
@@ -130,6 +130,7 @@ fn parse_sort_sub<'src>(
                 },
                 res.pos,
                 res.pos_err,
+                res.recovered
             );
         }
         if constructor.annotations.contains(&Annotation::NoLayout) {

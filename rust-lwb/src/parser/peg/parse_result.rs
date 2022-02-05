@@ -9,6 +9,7 @@ pub struct ParseResult<'src, O: Clone> {
     pub pos: SourceFileIterator<'src>,
     pub pos_err: SourceFileIterator<'src>,
     pub ok: bool,
+    pub recovered: bool,
 }
 
 impl<'src, O: Clone> ParseResult<'src, O> {
@@ -22,15 +23,17 @@ impl<'src, O: Clone> ParseResult<'src, O> {
             pos: self.pos,
             pos_err: self.pos_err,
             ok: self.ok,
+            recovered: self.recovered,
         }
     }
 
-    pub fn new_ok(result: O, pos: SourceFileIterator<'src>, pos_err: SourceFileIterator<'src>) -> Self {
+    pub fn new_ok(result: O, pos: SourceFileIterator<'src>, pos_err: SourceFileIterator<'src>, recovered: bool) -> Self {
         ParseResult {
             result,
             pos,
             pos_err,
             ok: true,
+            recovered
         }
     }
 
@@ -40,6 +43,7 @@ impl<'src, O: Clone> ParseResult<'src, O> {
             pos,
             pos_err,
             ok: false,
+            recovered: false
         }
     }
 }
