@@ -31,8 +31,28 @@ impl Span {
         }
     }
 
+    pub fn end(&self) -> usize {
+        self.position + self.length
+    }
+
+    /// Get a string from the source file, described by this span.
+    /// ```
+    /// // TODO
+    /// ```
     pub fn as_str(&self) -> &str {
         &self.source.contents()[self.position..self.position + self.length]
+    }
+
+    /// Merge two spans.
+    pub fn merge(&self, other: &Span) -> Self {
+        // TODO: add unique ids to source files to make this comparison
+        // assert!(self.source == other.source)
+
+        Self::from_end(
+            &self.source,
+            self.position.min(other.position),
+            self.end().max(other.end()),
+        )
     }
 }
 

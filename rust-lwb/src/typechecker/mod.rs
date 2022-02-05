@@ -1,10 +1,8 @@
-use crate::codegen_prelude::AstInfo;
-use crate::parser::ast::AstNode;
+use crate::parser::ast::{AstNode, SpannedAstInfo};
 use crate::typechecker::constraints::{Constraint, Variable};
 use crate::typechecker::error::TypeError;
 use crate::typechecker::solver::Solver;
 use crate::typechecker::state::State;
-use itertools::Itertools;
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::marker::PhantomData;
@@ -17,24 +15,24 @@ mod union_find;
 
 pub trait Type: Debug + PartialEq {}
 
-pub trait TypeCheckable<M: AstInfo, CTX, TYPE: Type, ERR>: AstNode<M> {
-    fn create_constraints<'ast>(&'ast self, s: &mut State<'ast, M, CTX, TYPE, ERR>, ctx: &CTX);
+pub trait TypeCheckable<M: SpannedAstInfo, CTX, TYPE: Type>: AstNode<M> {
+    fn create_constraints<'ast>(&'ast self, s: &mut State<'ast, M, CTX, TYPE>, ctx: &CTX);
 }
 
-impl<M: AstInfo, CTX, TYPE: Type, ERR, T> TypeCheckable<M, CTX, TYPE, ERR> for Box<T>
+impl<M: SpannedAstInfo, CTX, TYPE: Type, T> TypeCheckable<M, CTX, TYPE> for Box<T>
 where
-    T: TypeCheckable<M, CTX, TYPE, ERR>,
+    T: TypeCheckable<M, CTX, TYPE>,
 {
-    fn create_constraints<'ast>(&'ast self, s: &mut State<'ast, M, CTX, TYPE, ERR>, ctx: &CTX) {
+    fn create_constraints<'ast>(&'ast self, s: &mut State<'ast, M, CTX, TYPE>, ctx: &CTX) {
         T::create_constraints(self, s, ctx)
     }
 }
 
-pub struct TypeChecker<M, CTX, TYPE, ERR> {
-    phantom: PhantomData<(M, CTX, TYPE, ERR)>,
+pub struct TypeChecker<M, CTX, TYPE> {
+    phantom: PhantomData<(M, CTX, TYPE)>,
 }
 
-impl<M, CTX, TYPE, ERR> Default for TypeChecker<M, CTX, TYPE, ERR> {
+impl<M, CTX, TYPE> Default for TypeChecker<M, CTX, TYPE> {
     fn default() -> Self {
         Self {
             phantom: Default::default(),
@@ -42,14 +40,14 @@ impl<M, CTX, TYPE, ERR> Default for TypeChecker<M, CTX, TYPE, ERR> {
     }
 }
 
-impl<M: AstInfo, CTX, TYPE: Type, ERR> TypeChecker<M, CTX, TYPE, ERR> {
+impl<M: SpannedAstInfo, CTX, TYPE: Type> TypeChecker<M, CTX, TYPE> {
     pub fn new() -> Self {
         Default::default()
     }
 
-    pub fn check_types<Ast>(self, ast: Ast, ctx: &CTX) -> Result<(), TypeError<TYPE, ERR>>
+    pub fn check_types<Ast>(self, ast: Ast, ctx: &CTX) -> Result<(), TypeError<TYPE>>
     where
-        Ast: TypeCheckable<M, CTX, TYPE, ERR>,
+        Ast: TypeCheckable<M, CTX, TYPE>,
     {
         let mut state = State::new();
         state.type_ok(&ast);
@@ -69,7 +67,7 @@ impl<M: AstInfo, CTX, TYPE: Type, ERR> TypeChecker<M, CTX, TYPE, ERR> {
         let variables = Self::get_variables(&state.constraints);
 
         for i in &state.constraints {
-            println!("{}", i);
+            println!("{:?}", i);
         }
 
         let solver = Solver::new(&variables, &state.constraints);
@@ -78,11 +76,7 @@ impl<M: AstInfo, CTX, TYPE: Type, ERR> TypeChecker<M, CTX, TYPE, ERR> {
         Ok(())
     }
 
-    fn get_variables(constraints: &[Constraint<TYPE, ERR>]) -> Vec<&Variable<TYPE, ERR>> {
-        constraints
-            .iter()
-            .flat_map(|i| i.variables())
-            .dedup_by(|i, j| i.id() == j.id())
-            .collect()
+    fn get_variables(constraints: &[Constraint<TYPE>]) -> Vec<&Variable<TYPE>> {
+        constraints.iter().flat_map(|i| i.variables()).collect()
     }
 }

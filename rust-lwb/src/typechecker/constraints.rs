@@ -1,13 +1,14 @@
-use crate::codegen_prelude::AstInfo;
-use crate::parser::ast::NodeId;
+use crate::parser::ast::{NodeId, SpannedAstInfo};
+use crate::sources::span::Span;
 use crate::typechecker::constraints::Variable::{Free, Known};
+use crate::typechecker::error::TypeError;
 use crate::typechecker::state::State;
 use crate::typechecker::Type;
 use itertools::Itertools;
-use std::fmt::{Display, Formatter};
+use std::cell::{Ref, RefCell, RefMut};
+use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
-use std::marker::PhantomData;
-use std::ops::BitAnd;
+use std::ops::{BitAnd, DerefMut};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -27,46 +28,56 @@ impl Display for VariableId {
 }
 
 #[derive(Debug)]
-pub struct KnownVariable<TYPE: Type, ERR> {
+pub struct KnownVariable<TYPE: Type> {
     id: VariableId,
     pub(crate) value: TYPE,
-    phantom: PhantomData<ERR>,
+    pub(crate) span: RefCell<Option<Span>>,
 }
 
 #[derive(Debug)]
-pub struct FreeVariable<ERR> {
+pub struct FreeVariable {
     id: VariableId,
-    phantom: PhantomData<ERR>,
+    pub(crate) span: RefCell<Option<Span>>,
 }
 
-#[derive(Debug)]
-pub enum Variable<TYPE: Type, ERR> {
-    Free(Rc<FreeVariable<ERR>>),
-    Known(Rc<KnownVariable<TYPE, ERR>>),
+pub enum Variable<TYPE: Type> {
+    Free(Rc<FreeVariable>),
+    Known(Rc<KnownVariable<TYPE>>),
 }
 
-impl<TYPE: Type, ERR> Display for Variable<TYPE, ERR> {
+impl<TYPE: Type> Debug for Variable<TYPE> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Free(fv) => write!(f, "var({})", fv.id),
-            Known(k) => write!(f, "var({:?}, {})", k.value, k.id),
+            Free(fv) => write!(
+                f,
+                "var({}{})",
+                fv.id,
+                if self.span().is_some() { " + span" } else { "" }
+            ),
+            Known(k) => write!(
+                f,
+                "var({:?}, {}{})",
+                k.value,
+                k.id,
+                if self.span().is_some() { " + span" } else { "" }
+            ),
         }
     }
 }
 
-impl<TYPE: Type, ERR> Variable<TYPE, ERR> {
-    pub(crate) fn new_free() -> Self {
+impl<TYPE: Type> Variable<TYPE> {
+    pub(crate) fn new_free(span: Option<Span>) -> Self {
         Self::Free(Rc::new(FreeVariable {
             id: new_variable_id(),
-            phantom: Default::default(),
+            span: RefCell::new(span),
         }))
     }
 
-    pub(crate) fn new_known(value: TYPE) -> Self {
+    pub(crate) fn new_known(value: TYPE, span: Option<Span>) -> Self {
         Self::Known(Rc::new(KnownVariable {
             id: new_variable_id(),
             value,
-            phantom: Default::default(),
+            span: RefCell::new(span),
         }))
     }
 
@@ -76,9 +87,41 @@ impl<TYPE: Type, ERR> Variable<TYPE, ERR> {
             Known(i) => i.id,
         }
     }
+
+    pub(crate) fn span(&self) -> Ref<Option<Span>> {
+        match self {
+            Free(i) => i.span.borrow(),
+            Known(i) => i.span.borrow(),
+        }
+    }
+
+    pub(crate) fn span_mut(&self) -> RefMut<Option<Span>> {
+        match self {
+            Free(i) => i.span.borrow_mut(),
+            Known(i) => i.span.borrow_mut(),
+        }
+    }
+
+    pub(crate) fn merge_span(&self, other: &Variable<TYPE>) {
+        let mut sa = self.span_mut();
+        let mut sb = other.span_mut();
+        match (sa.deref_mut(), sb.deref_mut()) {
+            (None, None) => {}
+            (a @ Some(_), b @ None) => *b = a.clone(),
+            (a @ None, b @ Some(_)) => *a = b.clone(),
+            (Some(_a), Some(_b)) => {
+                // both have a span already so nothing needs to be done
+
+                // this is bad and doesn't give nice errors:
+                // let new_span = a.merge(b);
+                // *a = new_span.clone();
+                // *b = new_span;
+            }
+        }
+    }
 }
 
-impl<TYPE: Type, ERR> Clone for Variable<TYPE, ERR> {
+impl<TYPE: Type> Clone for Variable<TYPE> {
     fn clone(&self) -> Self {
         match self {
             Free(v) => Free(Rc::clone(v)),
@@ -93,77 +136,78 @@ mod sealed {
     use crate::typechecker::Type;
 
     pub trait Sealed {}
-    impl<TYPE: Type, ERR> Sealed for Variable<TYPE, ERR> {}
-    impl<TYPE: Type, ERR> Sealed for &Variable<TYPE, ERR> {}
+    impl<TYPE: Type> Sealed for Variable<TYPE> {}
+    impl<TYPE: Type> Sealed for &Variable<TYPE> {}
     impl<TYPE: Type> Sealed for TYPE {}
 }
 
 /// Converts things into variables. Trivially, variables
 /// are convertible into variables. But types also are.
 /// This trait can be seen in [`Variable::equiv`]
-pub trait IntoVariable<TYPE: Type, ERR>: sealed::Sealed {
-    fn into(self) -> Variable<TYPE, ERR>;
+pub trait IntoVariable<TYPE: Type>: sealed::Sealed {
+    fn into(self) -> Variable<TYPE>;
 }
 
-impl<TYPE: Type, ERR> IntoVariable<TYPE, ERR> for TYPE {
-    fn into(self) -> Variable<TYPE, ERR> {
-        Variable::new_known(self)
+impl<TYPE: Type> IntoVariable<TYPE> for TYPE {
+    fn into(self) -> Variable<TYPE> {
+        Variable::new_known(self, None)
     }
 }
 
-impl<TYPE: Type, ERR> IntoVariable<TYPE, ERR> for Variable<TYPE, ERR> {
-    fn into(self) -> Variable<TYPE, ERR> {
+impl<TYPE: Type> IntoVariable<TYPE> for Variable<TYPE> {
+    fn into(self) -> Variable<TYPE> {
         self
     }
 }
 
-impl<TYPE: Type, ERR> IntoVariable<TYPE, ERR> for &Variable<TYPE, ERR> {
-    fn into(self) -> Variable<TYPE, ERR> {
+impl<TYPE: Type> IntoVariable<TYPE> for &Variable<TYPE> {
+    fn into(self) -> Variable<TYPE> {
         self.clone()
     }
 }
 
-pub struct ComputedConstraint<TYPE: Type, ERR> {
-    depends_on: Vec<Variable<TYPE, ERR>>,
+pub type ComputerConstraintResult<TYPE> = Result<TYPE, TypeError<TYPE>>;
+pub struct ComputedConstraint<TYPE: Type> {
+    depends_on: Vec<Variable<TYPE>>,
     #[allow(dead_code)]
-    compute: Box<dyn Fn(&[TYPE]) -> Result<TYPE, ERR>>,
+    compute: Box<dyn Fn(&[TYPE]) -> ComputerConstraintResult<TYPE>>,
 }
 
-pub enum Constraint<TYPE: Type, ERR> {
+pub enum Constraint<TYPE: Type> {
     And(Box<Self>, Box<Self>),
 
     // TODO: if you ever want to build a csp solver, feel free to uncomment these
     // Or(Box<Self>, Box<Self>),
     // Not(Box<Self>),
-    Equiv(Variable<TYPE, ERR>, Variable<TYPE, ERR>),
-    NotEquiv(Variable<TYPE, ERR>, Variable<TYPE, ERR>),
-    Node(Variable<TYPE, ERR>, NodeId),
+    Equiv(Variable<TYPE>, Variable<TYPE>),
+    NotEquiv(Variable<TYPE>, Variable<TYPE>),
+    Node(Variable<TYPE>, NodeId),
 
-    Computed(ComputedConstraint<TYPE, ERR>),
+    Computed(ComputedConstraint<TYPE>),
 }
 
-impl<TYPE: Type, ERR> Display for Constraint<TYPE, ERR> {
+impl<TYPE: Type> Debug for Constraint<TYPE> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Constraint::And(a, b) => write!(f, "{} & {}", a, b),
-            Constraint::Equiv(a, b) => write!(f, "{} == {}", a, b),
-            Constraint::NotEquiv(a, b) => write!(f, "{} != {}", a, b),
+            Constraint::And(a, b) => write!(f, "{:?} & {:?}", a, b),
+            Constraint::Equiv(a, b) => write!(f, "{:?} == {:?}", a, b),
+            Constraint::NotEquiv(a, b) => write!(f, "{:?} != {:?}", a, b),
             Constraint::Node(var, nodeid) => {
-                write!(f, "{:?} == {}", nodeid, var)
+                write!(f, "{:?} == {:?}", nodeid, var)
             }
             Constraint::Computed(ComputedConstraint { depends_on, .. }) => {
                 write!(
                     f,
                     "computed constraint depending on [{}]",
-                    depends_on.iter().map(|i| i.to_string()).join(",")
+                    depends_on.iter().map(|i| format!("{:?}", i)).join(",")
                 )
             }
         }
     }
 }
 
-impl<TYPE: Type, ERR> Constraint<TYPE, ERR> {
-    pub fn variables(&self) -> Vec<&Variable<TYPE, ERR>> {
+impl<TYPE: Type> Constraint<TYPE> {
+    pub fn variables(&self) -> Vec<&Variable<TYPE>> {
         match self {
             Constraint::And(a, b) => {
                 let mut variables = a.variables();
@@ -180,7 +224,7 @@ impl<TYPE: Type, ERR> Constraint<TYPE, ERR> {
     }
 }
 
-impl<TYPE: Type, ERR> Variable<TYPE, ERR> {
+impl<TYPE: Type> Variable<TYPE> {
     /// Places a constraint on two variables, namely that they are equivalent
     /// and that their types should be the same.
     ///
@@ -194,23 +238,20 @@ impl<TYPE: Type, ERR> Variable<TYPE, ERR> {
     /// // TODO
     /// ```
     #[must_use]
-    pub fn equiv(&self, other: impl IntoVariable<TYPE, ERR>) -> Constraint<TYPE, ERR> {
+    pub fn equiv(&self, other: impl IntoVariable<TYPE>) -> Constraint<TYPE> {
         Constraint::Equiv(self.clone(), other.into())
     }
 
     #[must_use]
-    pub fn not_equiv(&self, other: impl IntoVariable<TYPE, ERR>) -> Constraint<TYPE, ERR> {
+    pub fn not_equiv(&self, other: impl IntoVariable<TYPE>) -> Constraint<TYPE> {
         Constraint::NotEquiv(self.clone(), other.into())
     }
 
     #[must_use]
-    pub fn all_equiv<const N: usize>(
-        &self,
-        variables: [Variable<TYPE, ERR>; N],
-    ) -> Constraint<TYPE, ERR> {
+    pub fn all_equiv<const N: usize>(&self, variables: [Variable<TYPE>; N]) -> Constraint<TYPE> {
         assert!(variables.len() >= 2);
 
-        let mut res: Option<Constraint<TYPE, ERR>> = None;
+        let mut res: Option<Constraint<TYPE>> = None;
 
         for i in variables.windows(2) {
             if let Some(r) = res {
@@ -226,9 +267,9 @@ impl<TYPE: Type, ERR> Variable<TYPE, ERR> {
     #[must_use]
     pub fn depends_on(
         &self,
-        variables: &[Variable<TYPE, ERR>],
-        f: impl 'static + Fn(&[TYPE]) -> Result<TYPE, ERR>,
-    ) -> Constraint<TYPE, ERR> {
+        variables: &[Variable<TYPE>],
+        f: impl 'static + Fn(&[TYPE]) -> ComputerConstraintResult<TYPE>,
+    ) -> Constraint<TYPE> {
         Constraint::Computed(ComputedConstraint {
             depends_on: variables.to_vec(),
             compute: Box::new(f),
@@ -236,28 +277,28 @@ impl<TYPE: Type, ERR> Variable<TYPE, ERR> {
     }
 }
 
-impl<TYPE: Type, ERR> Constraint<TYPE, ERR> {
-    pub fn and(self, other: Constraint<TYPE, ERR>) -> Constraint<TYPE, ERR> {
+impl<TYPE: Type> Constraint<TYPE> {
+    pub fn and(self, other: Constraint<TYPE>) -> Constraint<TYPE> {
         Constraint::And(Box::new(self), Box::new(other))
     }
 
     // TODO: if you ever want to build a csp solver, feel free to uncomment these
-    // pub fn or(self, other: Constraint<TYPE, ERR>) -> Constraint<TYPE, ERR> {
+    // pub fn or(self, other: Constraint<TYPE>) -> Constraint<TYPE> {
     //     Constraint::Or(Box::new(self), Box::new(other))
     // }
     //
     // #[allow(clippy::should_implement_trait)]
-    // pub fn not(self) -> Constraint<TYPE, ERR> {
+    // pub fn not(self) -> Constraint<TYPE> {
     //     Not::not(self)
     // }
 
-    pub fn add_to<M: AstInfo, CTX>(self, s: &mut State<M, CTX, TYPE, ERR>) {
+    pub fn add_to<M: SpannedAstInfo, CTX>(self, s: &mut State<M, CTX, TYPE>) {
         s.add_constraint(self);
     }
 }
 
-impl<TYPE: Type, ERR> BitAnd for Constraint<TYPE, ERR> {
-    type Output = Constraint<TYPE, ERR>;
+impl<TYPE: Type> BitAnd for Constraint<TYPE> {
+    type Output = Constraint<TYPE>;
 
     fn bitand(self, rhs: Self) -> Self::Output {
         self.and(rhs)
@@ -265,16 +306,16 @@ impl<TYPE: Type, ERR> BitAnd for Constraint<TYPE, ERR> {
 }
 
 // TODO: if you ever want to build a csp solver, feel free to uncomment these
-// impl<TYPE: Type, ERR> BitOr for Constraint<TYPE, ERR> {
-//     type Output = Constraint<TYPE, ERR>;
+// impl<TYPE: Type> BitOr for Constraint<TYPE> {
+//     type Output = Constraint<TYPE>;
 //
 //     fn bitor(self, rhs: Self) -> Self::Output {
 //         self.or(rhs)
 //     }
 // }
 
-// impl<TYPE: Type, ERR> Not for Constraint<TYPE, ERR> {
-//     type Output = Constraint<TYPE, ERR>;
+// impl<TYPE: Type> Not for Constraint<TYPE> {
+//     type Output = Constraint<TYPE>;
 //
 //     fn not(self) -> Self::Output {
 //         Constraint::Not(Box::new(self))

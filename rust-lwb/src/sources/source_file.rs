@@ -1,4 +1,5 @@
 use crate::sources::character_class::CharacterClass;
+use miette::{MietteError, SourceCode, SourceSpan, SpanContents};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::io;
 use std::io::Read;
@@ -289,5 +290,21 @@ impl<'a> Iterator for SourceFileIterator<'a> {
             self.index += next.len_utf8();
         }
         next
+    }
+}
+
+impl SourceCode for SourceFile {
+    fn read_span<'a>(
+        &'a self,
+        span: &SourceSpan,
+        context_lines_before: usize,
+        context_lines_after: usize,
+    ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
+        <str as SourceCode>::read_span(
+            self.contents(),
+            span,
+            context_lines_before,
+            context_lines_after,
+        )
     }
 }

@@ -21,6 +21,7 @@ expression:
     bool = bool;
     int = int;
     identifier = identifier;
+    paren = "(" expression ")";
 
 
 statement:

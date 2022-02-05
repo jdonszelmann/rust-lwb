@@ -1,7 +1,8 @@
 use crate::stl::{Program, Statement};
 use crate::types::StlType::{EmptyList, List};
 use crate::AST::Expression;
-use rust_lwb::codegen_prelude::AstInfo;
+use rust_lwb::parser::ast::SpannedAstInfo;
+use rust_lwb::typechecker::error::{CustomTypeError, TypeError};
 use rust_lwb::typechecker::state::State;
 use rust_lwb::typechecker::{Type, TypeCheckable};
 use thiserror::Error;
@@ -17,23 +18,24 @@ pub enum StlType {
 impl Type for StlType {}
 
 #[derive(Error, Debug)]
-pub enum TypeError {
+pub enum StlTypeError {
     #[error("could not unify {0:?} and {0:?} for use in list")]
     NoLub(StlType, StlType),
 }
+impl CustomTypeError for StlTypeError {}
 
-fn lub(a: &StlType, b: &StlType) -> Result<StlType, TypeError> {
+fn lub(a: &StlType, b: &StlType) -> Result<StlType, TypeError<StlType>> {
     match (a, b) {
         (a, b) if a == b => Ok(a.clone()),
 
         (EmptyList, a @ List(_)) => Ok(a.clone()),
         (a @ List(_), EmptyList) => Ok(a.clone()),
 
-        (a, b) => Err(TypeError::NoLub(a.clone(), b.clone())),
+        (a, b) => Err(StlTypeError::NoLub(a.clone(), b.clone()).into()),
     }
 }
 
-fn lub_list(types: &[StlType]) -> Result<StlType, TypeError> {
+fn lub_list(types: &[StlType]) -> Result<StlType, TypeError<StlType>> {
     let mut res = types
         .first()
         .expect("at least one type in lub list")
@@ -46,12 +48,8 @@ fn lub_list(types: &[StlType]) -> Result<StlType, TypeError> {
     Ok(res)
 }
 
-impl<M: AstInfo> TypeCheckable<M, (), StlType, TypeError> for Program<M> {
-    fn create_constraints<'ast>(
-        &'ast self,
-        s: &mut State<'ast, M, (), StlType, TypeError>,
-        _: &(),
-    ) {
+impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Program<M> {
+    fn create_constraints<'ast>(&'ast self, s: &mut State<'ast, M, (), StlType>, _: &()) {
         match self {
             Program::Program(_, statements) => {
                 for i in statements {
@@ -62,12 +60,8 @@ impl<M: AstInfo> TypeCheckable<M, (), StlType, TypeError> for Program<M> {
     }
 }
 
-impl<M: AstInfo> TypeCheckable<M, (), StlType, TypeError> for Statement<M> {
-    fn create_constraints<'ast>(
-        &'ast self,
-        s: &mut State<'ast, M, (), StlType, TypeError>,
-        _: &(),
-    ) {
+impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Statement<M> {
+    fn create_constraints<'ast>(&'ast self, s: &mut State<'ast, M, (), StlType>, _: &()) {
         match self {
             Statement::If(_, e, block) => {
                 let te = s.get_type(e);
@@ -86,12 +80,8 @@ impl<M: AstInfo> TypeCheckable<M, (), StlType, TypeError> for Statement<M> {
     }
 }
 
-impl<M: AstInfo> TypeCheckable<M, (), StlType, TypeError> for Expression<M> {
-    fn create_constraints<'ast>(
-        &'ast self,
-        s: &mut State<'ast, M, (), StlType, TypeError>,
-        _: &(),
-    ) {
+impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Expression<M> {
+    fn create_constraints<'ast>(&'ast self, s: &mut State<'ast, M, (), StlType>, _: &()) {
         match self {
             Expression::Add(_, a, b) => {
                 let ta = s.get_type(a);
@@ -143,6 +133,9 @@ impl<M: AstInfo> TypeCheckable<M, (), StlType, TypeError> for Expression<M> {
             }
             Expression::Bool(_, _) => {
                 s.type_of_self(self).equiv(StlType::Bool).add_to(s);
+            }
+            Expression::Paren(_, e) => {
+                s.get_type(&*e);
             }
         }
     }

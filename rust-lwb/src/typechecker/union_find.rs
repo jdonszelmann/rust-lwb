@@ -1,5 +1,5 @@
 use crate::typechecker::constraints::Variable;
-use crate::typechecker::error::TypeError;
+use crate::typechecker::error::{GeneratedTypeError, TypeError};
 use crate::typechecker::Type;
 use itertools::Itertools;
 use std::cell::Cell;
@@ -7,51 +7,51 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 
-struct ById<'var, TYPE: Type, ERR>(&'var Variable<TYPE, ERR>);
+struct ById<'var, TYPE: Type>(&'var Variable<TYPE>);
 
-impl<'var, TYPE: Type, ERR> Eq for ById<'var, TYPE, ERR> {}
+impl<'var, TYPE: Type> Eq for ById<'var, TYPE> {}
 
-impl<'var, TYPE: Type, ERR> PartialEq for ById<'var, TYPE, ERR> {
+impl<'var, TYPE: Type> PartialEq for ById<'var, TYPE> {
     fn eq(&self, other: &Self) -> bool {
         self.0.id().eq(&other.0.id())
     }
 }
 
-impl<'var, TYPE: Type, ERR> Hash for ById<'var, TYPE, ERR> {
+impl<'var, TYPE: Type> Hash for ById<'var, TYPE> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.id().hash(state)
     }
 }
 
-struct Element<'var, TYPE: Type, ERR> {
-    pub parent: Cell<&'var Variable<TYPE, ERR>>,
+struct Element<'var, TYPE: Type> {
+    pub parent: Cell<&'var Variable<TYPE>>,
 }
 
-pub struct UnionFind<'var, TYPE: Type, ERR> {
-    ds: HashMap<ById<'var, TYPE, ERR>, Element<'var, TYPE, ERR>>,
+pub struct UnionFind<'var, TYPE: Type> {
+    ds: HashMap<ById<'var, TYPE>, Element<'var, TYPE>>,
 }
 
-impl<'var, TYPE: Type, ERR> Debug for UnionFind<'var, TYPE, ERR> {
+impl<'var, TYPE: Type> Debug for UnionFind<'var, TYPE> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "[{}]",
             self.ds
                 .keys()
-                .map(|key| { format!("{}->{}", key.0, self.find_representative(key.0)) })
+                .map(|key| { format!("{:?}->{:?}", key.0, self.find_representative(key.0)) })
                 .join(", ")
         )
     }
 }
 
-impl<'var, TYPE: Type, ERR> UnionFind<'var, TYPE, ERR> {
+impl<'var, TYPE: Type> UnionFind<'var, TYPE> {
     pub fn new() -> Self {
         Self {
             ds: Default::default(),
         }
     }
 
-    pub fn insert(&mut self, var: &'var Variable<TYPE, ERR>) {
+    pub fn insert(&mut self, var: &'var Variable<TYPE>) {
         self.ds.insert(
             ById(var),
             Element {
@@ -62,8 +62,8 @@ impl<'var, TYPE: Type, ERR> UnionFind<'var, TYPE, ERR> {
 
     fn find_internal(
         &self,
-        var: &'var Variable<TYPE, ERR>,
-    ) -> (&'var Variable<TYPE, ERR>, &Element<'var, TYPE, ERR>) {
+        var: &'var Variable<TYPE>,
+    ) -> (&'var Variable<TYPE>, &Element<'var, TYPE>) {
         // todo: path splitting/halving?
         let el = self
             .ds
@@ -78,15 +78,15 @@ impl<'var, TYPE: Type, ERR> UnionFind<'var, TYPE, ERR> {
         }
     }
 
-    pub fn find_representative(&self, var: &'var Variable<TYPE, ERR>) -> &'var Variable<TYPE, ERR> {
+    pub fn find_representative(&self, var: &'var Variable<TYPE>) -> &'var Variable<TYPE> {
         self.find_internal(var).0
     }
 
     pub fn union(
         &self,
-        a: &'var Variable<TYPE, ERR>,
-        b: &'var Variable<TYPE, ERR>,
-    ) -> Result<bool, TypeError<TYPE, ERR>> {
+        a: &'var Variable<TYPE>,
+        b: &'var Variable<TYPE>,
+    ) -> Result<bool, TypeError<TYPE>> {
         // union two variables. First find the root of both a and b (ar and br). ar_data and br_data
         // contain information about the previous parent of ar/br. These will be updated.
         // When a known variable unions with an unknown variable, the parent becomes the known variable.
@@ -102,19 +102,29 @@ impl<'var, TYPE: Type, ERR> UnionFind<'var, TYPE, ERR> {
 
         match (ar, br) {
             (Variable::Known(a), Variable::Known(b)) if a.value != b.value => {
-                panic!("type not ok")
+                return Err(GeneratedTypeError::CantUnify(
+                    a.span.borrow().clone(),
+                    a.clone(),
+                    b.span.borrow().clone(),
+                    b.clone(),
+                )
+                .into());
             }
-            (va @ Variable::Known(_), Variable::Known(_)) => {
+            (va @ Variable::Known(_), vb @ Variable::Known(_)) => {
                 br_data.parent.set(va);
+                va.merge_span(vb)
             }
-            (Variable::Free(_), vb @ Variable::Known(_)) => {
+            (va @ Variable::Free(_), vb @ Variable::Known(_)) => {
                 ar_data.parent.set(vb);
+                va.merge_span(vb)
             }
-            (va @ Variable::Known(_), Variable::Free(_)) => {
+            (va @ Variable::Known(_), vb @ Variable::Free(_)) => {
                 br_data.parent.set(va);
+                va.merge_span(vb)
             }
-            (va @ Variable::Free(_), Variable::Free(_)) => {
+            (va @ Variable::Free(_), vb @ Variable::Free(_)) => {
                 br_data.parent.set(va);
+                va.merge_span(vb)
             }
         }
 
@@ -134,14 +144,15 @@ mod tests {
         A,
         B,
     }
+
     impl Type for TestType {}
 
     #[test]
     fn test_init() {
         let mut uf = UnionFind::new();
-        let v0 = Variable::<TestType, ()>::new_free();
-        let v1 = Variable::<TestType, ()>::new_known(TestType::A);
-        let v2 = Variable::<TestType, ()>::new_known(TestType::B);
+        let v0 = Variable::<TestType>::new_free(None);
+        let v1 = Variable::<TestType>::new_known(TestType::A, None);
+        let v2 = Variable::<TestType>::new_known(TestType::B, None);
 
         let vars = vec![v0, v1, v2];
 
@@ -158,12 +169,12 @@ mod tests {
     #[test]
     fn test_union() {
         let mut uf = UnionFind::new();
-        let v0 = Variable::<TestType, ()>::new_free();
-        let v1 = Variable::<TestType, ()>::new_free();
-        let v2 = Variable::<TestType, ()>::new_free();
-        let v3 = Variable::<TestType, ()>::new_free();
-        let v4 = Variable::<TestType, ()>::new_known(TestType::A);
-        let v5 = Variable::<TestType, ()>::new_known(TestType::B);
+        let v0 = Variable::<TestType>::new_free(None);
+        let v1 = Variable::<TestType>::new_free(None);
+        let v2 = Variable::<TestType>::new_free(None);
+        let v3 = Variable::<TestType>::new_free(None);
+        let v4 = Variable::<TestType>::new_known(TestType::A, None);
+        let v5 = Variable::<TestType>::new_known(TestType::B, None);
 
         let vars = vec![&v0, &v1, &v2, &v3, &v4, &v5];
 
@@ -178,21 +189,21 @@ mod tests {
         // union free + known
         assert!(uf.union(&v3, &v5).is_ok());
 
-        // union known + known (panics: TODO)
-        // assert!(uf.union(&v4, &v5).is_err());
+        // union known + known
+        assert!(uf.union(&v4, &v5).is_err());
     }
 
     #[test]
     fn balanced_free_union() {
         let mut uf = UnionFind::new();
-        let v0 = Variable::<TestType, ()>::new_free();
-        let v1 = Variable::<TestType, ()>::new_free();
-        let v2 = Variable::<TestType, ()>::new_free();
-        let v3 = Variable::<TestType, ()>::new_free();
-        let v4 = Variable::<TestType, ()>::new_free();
-        let v5 = Variable::<TestType, ()>::new_free();
-        let v6 = Variable::<TestType, ()>::new_free();
-        let v7 = Variable::<TestType, ()>::new_free();
+        let v0 = Variable::<TestType>::new_free(None);
+        let v1 = Variable::<TestType>::new_free(None);
+        let v2 = Variable::<TestType>::new_free(None);
+        let v3 = Variable::<TestType>::new_free(None);
+        let v4 = Variable::<TestType>::new_free(None);
+        let v5 = Variable::<TestType>::new_free(None);
+        let v6 = Variable::<TestType>::new_free(None);
+        let v7 = Variable::<TestType>::new_free(None);
 
         let vars = vec![&v0, &v1, &v2, &v3, &v4, &v5, &v6, &v7];
 
