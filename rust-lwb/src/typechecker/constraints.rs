@@ -29,6 +29,7 @@ impl Display for VariableId {
 
 #[derive(Debug)]
 pub struct KnownVariable<TYPE: Type> {
+    dbg_msg: String,
     id: VariableId,
     pub(crate) value: TYPE,
     pub(crate) span: RefCell<Option<Span>>,
@@ -36,6 +37,7 @@ pub struct KnownVariable<TYPE: Type> {
 
 #[derive(Debug)]
 pub struct FreeVariable {
+    dbg_msg: String,
     id: VariableId,
     pub(crate) span: RefCell<Option<Span>>,
 }
@@ -73,15 +75,17 @@ impl<TYPE: Type> Variable<TYPE> {
         }
     }
 
-    pub(crate) fn new_free(span: Option<Span>) -> Self {
+    pub(crate) fn new_free(span: Option<Span>, dbg_msg: impl AsRef<str>) -> Self {
         Self::Free(Rc::new(FreeVariable {
+            dbg_msg: dbg_msg.as_ref().to_string(),
             id: new_variable_id(),
             span: RefCell::new(span),
         }))
     }
 
-    pub(crate) fn new_known(value: TYPE, span: Option<Span>) -> Self {
+    pub(crate) fn new_known(value: TYPE, span: Option<Span>, dbg_msg: impl AsRef<str>) -> Self {
         Self::Known(Rc::new(KnownVariable {
+            dbg_msg: dbg_msg.as_ref().to_string(),
             id: new_variable_id(),
             value,
             span: RefCell::new(span),
@@ -99,6 +103,13 @@ impl<TYPE: Type> Variable<TYPE> {
         match self {
             Free(i) => i.span.borrow(),
             Known(i) => i.span.borrow(),
+        }
+    }
+
+    pub(crate) fn dbg_msg(&self) -> &str {
+        match self {
+            Free(i) => &i.dbg_msg,
+            Known(i) => &i.dbg_msg,
         }
     }
 
@@ -157,7 +168,7 @@ pub trait IntoVariable<TYPE: Type>: sealed::Sealed {
 
 impl<TYPE: Type> IntoVariable<TYPE> for TYPE {
     fn into(self) -> Variable<TYPE> {
-        Variable::new_known(self, None)
+        Variable::new_known(self, None, "")
     }
 }
 

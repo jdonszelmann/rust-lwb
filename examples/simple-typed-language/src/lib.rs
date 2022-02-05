@@ -69,5 +69,7 @@ if a == 5 {
 if a + 5 {
     a = a + 3;
 }
-    " should typecheck);
+    " should not typecheck);
+
+    test_stl!(compound: "true - (3 - 5);" should typecheck);
 }

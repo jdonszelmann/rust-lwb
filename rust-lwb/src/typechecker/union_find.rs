@@ -7,10 +7,6 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 
-/// When the certainty of a type is less than this value, it is considered
-/// known for sure. This changes error messages.
-const CERTAINTY_WHEN_SURE: usize = 2;
-
 struct ById<'var, TYPE: Type>(&'var Variable<TYPE>);
 
 impl<'var, TYPE: Type> Eq for ById<'var, TYPE> {}
@@ -43,13 +39,12 @@ impl<'var, TYPE: Type> Debug for UnionFind<'var, TYPE> {
         for (key, value) in &self.ds {
             let (repr, elem, _depth) = self.find_internal(key.0);
             writeln!(f,
-                "{: <20} ({:?}) --> {: <20} ({})",
+                "{: <20} {: <20} ({:?}) --> {: <20} ({})",
+                key.0.dbg_msg(),
                 format!("{:?}", key.0),
-                // value.certainty.get(),
                 value.depth.get(),
                 format!("{:?}", repr),
                 elem.depth.get()
-                // elem.certainty.get()
             )?;
         }
 
@@ -73,12 +68,6 @@ impl<'var, TYPE: Type> UnionFind<'var, TYPE> {
     }
 
     pub fn insert(&mut self, var: &'var Variable<TYPE>) {
-        let certainty= Cell::new(if var.is_known() {
-            0
-        } else {
-            CERTAINTY_WHEN_SURE
-        });
-
         self.ds.insert(
             ById(var),
             Element {
@@ -102,7 +91,7 @@ impl<'var, TYPE: Type> UnionFind<'var, TYPE> {
         if ById(el.parent.get()) != ById(var) {
             let (var, elem, depth) = self.find_internal(el.parent.get());
             el.parent.set(var);
-            el.depth.set(depth + 1);
+            el.depth.set(depth);
             (var, elem, depth + 1)
         } else {
             (var, el, 1)

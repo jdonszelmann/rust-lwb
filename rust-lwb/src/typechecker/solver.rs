@@ -10,7 +10,6 @@ use crate::typechecker::state::OrderedConstraint;
 
 pub struct Solver<'var, TYPE: Type> {
     constraints: &'var [OrderedConstraint<TYPE>],
-    nodes: HashMap<NodeId, &'var Variable<TYPE>>,
     uf: UnionFind<'var, TYPE>,
 }
 
@@ -74,7 +73,6 @@ impl<'var, TYPE: Type> Solver<'var, TYPE> {
 
         Self {
             constraints,
-            nodes: Default::default(),
             uf,
         }
     }
@@ -91,21 +89,16 @@ impl<'var, TYPE: Type> Solver<'var, TYPE> {
             Constraint::Equiv(a, b) => {
                 println!("solving {:?}", constraint);
                 self.uf.union(a, b)?;
+                println!("{:?}", self.uf);
             }
             Constraint::NotEquiv(_, _) => {
                 todo!()
             }
-            Constraint::Node(var, node) => {
-                let nodevar = *self.nodes.entry(*node).or_insert(var);
-                println!("solving node:{:?} == {:?}", nodevar, var);
-                self.uf.union(nodevar, var)?;
-            }
+            Constraint::Node(_, _) => {/* don't do anything*/}
             Constraint::Computed(_) => {
                 todo!()
             }
         }
-
-        println!("{:?}", self.uf);
 
         Ok(())
     }

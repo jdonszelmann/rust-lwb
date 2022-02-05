@@ -1,9 +1,10 @@
 use std::cmp::Ordering;
-use crate::parser::ast::SpannedAstInfo;
+use crate::parser::ast::{NodeId, SpannedAstInfo};
 use crate::sources::span::Span;
 use crate::typechecker::constraints::{Constraint, Variable};
 use crate::typechecker::{Type, TypeCheckable};
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
+use std::collections::hash_map::Entry;
 
 #[derive(Debug)]
 pub struct OrderedConstraint<TYPE: Type> {
@@ -44,7 +45,7 @@ impl<TYPE: Type> OrderedConstraint<TYPE> {
 
 pub struct State<'ast, M: SpannedAstInfo, CTX, TYPE: Type> {
     pub(crate) constraints: Vec<OrderedConstraint<TYPE>>,
-
+    pub(crate) node_type_vars: HashMap<NodeId, Variable<TYPE>>,
     pub(crate) todo: VecDeque<(usize, &'ast dyn TypeCheckable<M, CTX, TYPE>)>,
     pub(crate) current_depth: usize,
 }
@@ -53,8 +54,9 @@ impl<'ast, M: SpannedAstInfo, CTX, TYPE: Type> Default for State<'ast, M, CTX, T
     fn default() -> Self {
         Self {
             constraints: vec![],
+            node_type_vars: Default::default(),
             todo: Default::default(),
-            current_depth: 0
+            current_depth: 1
         }
     }
 }
@@ -65,11 +67,19 @@ impl<'ast, M: SpannedAstInfo, CTX, TYPE: Type> State<'ast, M, CTX, TYPE> {
     }
 
     pub fn new_variable(&self) -> Variable<TYPE> {
-        Variable::new_free(None)
+        Variable::new_free(None, "")
     }
 
     pub(crate) fn new_variable_with_span(&self, span: Span) -> Variable<TYPE> {
-        Variable::new_free(Some(span))
+        Variable::new_free(Some(span), "")
+    }
+
+    pub(crate) fn new_variable_with_msg(&self, dbg_msg: impl AsRef<str>) -> Variable<TYPE> {
+        Variable::new_free(None, dbg_msg)
+    }
+
+    pub(crate) fn new_variable_with_span_and_msg(&self, span: Span, dbg_msg: impl AsRef<str>) -> Variable<TYPE> {
+        Variable::new_free(Some(span), dbg_msg)
     }
 
     pub fn type_ok<T>(&mut self, ast_node: &'ast T)
@@ -84,28 +94,45 @@ impl<'ast, M: SpannedAstInfo, CTX, TYPE: Type> State<'ast, M, CTX, TYPE> {
         T: TypeCheckable<M, CTX, TYPE>,
     {
         self.type_ok(ast_node);
-        self.type_of_node(ast_node)
+        self.type_of_node(ast_node, 0)
     }
 
     pub fn add_constraint(&mut self, constraint: Constraint<TYPE>) {
-        self.constraints.push(OrderedConstraint::new(constraint, self.current_depth));
+        self.i_add_constraint(constraint, 0)
     }
 
-    fn type_of_node<T>(&mut self, ast_node: &T) -> Variable<TYPE>
+    fn i_add_constraint(&mut self, constraint: Constraint<TYPE>, depth_offset: usize) {
+        self.constraints.push(OrderedConstraint::new(constraint, self.current_depth - depth_offset));
+    }
+
+    fn type_of_node<T>(&mut self, ast_node: &T, depth_offset: usize) -> Variable<TYPE>
     where
         T: TypeCheckable<M, CTX, TYPE>,
     {
-        let node_var = self.new_variable_with_span(ast_node.ast_info().span().clone());
+        let node_var = self.new_variable_with_span_and_msg(
+            ast_node.ast_info().span().clone(),
+            format!("{}.{}", ast_node.node_sort(), ast_node.constructor())
+        );
 
-        self.add_constraint(Constraint::Node(node_var.clone(), ast_node.ast_info().node_id()));
+        match self.node_type_vars.entry(ast_node.ast_info().node_id()) {
+            Entry::Occupied(e) => {
+                e.get().clone()
+            }
+            Entry::Vacant(e) => {
+                e.insert(node_var.clone());
+                self.i_add_constraint(Constraint::Node(node_var.clone(), ast_node.ast_info().node_id()), depth_offset);
 
-        node_var
+                node_var
+            }
+        }
+
+
     }
 
     pub fn type_of_self<T>(&mut self, ast_node: &T) -> Variable<TYPE>
     where
         T: TypeCheckable<M, CTX, TYPE>,
     {
-        self.type_of_node(ast_node)
+        self.type_of_node(ast_node, 1)
     }
 }

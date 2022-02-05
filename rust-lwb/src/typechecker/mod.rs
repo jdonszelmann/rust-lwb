@@ -51,7 +51,7 @@ impl<M: SpannedAstInfo, CTX, TYPE: Type> TypeChecker<M, CTX, TYPE> {
     {
         let mut state = State::new();
         state.type_ok(&ast);
-        state.current_depth = 0;
+        state.current_depth = 1;
 
         let mut had = HashSet::new();
 

@@ -289,6 +289,31 @@ pub fn generate_language(
 
         let mut f = Function::new("ast_info");
         f.arg_ref_self().ret("&M").push_block(block);
+        imp.push_fn(f);
+
+        let mut block = Block::new("");
+        block.line(format!(r#""{}""#, rule.name));
+
+        let mut f = Function::new("node_sort");
+        f.arg_ref_self().ret("&'static str").push_block(block);
+
+        imp.push_fn(f);
+
+
+
+        let mut f = Function::new("constructor");
+
+        let mut block = Block::new("");
+        block.line("match self {");
+        for constructor in &rule.constructors {
+            block.line(format!(
+                r#"Self::{}(info, ..) => {{ "{}" }}"#,
+                sanitize_identifier(&constructor.name), constructor.name
+            ));
+        }
+        block.line("}");
+
+        f.arg_ref_self().ret("&'static str").push_block(block);
 
         imp.push_fn(f);
     }
