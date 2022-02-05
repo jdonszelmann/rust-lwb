@@ -33,3 +33,5 @@ pub mod codegen_prelude;
 
 /// Utilities to typecheck an abstract syntax tree.
 pub mod typechecker;
+
+mod error;
