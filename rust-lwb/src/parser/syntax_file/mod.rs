@@ -1,11 +1,11 @@
+use crate::error::display_miette_error;
 use crate::parser::ast::generate_ast::{generate_ast, BasicAstInfo, BasicAstNode};
 use crate::parser::peg::parse_error::PEGParseError;
 use crate::parser::peg::parser_file::parse_file;
 use crate::parser::syntax_file::convert_syntax_file_ast::{convert, AstConversionError};
 use crate::sources::source_file::SourceFile;
-use thiserror::Error;
-use crate::error::display_miette_error;
 use itertools::Itertools;
+use thiserror::Error;
 
 #[rustfmt::skip]
 pub mod ast;
