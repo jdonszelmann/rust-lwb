@@ -1,12 +1,12 @@
+use crate::parser::bootstrap::ast::{Constructor, Sort};
 use crate::sources::character_class::CharacterClass;
 use crate::sources::span::Span;
 use itertools::Itertools;
 use miette::{Diagnostic, LabeledSpan, Severity, SourceCode};
 use std::cmp::Ordering;
-use std::collections::{VecDeque};
+use std::collections::VecDeque;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
-use crate::parser::bootstrap::ast::{Constructor, Sort};
 
 /// A parsing error represents a single error that occurred during parsing.
 /// The parsing error occurs at a certain position in a file, represented by the span.
@@ -36,7 +36,11 @@ impl Diagnostic for PEGParseError {
 
     /// Labels to apply to this Diagnostic's [Diagnostic::source_code]
     fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
-        let expect_str = self.expected.iter().map(|(_, exp)| exp.to_string()).join(", ");
+        let expect_str = self
+            .expected
+            .iter()
+            .map(|(_, exp)| exp.to_string())
+            .join(", ");
         let mut labels = vec![];
 
         //Leftrec label
@@ -70,7 +74,13 @@ impl PEGParseError {
     pub fn expect(span: Span, trace: &VecDeque<(&Sort, &Constructor)>, expect: Expect) -> Self {
         PEGParseError {
             span,
-            expected: vec![(trace.iter().map(|(s, c)| (s.name.to_string(), c.name.to_string())).collect(), expect)],
+            expected: vec![(
+                trace
+                    .iter()
+                    .map(|(s, c)| (s.name.to_string(), c.name.to_string()))
+                    .collect(),
+                expect,
+            )],
             fail_left_rec: false,
             fail_loop: false,
         }

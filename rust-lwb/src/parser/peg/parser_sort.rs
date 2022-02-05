@@ -159,6 +159,6 @@ fn parse_sort_sub<'src>(
         res.pos,
         res.pos_err,
         res.ok,
-        res.recovered
+        res.recovered,
     )
 }
