@@ -9,13 +9,16 @@ use std::path::{Path, PathBuf};
 pub struct BootstrapConfig {
     pub input_location: String,
     pub output_location: String,
-    pub serialized_ast_location: String,
 }
 
 pub fn from_root(path_from_root: impl AsRef<Path>) -> PathBuf {
     let mut f = root();
     f.push(path_from_root);
     f
+}
+
+pub fn temporary_location() -> PathBuf {
+    from_root("src/temp.rs")
 }
 
 pub fn root() -> PathBuf {

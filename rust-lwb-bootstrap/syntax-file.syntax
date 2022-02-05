@@ -28,6 +28,8 @@ expression:
     repeat-exact = expression "{" number "," number? "}";
 
     literal = "\"" string-char* "\""; {no-layout}
+    single-quote-literal = "'" string-char* "'"; {no-layout}
+
     sort = identifier;
     class = character-class;
 

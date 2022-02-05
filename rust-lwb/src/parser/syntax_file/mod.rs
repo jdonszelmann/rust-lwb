@@ -11,13 +11,9 @@ pub mod convert_syntax_file_ast;
 
 language!(pub SyntaxFile at mod ast);
 
-const SERIALIZED_AST: &[u8] = include_bytes!("serialized-ast.bin");
-
 #[derive(Debug, Error)]
 pub enum ParseError {
-    #[error(
-        "failed to deserialize saved syntax file definition ast (this is a bug! please report it)"
-    )]
+    #[error("failed to deserialize saved parser")]
     Bincode(#[from] bincode::Error),
 
     #[error("failed to convert saved syntax file definition ast to legacy syntax file definition ast (this is a bug! please report it)")]
@@ -27,8 +23,13 @@ pub enum ParseError {
     PEG(Vec<PEGParseError>),
 }
 
-pub fn parse_language<AST: BasicAstNode>(input: &SourceFile) -> Result<AST, ParseError> {
-    let syntax_file_ast: ast::AST_ROOT<BasicAstInfo> = bincode::deserialize_from(SERIALIZED_AST)?;
+pub fn parse_language<AST: BasicAstNode>(
+    input: &SourceFile,
+    parser: &[u8],
+) -> Result<AST, ParseError> {
+    // let syntax_file_ast: ast::AST_ROOT<BasicAstInfo> = bincode::deserialize(SERIALIZED_AST).unwrap();
+    // let legacy_ast = convert(syntax_file_ast)?; // TODO: make peg parser use new version of ast
+    let syntax_file_ast: ast::AST_ROOT<BasicAstInfo> = bincode::deserialize(parser)?;
     let legacy_ast = convert(syntax_file_ast)?; // TODO: make peg parser use new version of ast
 
     // let sf = SourceFile::open("rust-lwb-bootstrap/syntax-file.syntax").expect("open error");

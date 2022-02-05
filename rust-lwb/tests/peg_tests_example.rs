@@ -1,4 +1,5 @@
 use miette::GraphicalReportHandler;
+use rust_lwb::language::Language;
 use rust_lwb::parser::peg::parser_file::parse_file;
 use rust_lwb::parser::syntax_file::convert_syntax_file_ast::convert;
 use rust_lwb::parser::syntax_file::SyntaxFile;

@@ -1,4 +1,5 @@
 use crate::codegen::generate_language;
+use crate::language::Language;
 use crate::sources::source_file::SourceFile;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -17,6 +18,9 @@ pub enum CodegenError {
 
     #[error("failed to convert saved syntax file definition ast to legacy syntax file definition ast (this is a bug! please report it)")]
     ConvertAstError(#[from] AstConversionError),
+
+    #[error("failed to serialize parser")]
+    Bincode(#[from] bincode::Error),
 }
 
 pub struct CodeGenJob {
@@ -26,6 +30,9 @@ pub struct CodeGenJob {
 
     /// Make Ast serializable
     serde: bool,
+
+    #[doc(hidden)]
+    pub write_serialized_ast: bool, // always true except bootstrap.
 }
 
 impl CodeGenJob {
@@ -41,6 +48,7 @@ impl CodeGenJob {
             destination,
             import_location: "rust_lwb".to_string(),
             serde: false,
+            write_serialized_ast: true,
         }
     }
 
@@ -54,6 +62,11 @@ impl CodeGenJob {
         self
     }
 
+    pub fn dont_generate_serialized_ast(&mut self) -> &mut Self {
+        self.write_serialized_ast = false;
+        self
+    }
+
     pub fn serde(&mut self, enable_serde: bool) -> &mut Self {
         self.serde = enable_serde;
         self
@@ -62,13 +75,27 @@ impl CodeGenJob {
     pub fn codegen(self) -> Result<(), CodegenError> {
         let sf = SourceFile::open(self.location)?;
         let ast = SyntaxFile::parse(&sf)?;
+
+        let serialized_parser = bincode::serialize(&ast)?;
+
         let legacy_ast = convert_syntax_file_ast::convert(ast)?; // TODO make peg parser use new ast
 
         // TODO: initial bootstrap (remove)
         // let sf = SourceFile::open(&self.location)?;
         // let legacy_ast = parse(&sf).expect("should parse");
 
-        let res = generate_language(legacy_ast, &self.import_location, self.serde);
+        let serialized_parser = if self.write_serialized_ast {
+            Some(serialized_parser.as_slice())
+        } else {
+            None
+        };
+
+        let res = generate_language(
+            legacy_ast,
+            &self.import_location,
+            self.serde,
+            serialized_parser,
+        );
 
         let mut res_file = std::fs::File::create(self.destination)?;
         res_file.write_all(res.as_bytes())?;

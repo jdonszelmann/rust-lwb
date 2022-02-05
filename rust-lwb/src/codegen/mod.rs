@@ -1,6 +1,6 @@
 use crate::parser::bootstrap::ast::Annotation::SingleString;
 use crate::parser::bootstrap::ast::{Expression, SyntaxFileAst};
-use codegen::{Function, Scope};
+use codegen::{Block, Function, Scope};
 use convert_case::{Case, Casing};
 use std::ops::Deref;
 
@@ -192,7 +192,12 @@ fn generate_unpack(
     }
 }
 
-pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bool) -> String {
+pub fn generate_language(
+    syntax: SyntaxFileAst,
+    import_location: &str,
+    serde: bool,
+    serialized_parser: Option<&[u8]>,
+) -> String {
     let mut scope = Scope::new();
 
     scope.import(&format!("{}::codegen_prelude", import_location), "*");
@@ -264,11 +269,32 @@ pub fn generate_language(syntax: SyntaxFileAst, import_location: &str, serde: bo
             .impl_trait("FromPairs<M>")
             .generic("M: AstInfo")
             .push_fn(f);
+    }
 
-        scope
+    for rule in &syntax.sorts {
+        let imp = scope
             .new_impl(&format!("{}<M>", sanitize_identifier(&rule.name)))
             .impl_trait("AstNode<M>")
             .generic("M: AstInfo");
+
+        let mut block = Block::new("");
+        block.line("match self {");
+        for constructor in &rule.constructors {
+            block.line(format!(
+                r#"Self::{}(info, ..) => {{ info }}"#,
+                sanitize_identifier(&constructor.name)
+            ));
+        }
+        block.line("}");
+
+        let mut f = Function::new("ast_info");
+        f.arg_ref_self().ret("&M").push_block(block);
+
+        imp.push_fn(f);
+    }
+
+    if let Some(i) = serialized_parser {
+        scope.raw(&format!(r##"pub const PARSER: &[u8] = &{:?};"##, i));
     }
 
     format!(
