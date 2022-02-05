@@ -57,7 +57,7 @@ impl SourceFile {
     pub fn new(contents: impl AsRef<str>, name: impl AsRef<str>) -> Self {
         Self(Arc::new(Inner {
             contents: contents.as_ref().to_string(),
-            contents_for_display: contents.as_ref().to_string().clone() + "        ",
+            contents_for_display: contents.as_ref().to_string() + "        ",
             name: name.as_ref().to_string(),
         }))
     }
