@@ -1,6 +1,6 @@
 use rust_lwb::language;
 
-#[rustfmt::ignore]
+#[rustfmt::skip]
 mod stl;
 mod types;
 
