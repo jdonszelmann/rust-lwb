@@ -21,7 +21,7 @@ pub enum ParseError {
     #[error("failed to convert saved syntax file definition ast to legacy syntax file definition ast (this is a bug! please report it)")]
     ConvertAstError(#[from] AstConversionError),
 
-    #[error("PEG Errors: {}", _0.iter().map(display_miette_error).join("\n"))]
+    #[error("PEG Errors: \n{}", _0.iter().map(display_miette_error).join("\n"))]
     PEG(Vec<PEGParseError>),
 }
 
