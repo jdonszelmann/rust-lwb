@@ -64,7 +64,7 @@ impl SourceCode for Span {
         context_lines_after: usize,
     ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
         <str as SourceCode>::read_span(
-            self.source.contents(),
+            self.source.contents_for_display(),
             span,
             context_lines_before,
             context_lines_after,
