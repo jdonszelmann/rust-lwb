@@ -39,9 +39,9 @@ pub fn parse_sort<'src>(
                 )),
             },
             pos.clone(),
+            pos.clone(),
         ),
     );
-    cache.trace.push_back(sort);
 
     //Now execute the actual rule, taking into account left recursion
     //The way this is done is heavily inspired by http://web.cs.ucla.edu/~todd/research/pepm08.pdf
@@ -92,8 +92,6 @@ pub fn parse_sort<'src>(
 
     cache.insert(key, res.clone());
 
-    cache.trace.pop_back();
-
     //Return result
     res
 }
@@ -108,11 +106,13 @@ fn parse_sort_sub<'src>(
     let mut results = vec![];
     assert!(!sort.constructors.is_empty());
     for constructor in &sort.constructors {
+        cache.trace.push_back((sort, constructor));
         if constructor.annotations.contains(&Annotation::NoLayout) {
             cache.no_layout_nest_count += 1;
             cache.no_errors_nest_count += 1;
         }
         let res = parse_expression(state, cache, &constructor.expression, pos.clone());
+        cache.trace.pop_back();
         if constructor.annotations.contains(&Annotation::NoLayout) {
             cache.no_layout_nest_count -= 1;
             cache.no_errors_nest_count -= 1;
@@ -121,7 +121,7 @@ fn parse_sort_sub<'src>(
             }
         }
 
-        if res.ok {
+        if res.ok && !res.recovered {
             return ParseResult::new_ok(
                 ParsePairSort {
                     sort: &sort.name,
@@ -129,6 +129,8 @@ fn parse_sort_sub<'src>(
                     constructor_value: res.result,
                 },
                 res.pos,
+                res.pos_err,
+                res.recovered,
             );
         }
         if constructor.annotations.contains(&Annotation::NoLayout) {
@@ -145,7 +147,7 @@ fn parse_sort_sub<'src>(
     let (i, res) = results
         .into_iter()
         .enumerate()
-        .max_by_key(|(_, r)| r.pos.position())
+        .max_by_key(|(_, r)| r.pos_err.position())
         .unwrap();
     ParseResult::new_err(
         ParsePairSort {
@@ -154,5 +156,6 @@ fn parse_sort_sub<'src>(
             constructor_value: res.result,
         },
         res.pos,
+        res.pos_err,
     )
 }

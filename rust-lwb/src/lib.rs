@@ -7,8 +7,6 @@ pub use bincode;
 #[macro_use]
 pub mod language;
 
-mod error;
-
 /// Helpers for code generation
 pub mod transform;
 

@@ -22,46 +22,39 @@ macro_rules! peg_test {
             $(
             println!("== Parsing (should be ok): {}", $input_pass);
             let sf2 = SourceFile::new($input_pass.to_string(), "input.language".to_string());
-            let parsed = parse_file(&ast, &sf2);
-            match parsed {
-                Ok(ok) => {
-                    println!("{:?}", ok);
-                }
-                Err(err) => {
-                    println!("{:?}", err);
-                    if $input_pass != "" {
-                        let mut s = String::new();
-                        GraphicalReportHandler::new()
-                            .with_links(true)
-                            .render_report(&mut s, &err)
-                            .unwrap();
-                        print!("{}", s);
-                    }
+            let (parsed, errs) = parse_file(&ast, &sf2);
+            println!("{}", parsed);
+            for err in &errs {
+                println!("{:?}", err);
+                if $input_pass != "" {
+                    let mut s = String::new();
+                    GraphicalReportHandler::new()
+                        .with_links(true)
+                        .render_report(&mut s, err)
+                        .unwrap();
+                    print!("{}", s);
                 }
             }
+            if errs.len() > 0 { assert!(false); }
             )*
 
             $(
             println!("== Parsing (should be err): {}", $input_fail);
             let sf2 = SourceFile::new($input_fail.to_string(), "input.language".to_string());
-            let parsed = parse_file(&ast, &sf2);
-            match parsed {
-                Ok(ok) => {
-                    println!("{:?}", ok);
-                    assert!(false);
-                }
-                Err(err) => {
-                    println!("{:?}", err);
-                    if $input_fail != "" {
-                        let mut s = String::new();
-                        GraphicalReportHandler::new()
-                            .with_links(true)
-                            .render_report(&mut s, &err)
-                            .unwrap();
-                        print!("{}", s);
-                    }
+            let (parsed, errs) = parse_file(&ast, &sf2);
+            println!("{}", parsed);
+            for err in &errs {
+                println!("{:?}", err);
+                if $input_fail != "" {
+                    let mut s = String::new();
+                    GraphicalReportHandler::new()
+                        .with_links(true)
+                        .render_report(&mut s, err)
+                        .unwrap();
+                    print!("{}", s);
                 }
             }
+            if errs.len() == 0 { assert!(false); }
             )*
         }
     };
@@ -140,28 +133,6 @@ failing tests:
 }
 
 peg_test! {
-name: recovery,
-syntax: r#"
-X:
-    X = "x"+ ";";
-XS:
-    XS = X*;
-start at XS;
-"#,
-passing tests:
-    "x;"
-    "xx;"
-    "xx;x;"
-    "x;xx;x;xxx;"
-failing tests:
-    "x"
-    "xx"
-    "x;x"
-    "xx;;"
-    ";"
-}
-
-peg_test! {
 name: layout,
 syntax: r#"
 X:
@@ -174,7 +145,6 @@ passing tests:
     "xy"
 failing tests:
     "x"
-
 }
 
 peg_test! {
@@ -204,4 +174,55 @@ start at X;
 passing tests:
     "x"
 failing tests:
+}
+
+peg_test! {
+name: recovery1,
+syntax: r#"
+X:
+    X = "x"+ ";";
+XS:
+    XS = X*;
+start at XS;
+"#,
+passing tests:
+    "x;"
+    "xx;"
+    "xx;x;"
+    "x;xx;x;xxx;"
+failing tests:
+    "x"
+    "xx"
+    "x;x"
+    "xx;;"
+    ";"
+}
+
+peg_test! {
+name: recovery2,
+syntax: r#"
+S:
+    S = ("{" ("x"+ ";")* "}")*;
+start at S;
+"#,
+passing tests:
+failing tests:
+    "{x;{x;}"
+    "{x;{x;{x;}"
+    "{x;;x;;x;}"
+    "{x;x}{x;}"
+}
+
+peg_test! {
+name: recovery3,
+syntax: r#"
+S:
+    S = "0" "1" "2" "3" "4" "5" "6" "7" "8" "9";
+start at S;
+"#,
+passing tests:
+failing tests:
+    "0234x679"
+    "0234679"
+    "0134569"
 }
