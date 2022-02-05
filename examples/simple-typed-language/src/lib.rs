@@ -58,4 +58,16 @@ mod tests {
     test_stl!(addition_ok: "3 + 3;" should typecheck);
     test_stl!(addition_err_1: "3 + true;" should not typecheck);
     test_stl!(addition_err_2: "true + 3;" should not typecheck);
+    test_stl!(subtraction_ok: "2 - 3;" should typecheck);
+    test_stl!(subtraction_err: "2 - true;" should not typecheck);
+    test_stl!(if_ok: "
+if a == 5 {
+    a = a + 3;
+}
+    " should typecheck);
+    test_stl!(if_err: "
+if a + 5 {
+    a = a + 3;
+}
+    " should typecheck);
 }

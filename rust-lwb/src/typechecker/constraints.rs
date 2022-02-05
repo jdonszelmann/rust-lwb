@@ -66,6 +66,13 @@ impl<TYPE: Type> Debug for Variable<TYPE> {
 }
 
 impl<TYPE: Type> Variable<TYPE> {
+    pub(crate) fn is_known(&self) -> bool {
+        match self {
+            Free(_) => false,
+            Known(_) => true
+        }
+    }
+
     pub(crate) fn new_free(span: Option<Span>) -> Self {
         Self::Free(Rc::new(FreeVariable {
             id: new_variable_id(),

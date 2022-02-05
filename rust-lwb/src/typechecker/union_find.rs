@@ -7,6 +7,10 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 
+/// When the certainty of a type is less than this value, it is considered
+/// known for sure. This changes error messages.
+const CERTAINTY_WHEN_SURE: usize = 2;
+
 struct ById<'var, TYPE: Type>(&'var Variable<TYPE>);
 
 impl<'var, TYPE: Type> Eq for ById<'var, TYPE> {}
@@ -25,6 +29,9 @@ impl<'var, TYPE: Type> Hash for ById<'var, TYPE> {
 
 struct Element<'var, TYPE: Type> {
     pub parent: Cell<&'var Variable<TYPE>>,
+    // pub original_certainty: Cell<usize>,
+    // pub set_certainty: Cell<usize>,
+    pub depth: Cell<usize>,
 }
 
 pub struct UnionFind<'var, TYPE: Type> {
@@ -33,14 +40,28 @@ pub struct UnionFind<'var, TYPE: Type> {
 
 impl<'var, TYPE: Type> Debug for UnionFind<'var, TYPE> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "[{}]",
-            self.ds
-                .keys()
-                .map(|key| { format!("{:?}->{:?}", key.0, self.find_representative(key.0)) })
-                .join(", ")
-        )
+        for (key, value) in &self.ds {
+            let (repr, elem, _depth) = self.find_internal(key.0);
+            writeln!(f,
+                "{: <20} ({:?}) --> {: <20} ({})",
+                format!("{:?}", key.0),
+                // value.certainty.get(),
+                value.depth.get(),
+                format!("{:?}", repr),
+                elem.depth.get()
+                // elem.certainty.get()
+            )?;
+        }
+
+        Ok(())
+        // write!(
+        //     f,
+        //     "[{}]",
+        //     self.ds
+        //         .iter()
+        //         .map(|(key, value)| { format!("{:?}->{:?} ({})", key.0, self.find_representative(key.0), value.certainty.get()) })
+        //         .join(", ")
+        // )
     }
 }
 
@@ -52,10 +73,19 @@ impl<'var, TYPE: Type> UnionFind<'var, TYPE> {
     }
 
     pub fn insert(&mut self, var: &'var Variable<TYPE>) {
+        let certainty= Cell::new(if var.is_known() {
+            0
+        } else {
+            CERTAINTY_WHEN_SURE
+        });
+
         self.ds.insert(
             ById(var),
             Element {
                 parent: Cell::new(var),
+                // set_certainty: certainty.clone(),
+                // original_certainty: certainty
+                depth: Cell::new(1)
             },
         );
     }
@@ -63,18 +93,19 @@ impl<'var, TYPE: Type> UnionFind<'var, TYPE> {
     fn find_internal(
         &self,
         var: &'var Variable<TYPE>,
-    ) -> (&'var Variable<TYPE>, &Element<'var, TYPE>) {
+    ) -> (&'var Variable<TYPE>, &Element<'var, TYPE>, usize) {
         // todo: path splitting/halving?
         let el = self
             .ds
             .get(&ById(var))
             .expect("variable not found in union find. Use insert on all variables first.");
         if ById(el.parent.get()) != ById(var) {
-            let res = self.find_internal(el.parent.get());
-            el.parent.set(res.0);
-            res
+            let (var, elem, depth) = self.find_internal(el.parent.get());
+            el.parent.set(var);
+            el.depth.set(depth + 1);
+            (var, elem, depth + 1)
         } else {
-            (var, el)
+            (var, el, 1)
         }
     }
 
@@ -93,8 +124,8 @@ impl<'var, TYPE: Type> UnionFind<'var, TYPE> {
         // Two known variables simply can't union since that would mean some value in the ast has two
         // types. TODO: allow users to define what happens in these cases (by passing a closure?)
         // When two unknown (free) variables are unioned, that's just fine.
-        let (ar, ar_data) = self.find_internal(a);
-        let (br, br_data) = self.find_internal(b);
+        let (ar, ar_data, _a_depth) = self.find_internal(a);
+        let (br, br_data, _b_depth) = self.find_internal(b);
 
         if ById(ar) == ById(br) {
             return Ok(false);
@@ -105,25 +136,33 @@ impl<'var, TYPE: Type> UnionFind<'var, TYPE> {
                 return Err(GeneratedTypeError::CantUnify(
                     a.span.borrow().clone(),
                     a.clone(),
+                    ar_data.depth.get() < br_data.depth.get(),
                     b.span.borrow().clone(),
                     b.clone(),
+                    ar_data.depth.get() > br_data.depth.get(),
                 )
                 .into());
             }
             (va @ Variable::Known(_), vb @ Variable::Known(_)) => {
                 br_data.parent.set(va);
+                ar_data.depth.set(ar_data.depth.get() + 1);
+
+                // ar_data.certainty.set(ar_data.certainty.get() + 1);
                 va.merge_span(vb)
             }
             (va @ Variable::Free(_), vb @ Variable::Known(_)) => {
                 ar_data.parent.set(vb);
+                br_data.depth.set(br_data.depth.get() + 1);
                 va.merge_span(vb)
             }
             (va @ Variable::Known(_), vb @ Variable::Free(_)) => {
                 br_data.parent.set(va);
+                ar_data.depth.set(ar_data.depth.get() + 1);
                 va.merge_span(vb)
             }
             (va @ Variable::Free(_), vb @ Variable::Free(_)) => {
                 br_data.parent.set(va);
+                ar_data.depth.set(ar_data.depth.get() + 1);
                 va.merge_span(vb)
             }
         }
