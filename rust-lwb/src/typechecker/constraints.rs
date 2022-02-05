@@ -68,10 +68,10 @@ impl<TYPE: Type> Debug for Variable<TYPE> {
 }
 
 impl<TYPE: Type> Variable<TYPE> {
-    pub(crate) fn is_known(&self) -> bool {
+    pub fn is_known(&self) -> bool {
         match self {
             Free(_) => false,
-            Known(_) => true
+            Known(_) => true,
         }
     }
 

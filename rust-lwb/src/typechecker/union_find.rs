@@ -1,7 +1,6 @@
 use crate::typechecker::constraints::Variable;
 use crate::typechecker::error::{GeneratedTypeError, TypeError};
 use crate::typechecker::Type;
-use itertools::Itertools;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
@@ -38,7 +37,8 @@ impl<'var, TYPE: Type> Debug for UnionFind<'var, TYPE> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for (key, value) in &self.ds {
             let (repr, elem, _depth) = self.find_internal(key.0);
-            writeln!(f,
+            writeln!(
+                f,
                 "{: <20} {: <20} ({:?}) --> {: <20} ({})",
                 key.0.dbg_msg(),
                 format!("{:?}", key.0),
@@ -74,7 +74,7 @@ impl<'var, TYPE: Type> UnionFind<'var, TYPE> {
                 parent: Cell::new(var),
                 // set_certainty: certainty.clone(),
                 // original_certainty: certainty
-                depth: Cell::new(1)
+                depth: Cell::new(1),
             },
         );
     }
@@ -98,6 +98,7 @@ impl<'var, TYPE: Type> UnionFind<'var, TYPE> {
         }
     }
 
+    #[allow(unused)]
     pub fn find_representative(&self, var: &'var Variable<TYPE>) -> &'var Variable<TYPE> {
         self.find_internal(var).0
     }
@@ -178,9 +179,9 @@ mod tests {
     #[test]
     fn test_init() {
         let mut uf = UnionFind::new();
-        let v0 = Variable::<TestType>::new_free(None);
-        let v1 = Variable::<TestType>::new_known(TestType::A, None);
-        let v2 = Variable::<TestType>::new_known(TestType::B, None);
+        let v0 = Variable::<TestType>::new_free(None, "");
+        let v1 = Variable::<TestType>::new_known(TestType::A, None, "");
+        let v2 = Variable::<TestType>::new_known(TestType::B, None, "");
 
         let vars = vec![v0, v1, v2];
 
@@ -197,12 +198,12 @@ mod tests {
     #[test]
     fn test_union() {
         let mut uf = UnionFind::new();
-        let v0 = Variable::<TestType>::new_free(None);
-        let v1 = Variable::<TestType>::new_free(None);
-        let v2 = Variable::<TestType>::new_free(None);
-        let v3 = Variable::<TestType>::new_free(None);
-        let v4 = Variable::<TestType>::new_known(TestType::A, None);
-        let v5 = Variable::<TestType>::new_known(TestType::B, None);
+        let v0 = Variable::<TestType>::new_free(None, "");
+        let v1 = Variable::<TestType>::new_free(None, "");
+        let v2 = Variable::<TestType>::new_free(None, "");
+        let v3 = Variable::<TestType>::new_free(None, "");
+        let v4 = Variable::<TestType>::new_known(TestType::A, None, "");
+        let v5 = Variable::<TestType>::new_known(TestType::B, None, "");
 
         let vars = vec![&v0, &v1, &v2, &v3, &v4, &v5];
 
@@ -224,14 +225,14 @@ mod tests {
     #[test]
     fn balanced_free_union() {
         let mut uf = UnionFind::new();
-        let v0 = Variable::<TestType>::new_free(None);
-        let v1 = Variable::<TestType>::new_free(None);
-        let v2 = Variable::<TestType>::new_free(None);
-        let v3 = Variable::<TestType>::new_free(None);
-        let v4 = Variable::<TestType>::new_free(None);
-        let v5 = Variable::<TestType>::new_free(None);
-        let v6 = Variable::<TestType>::new_free(None);
-        let v7 = Variable::<TestType>::new_free(None);
+        let v0 = Variable::<TestType>::new_free(None, "");
+        let v1 = Variable::<TestType>::new_free(None, "");
+        let v2 = Variable::<TestType>::new_free(None, "");
+        let v3 = Variable::<TestType>::new_free(None, "");
+        let v4 = Variable::<TestType>::new_free(None, "");
+        let v5 = Variable::<TestType>::new_free(None, "");
+        let v6 = Variable::<TestType>::new_free(None, "");
+        let v7 = Variable::<TestType>::new_free(None, "");
 
         let vars = vec![&v0, &v1, &v2, &v3, &v4, &v5, &v6, &v7];
 

@@ -1,9 +1,9 @@
-use std::error::Error;
 use crate::error::display_miette_error;
 use crate::sources::span::Span;
 use crate::typechecker::constraints::KnownVariable;
 use crate::typechecker::Type;
 use miette::{Diagnostic, LabeledSpan, Severity, SourceCode};
+use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 use thiserror::Error;
@@ -30,9 +30,13 @@ impl<TYPE: Type> Display for GeneratedTypeError<TYPE> {
             GeneratedTypeError::CantUnify(_, at, true, _, bt, true) => {
                 write!(f, "can't unify {:?} with {:?}", at.value, bt.value)
             }
-            GeneratedTypeError::CantUnify(_, at, true, _, bt, false) |
-            GeneratedTypeError::CantUnify(_, bt, false, _, at, true) => {
-                write!(f, "can't use value with type {:?} in a place where {:?} is expected", bt.value, at.value)
+            GeneratedTypeError::CantUnify(_, at, true, _, bt, false)
+            | GeneratedTypeError::CantUnify(_, bt, false, _, at, true) => {
+                write!(
+                    f,
+                    "can't use value with type {:?} in a place where {:?} is expected",
+                    bt.value, at.value
+                )
             }
             GeneratedTypeError::CantUnify(_, bt, false, _, at, false) => {
                 write!(f, "mistake in the type specification of the language: both {:?} and {:?} are expected at the same time", bt.value, at.value)

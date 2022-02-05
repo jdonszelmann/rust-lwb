@@ -299,8 +299,6 @@ pub fn generate_language(
 
         imp.push_fn(f);
 
-
-
         let mut f = Function::new("constructor");
 
         let mut block = Block::new("");
@@ -308,7 +306,8 @@ pub fn generate_language(
         for constructor in &rule.constructors {
             block.line(format!(
                 r#"Self::{}(info, ..) => {{ "{}" }}"#,
-                sanitize_identifier(&constructor.name), constructor.name
+                sanitize_identifier(&constructor.name),
+                constructor.name
             ));
         }
         block.line("}");

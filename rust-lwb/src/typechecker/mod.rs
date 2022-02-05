@@ -61,15 +61,12 @@ impl<M: SpannedAstInfo, CTX, TYPE: Type> TypeChecker<M, CTX, TYPE> {
                 continue;
             }
 
-
             state.current_depth = depth + 1;
             had.insert(i.ast_info().node_id());
             i.create_constraints(&mut state, ctx);
         }
 
-        let variables = Self::get_variables(
-            state.constraints.iter().map(|i| &i.constraint)
-        );
+        let variables = Self::get_variables(state.constraints.iter().map(|i| &i.constraint));
 
         // for i in &state.constraints {
         //     println!("{:?}", i);
@@ -81,7 +78,12 @@ impl<M: SpannedAstInfo, CTX, TYPE: Type> TypeChecker<M, CTX, TYPE> {
         Ok(())
     }
 
-    fn get_variables<'a>(constraints: impl IntoIterator<Item=&'a Constraint<TYPE>>) -> Vec<&'a Variable<TYPE>> {
-        constraints.into_iter().flat_map(|i| i.variables()).collect()
+    fn get_variables<'a>(
+        constraints: impl IntoIterator<Item = &'a Constraint<TYPE>>,
+    ) -> Vec<&'a Variable<TYPE>> {
+        constraints
+            .into_iter()
+            .flat_map(|i| i.variables())
+            .collect()
     }
 }

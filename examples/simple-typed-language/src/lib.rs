@@ -71,5 +71,8 @@ if a + 5 {
 }
     " should not typecheck);
 
-    test_stl!(compound: "true - (3 - 5);" should typecheck);
+    test_stl!(compound: "true - (3 - 5);" should not typecheck);
+    test_stl!(compound_ok: "3 - (3 - 5);" should typecheck);
+
+    // test_stl!(empty_list: "a = [];" should typecheck);
 }

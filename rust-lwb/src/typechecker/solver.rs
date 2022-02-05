@@ -1,12 +1,9 @@
-use crate::parser::ast::NodeId;
 use crate::typechecker::constraints::{Constraint, Variable};
 use crate::typechecker::error::TypeError;
+use crate::typechecker::state::OrderedConstraint;
 use crate::typechecker::union_find::UnionFind;
 use crate::typechecker::Type;
-use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap};
-use std::ops::{Deref, DerefMut};
-use crate::typechecker::state::OrderedConstraint;
+use std::collections::BinaryHeap;
 
 pub struct Solver<'var, TYPE: Type> {
     constraints: &'var [OrderedConstraint<TYPE>],
@@ -64,17 +61,17 @@ pub struct Solver<'var, TYPE: Type> {
 // }
 
 impl<'var, TYPE: Type> Solver<'var, TYPE> {
-    pub fn new(variables: &[&'var Variable<TYPE>], constraints: &'var [OrderedConstraint<TYPE>]) -> Self {
+    pub fn new(
+        variables: &[&'var Variable<TYPE>],
+        constraints: &'var [OrderedConstraint<TYPE>],
+    ) -> Self {
         let mut uf = UnionFind::new();
 
         for &i in variables {
             uf.insert(i);
         }
 
-        Self {
-            constraints,
-            uf,
-        }
+        Self { constraints, uf }
     }
 
     fn solve_constraint(
@@ -94,7 +91,7 @@ impl<'var, TYPE: Type> Solver<'var, TYPE> {
             Constraint::NotEquiv(_, _) => {
                 todo!()
             }
-            Constraint::Node(_, _) => {/* don't do anything*/}
+            Constraint::Node(_, _) => { /* don't do anything*/ }
             Constraint::Computed(_) => {
                 todo!()
             }
