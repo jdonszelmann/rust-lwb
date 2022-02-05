@@ -47,7 +47,7 @@ layout = [\n\r\t ];
 
     "#;
 
-    let input = "if a + 5 { a = a + 3 }";
+    let input = "true - (3 - 5);";
 
     let sf = SourceFile::new(syntax.to_string(), "test.syntax".to_string());
     let ast = match SyntaxFile::parse(&sf) {
