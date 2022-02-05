@@ -1,6 +1,7 @@
 use crate::codegen_prelude::{GenerateAstInfo, ParsePairSort};
 use crate::parser::ast::from_pairs::FromPairs;
 use crate::sources::span::Span;
+use serde::{Deserialize, Serialize};
 
 pub mod from_pairs;
 pub mod generate_ast;
@@ -9,17 +10,21 @@ pub trait SpannedAstInfo: AstInfo {
     fn span(&self) -> &Span;
 }
 
-#[derive(Hash, Eq, PartialEq)]
-pub struct NodeId(usize);
+#[derive(Hash, Eq, PartialEq, Copy, Clone, Serialize, Deserialize, Debug)]
+pub struct NodeId(u64);
+
+impl NodeId {
+    pub(crate) fn new(value: u64) -> NodeId {
+        Self(value)
+    }
+}
 
 pub trait AstInfo {
     fn node_id(&self) -> NodeId;
 }
 
 pub trait AstNode<M: AstInfo>: FromPairs<M> {
-    fn ast_info(&self) -> &M {
-        todo!()
-    }
+    fn ast_info(&self) -> &M;
 
     fn traverse<F>(&self, _f: F)
     where
@@ -42,4 +47,11 @@ where
     }
 }
 
-impl<M: AstInfo, T> AstNode<M> for Box<T> where T: AstNode<M> {}
+impl<M: AstInfo, T> AstNode<M> for Box<T>
+where
+    T: AstNode<M>,
+{
+    fn ast_info(&self) -> &M {
+        T::ast_info(self)
+    }
+}

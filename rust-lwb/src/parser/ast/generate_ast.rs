@@ -6,11 +6,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 pub struct BasicAstInfo {
     span: Span,
+    node_id: NodeId,
 }
 
 impl AstInfo for BasicAstInfo {
     fn node_id(&self) -> NodeId {
-        todo!()
+        self.node_id
     }
 }
 impl SpannedAstInfo for BasicAstInfo {
@@ -22,13 +23,21 @@ impl SpannedAstInfo for BasicAstInfo {
 pub trait BasicAstNode: AstNode<BasicAstInfo> {}
 impl<T> BasicAstNode for T where T: AstNode<BasicAstInfo> {}
 
-struct AstInfoGenerator;
+#[derive(Default)]
+struct AstInfoGenerator {
+    curr_id: u64,
+}
 
 impl GenerateAstInfo for AstInfoGenerator {
     type Result = BasicAstInfo;
 
     fn generate(&mut self, pair: &ParsePairSort) -> Self::Result {
-        BasicAstInfo { span: pair.span() }
+        let res = BasicAstInfo {
+            span: pair.span(),
+            node_id: NodeId::new(self.curr_id),
+        };
+        self.curr_id += 1;
+        res
     }
 }
 
@@ -36,5 +45,5 @@ pub fn generate_ast<AST>(pairs: &ParsePairSort) -> AST
 where
     AST: AstNode<BasicAstInfo>,
 {
-    AST::from_pairs(pairs, &mut AstInfoGenerator)
+    AST::from_pairs(pairs, &mut AstInfoGenerator::default())
 }

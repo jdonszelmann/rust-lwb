@@ -8,6 +8,7 @@ build = "src/build.rs"
 
 [dependencies]
 rust-lwb = {path = "../../rust-lwb"}
+thiserror = "1.0.30"
 
 [build-dependencies]
 rust-lwb = {path = "../../rust-lwb"}
