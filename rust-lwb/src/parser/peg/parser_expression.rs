@@ -38,6 +38,7 @@ pub fn parse_expression<'src>(
             } else {
                 cache.add_error(PEGParseError::expect(
                     span.clone(),
+                    &cache.trace,
                     Expect::ExpectString(lit.clone()),
                 ));
                 ParseResult::new_err(ParsePairExpression::Error(span), pos.clone(), pos)
@@ -57,6 +58,7 @@ pub fn parse_expression<'src>(
             } else {
                 cache.add_error(PEGParseError::expect(
                     span.clone(),
+                    &cache.trace,
                     Expect::ExpectCharClass(characters.clone()),
                 ));
                 ParseResult::new_err(ParsePairExpression::Error(span), pos.clone(), pos)
