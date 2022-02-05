@@ -1,4 +1,3 @@
-use crate::parser::bootstrap::ast::{Annotation, Constructor, Expression, Sort, SyntaxFileAst};
 use crate::parser::bootstrap::parser::BootstrapParseError::{
     DuplicateStartingRule, Expected, InvalidAnnotation, NoStartingRule, UnexpectedEndOfFile,
 };
@@ -7,6 +6,7 @@ use crate::sources::source_file::{SourceFile, SourceFileIterator};
 use enum_iterator::IntoEnumIterator;
 use lazy_static::lazy_static;
 use thiserror::Error;
+use crate::parser::peg::parser_sugar_ast::*;
 
 #[derive(Debug, Error)]
 pub enum BootstrapParseError {

@@ -1,4 +1,3 @@
-use crate::parser::bootstrap::ast::{Constructor, Sort};
 use crate::sources::character_class::CharacterClass;
 use crate::sources::span::Span;
 use itertools::Itertools;
@@ -15,7 +14,7 @@ use thiserror::Error;
 #[error("A parse error occured!")]
 pub struct PEGParseError {
     pub span: Span,
-    pub expected: Vec<(VecDeque<(String, String)>, Expect)>,
+    pub expected: Vec<Expect>,
     pub fail_left_rec: bool,
     pub fail_loop: bool,
 }
@@ -39,7 +38,7 @@ impl Diagnostic for PEGParseError {
         let expect_str = self
             .expected
             .iter()
-            .map(|(_, exp)| exp.to_string())
+            .map(|exp| exp.to_string())
             .join(", ");
         let mut labels = vec![];
 
@@ -71,16 +70,10 @@ impl Diagnostic for PEGParseError {
 }
 
 impl PEGParseError {
-    pub fn expect(span: Span, trace: &VecDeque<(&Sort, &Constructor)>, expect: Expect) -> Self {
+    pub fn expect(span: Span, expect: Expect) -> Self {
         PEGParseError {
             span,
-            expected: vec![(
-                trace
-                    .iter()
-                    .map(|(s, c)| (s.name.to_string(), c.name.to_string()))
-                    .collect(),
-                expect,
-            )],
+            expected: vec![expect],
             fail_left_rec: false,
             fail_loop: false,
         }

@@ -1,74 +1,135 @@
 #![allow(clippy::result_unit_err)]
 
-use crate::codegen_prelude::ParsePairExpression;
-use crate::parser::bootstrap::ast::{Expression, Sort};
+use crate::parser::peg::parser_core_ast::{CoreExpression, ParsePairRaw};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_result::ParseResult;
-use crate::parser::peg::parser::{ParserContext, ParserState};
-use crate::parser::peg::parser_sort::parse_sort;
+use crate::parser::peg::parser_core::{ParserContext, ParserState};
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
 
 /// Given an expression and the current position, attempts to parse this constructor.
+pub fn parse_expression_name<'src>(
+    state: &ParserContext<'src>,
+    cache: &mut ParserState<'src>,
+    expr_name: &'src String,
+    mut pos: SourceFileIterator<'src>,
+) -> ParseResult<'src, ParsePairRaw> {
+    let expr = state
+        .ast
+        .sorts
+        .get(expr_name)
+        .expect("Name is guaranteed to exist");
+    //Check if this result is cached
+    let key = (pos.position(), &expr_name[..]);
+    if let Some(cached) = cache.get_mut(&key) {
+        return cached.clone();
+    }
+
+    //Before executing, put a value for the current position in the cache.
+    //This value is used if the rule is left-recursive
+    let cache_state = cache.state_current();
+    cache.insert(
+        key,
+        ParseResult::new_err(
+            ParsePairRaw::Error(Span::from_length(
+                state.file,
+                pos.position(),
+                0,
+            )),
+            pos.clone(),
+            pos.clone(),
+        ),
+    );
+
+    //Now execute the actual rule, taking into account left recursion
+    //The way this is done is heavily inspired by http://web.cs.ucla.edu/~todd/research/pepm08.pdf
+    //A quick summary
+    //- First put an error value for the current (rule, position) in the cache
+    //- Try to parse the current (rule, position). If this fails, there is definitely no left recursion. Otherwise, we now have a seed.
+    //- Put the new seed in the cache, and rerun on the current (rule, position). Make sure to revert the cache to the previous state.
+    //- At some point, the above will fail. Either because no new input is parsed, or because the entire parse now failed. At this point, we have reached the maximum size.
+    let mut res = parse_expression(state, cache, expr, pos.clone());
+    let res = if res.ok {
+        //Do we have a leftrec case?
+        if !cache.is_read(&key).unwrap() {
+            //There was no leftrec, just return the value
+            res
+        } else {
+            //There was leftrec, we need to grow the seed
+            loop {
+                //Insert the current seed into the cache
+                cache.state_revert(cache_state);
+                cache.insert(key, res.clone());
+
+                //Grow the seed
+                let new_res = parse_expression(state, cache, expr, pos.clone());
+                if !new_res.ok {
+                    break;
+                }
+                if new_res.pos.position() <= res.pos.position() {
+                    break;
+                }
+                res = new_res;
+            }
+            //The seed is at its maximum size
+            cache.insert(key, res.clone());
+            res
+        }
+    } else {
+        // Left recursion value was used, but did not make a seed.
+        // This is an illegal grammar!
+        if cache.is_read(&key).unwrap() {
+            cache.add_error(PEGParseError::fail_left_recursion(Span::from_length(
+                state.file,
+                pos.position(),
+                0,
+            )));
+        }
+        res
+    };
+
+    cache.insert(key, res.clone());
+
+    //Return result
+    res
+}
+
 pub fn parse_expression<'src>(
     state: &ParserContext<'src>,
     cache: &mut ParserState<'src>,
-    constructor: &'src Expression,
+    constructor: &'src CoreExpression,
     mut pos: SourceFileIterator<'src>,
-) -> ParseResult<'src, ParsePairExpression<'src>> {
+) -> ParseResult<'src, ParsePairRaw> {
     match constructor {
         //To parse a sort, call parse_sort recursively.
-        Expression::Sort(sort_name) => {
-            let sort: &'src Sort = state
-                .rules
-                .get(&sort_name[..])
-                .expect("Name is guaranteed to exist");
-            let res = parse_sort(state, cache, sort, pos);
-            res.map(|s| ParsePairExpression::Sort(s.span(), Box::new(s)))
-        }
-        //To parse a literal, use accept_str to check if it parses.
-        Expression::Literal(lit) => {
-            while cache.allow_layout && !pos.clone().accept_str(lit) && pos.accept(&state.layout) {}
-            let mut span = Span::from_length(state.file, pos.position(), lit.len());
-            if pos.accept_str(lit) {
-                if cache.no_layout_nest_count > 0 {
-                    cache.allow_layout = false;
-                }
-                ParseResult::new_ok(ParsePairExpression::Empty(span), pos.clone(), pos, false)
-            } else {
-                span.length = 1;
-                cache.add_error(PEGParseError::expect(
-                    span.clone(),
-                    &cache.trace,
-                    Expect::ExpectString(lit.clone()),
-                ));
-                ParseResult::new_err(ParsePairExpression::Error(span), pos.clone(), pos)
-            }
+        CoreExpression::Name(sort_name) => {
+            let res = parse_expression_name(state, cache, sort_name, pos);
+            res.map(|s| ParsePairRaw::Name(s.span(), Box::new(s)))
         }
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
-        Expression::CharacterClass(characters) => {
-            while cache.allow_layout && !pos.clone().accept(characters) && pos.accept(&state.layout)
-            {
-            }
+        CoreExpression::CharacterClass(characters) => {
+            while cache.allow_layout
+                && !pos.clone().accept(characters)
+                && pos.accept(&state.ast.layout)
+            {}
             let span = Span::from_length(state.file, pos.position(), 1);
             if pos.accept(characters) {
                 if cache.no_layout_nest_count > 0 {
                     cache.allow_layout = false;
                 }
-                ParseResult::new_ok(ParsePairExpression::Empty(span), pos.clone(), pos, false)
+                ParseResult::new_ok(ParsePairRaw::Empty(span), pos.clone(), pos, false)
             } else {
                 cache.add_error(PEGParseError::expect(
                     span.clone(),
-                    &cache.trace,
                     Expect::ExpectCharClass(characters.clone()),
                 ));
-                ParseResult::new_err(ParsePairExpression::Error(span), pos.clone(), pos)
+                ParseResult::new_err(ParsePairRaw::Error(span), pos.clone(), pos)
             }
         }
         //To parse a sequence, parse each constructor in the sequence.
         //The results are added to `results`, and the best error and position are updated each time.
         //Finally, construct a `ParsePairConstructor::List` with the results.
-        Expression::Sequence(constructors) => {
+        CoreExpression::Sequence(constructors) => {
             let mut results = vec![];
             let start_pos = pos.position();
             let mut pos_err = pos.clone();
@@ -97,11 +158,7 @@ pub fn parse_expression<'src>(
                         .map(|pp| pp.span().position)
                         .unwrap_or(start_pos);
                     let span = Span::from_end(state.file, start_pos, pos.position());
-                    return ParseResult::new_err(
-                        ParsePairExpression::List(span, results),
-                        pos,
-                        pos_err,
-                    );
+                    return ParseResult::new_err(ParsePairRaw::List(span, results), pos, pos_err);
                 }
             }
 
@@ -111,18 +168,13 @@ pub fn parse_expression<'src>(
                 .map(|pp| pp.span().position)
                 .unwrap_or(start_pos);
             let span = Span::from_end(state.file, start_pos, pos.position());
-            ParseResult::new_ok(
-                ParsePairExpression::List(span, results),
-                pos,
-                pos_err,
-                recovered,
-            )
+            ParseResult::new_ok(ParsePairRaw::List(span, results), pos, pos_err, recovered)
         }
         //To parse a sequence, first parse the minimum amount that is needed.
         //Then keep trying to parse the constructor until the maximum is reached.
         //The results are added to `results`, and the best error and position are updated each time.
         //Finally, construct a `ParsePairConstructor::List` with the results.
-        Expression::Repeat { c, min, max } => {
+        CoreExpression::Repeat { c, min, max } => {
             let mut results = vec![];
             let start_pos = pos.position();
             let mut last_pos = pos.position();
@@ -166,7 +218,7 @@ pub fn parse_expression<'src>(
                             .unwrap_or(start_pos);
                         let span = Span::from_end(state.file, start_pos, pos.position());
                         return ParseResult::new_err(
-                            ParsePairExpression::List(span, results),
+                            ParsePairRaw::List(span, results),
                             pos,
                             pos_err,
                         );
@@ -178,11 +230,7 @@ pub fn parse_expression<'src>(
                 if last_pos == pos.position() {
                     let span = Span::from_length(state.file, pos.position(), 0);
                     cache.add_error(PEGParseError::fail_loop(span.clone()));
-                    return ParseResult::new_err(
-                        ParsePairExpression::List(span, results),
-                        pos,
-                        pos_err,
-                    );
+                    return ParseResult::new_err(ParsePairRaw::List(span, results), pos, pos_err);
                 }
                 last_pos = pos.position();
             }
@@ -194,7 +242,7 @@ pub fn parse_expression<'src>(
                 .unwrap_or(start_pos);
             let span = Span::from_end(state.file, start_pos, pos.position());
             ParseResult::new_ok(
-                ParsePairExpression::List(span, results),
+                ParsePairRaw::List(span, results),
                 pos.clone(),
                 pos_err,
                 recovered,
@@ -202,41 +250,46 @@ pub fn parse_expression<'src>(
         }
         //To parse a choice, try each constructor, keeping track of the best error that occurred while doing so.
         //If none of the constructors succeed, we will return this error.
-        Expression::Choice(_) => {
-            todo!()
-            // let mut results = vec![];
-            // assert!(!subconstructors.is_empty());
-            // for (i, subconstructor) in subconstructors.iter().enumerate() {
-            //     let res = parse_expression(state, cache, subconstructor, pos.clone());
-            //     if res.ok {
-            //         results.push(res.clone());
-            //         let max_err_pos = results.into_iter().max_by_key(|r| r.pos_err.position()).unwrap().pos_err;
-            //         return ParseResult::new_ok(
-            //             ParsePairExpression::Choice(res.result.span(), i, Box::new(res.result)),
-            //             res.pos,
-            //             max_err_pos
-            //         );
-            //     } else {
-            //         results.push(res);
-            //     }
-            // }
-            // let (i, res) = results
-            //     .into_iter()
-            //     .enumerate()
-            //     .max_by_key(|(_, r)| r.pos_err.position())
-            //     .unwrap();
-            // ParseResult::new_err(
-            //     ParsePairExpression::Choice(res.result.span(), i, Box::new(res.result)),
-            //     res.pos,
-            //     res.pos_err
-            // )
-        }
+        CoreExpression::Choice(constructors) => {
+            //Try each constructor, keeping track of the best error that occurred while doing so.
+            //If none of the constructors succeed, we will return this error.
+            let mut results = vec![];
+            assert!(!constructors.is_empty());
+            for (i, constructor) in constructors.iter().enumerate() {
+                let res = parse_expression(state, cache, &constructor, pos.clone());
 
-        Expression::Negative(_) => {
-            todo!()
-        }
-        Expression::Positive(_) => {
-            todo!()
+                if res.ok && !res.recovered {
+                    return ParseResult::new_ok(
+                        ParsePairRaw::Choice(res.result.span(), i, Box::new(res.result)),
+                        res.pos,
+                        res.pos_err,
+                        res.recovered,
+                    );
+                }
+                // if constructor.annotations.contains(&Annotation::NoLayout) {
+                //     let span = Span::from_length(state.file, pos.position(), 1);
+                //     let err = PEGParseError::expect(
+                //         span,
+                //         &cache.trace,
+                //         Expect::ExpectSort(sort.name.clone(), constructor.name.clone()),
+                //     );
+                //     cache.add_error(err);
+                // }
+                results.push(res);
+            }
+            //Chose best candidate
+            let (i, res) = results
+                .into_iter()
+                .enumerate()
+                .max_by_key(|(_, r)| r.pos_err.position())
+                .unwrap();
+            ParseResult::new(
+                ParsePairRaw::Choice(res.result.span(), i, Box::new(res.result)),
+                res.pos,
+                res.pos_err,
+                res.ok,
+                res.recovered,
+            )
         }
     }
 }

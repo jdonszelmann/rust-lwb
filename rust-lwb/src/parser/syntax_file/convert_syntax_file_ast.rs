@@ -1,5 +1,4 @@
 use crate::codegen_prelude::AstInfo;
-use crate::parser::bootstrap::ast::{Annotation, Constructor, Expression, Sort, SyntaxFileAst};
 use crate::parser::syntax_file::ast;
 use crate::parser::syntax_file::ast::{
     CharacterClassItem, EscapeClosingBracket, Identifier, Meta, Number, SortOrMeta,
@@ -12,6 +11,7 @@ use crate::sources::character_class::CharacterClass;
 use std::num::ParseIntError;
 use std::str::FromStr;
 use thiserror::Error;
+use crate::parser::peg::parser_sugar_ast::*;
 
 #[derive(Debug, Error)]
 pub enum AstConversionError {
