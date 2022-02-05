@@ -11,6 +11,7 @@ use std::sync::Arc;
 #[derive(Debug, Serialize, Deserialize)]
 struct Inner {
     contents: String,
+    contents_for_display: String,
     name: String,
 }
 
@@ -46,7 +47,8 @@ impl SourceFile {
         f.read_to_string(&mut contents)?;
 
         Ok(Self(Arc::new(Inner {
-            contents,
+            contents: contents.clone(),
+            contents_for_display: contents + "        ",
             name: name.as_ref().to_string_lossy().to_string(),
         })))
     }
@@ -55,6 +57,7 @@ impl SourceFile {
     pub fn new(contents: impl AsRef<str>, name: impl AsRef<str>) -> Self {
         Self(Arc::new(Inner {
             contents: contents.as_ref().to_string(),
+            contents_for_display: contents.as_ref().to_string() + "        ",
             name: name.as_ref().to_string(),
         }))
     }
@@ -81,6 +84,10 @@ impl SourceFile {
     /// has a number of methods useful for parsing.
     pub fn contents(&self) -> &str {
         &self.0.contents
+    }
+
+    pub fn contents_for_display(&self) -> &str {
+        &self.0.contents_for_display
     }
 }
 

@@ -111,6 +111,7 @@ pub fn parse_file_sub<'src>(
                     res,
                     Some(PEGParseError::expect(
                         Span::from_end(state.file, curpos, endpos),
+                        &cache.trace,
                         Expect::NotEntireInput(),
                     )),
                 )
