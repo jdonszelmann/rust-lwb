@@ -13,5 +13,5 @@ fn test_parse() {
 
     ", "main.stl",
     );
-    let ast = STL::parse(&file);
+    let _ = STL::parse(&file);
 }
