@@ -15,7 +15,7 @@ start at program;
 layout = [\n\r\t ];
     "#;
 
-    let input = r#"x+;"#;
+    let input = "x+x";
 
     let sf = SourceFile::new(syntax.to_string(), "test.syntax".to_string());
     let ast = match SyntaxFile::parse(&sf) {
