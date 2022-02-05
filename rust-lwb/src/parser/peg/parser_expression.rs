@@ -29,13 +29,14 @@ pub fn parse_expression<'src>(
         //To parse a literal, use accept_str to check if it parses.
         Expression::Literal(lit) => {
             while cache.allow_layout && !pos.clone().accept_str(lit) && pos.accept(&state.layout) {}
-            let span = Span::from_length(state.file, pos.position(), 1);
             if pos.accept_str(lit) {
+                let span = Span::from_length(state.file, pos.position(), lit.len());
                 if cache.no_layout_nest_count > 0 {
                     cache.allow_layout = false;
                 }
                 ParseResult::new_ok(ParsePairExpression::Empty(span), pos.clone(), pos, false)
             } else {
+                let span = Span::from_length(state.file, pos.position(), 1);
                 cache.add_error(PEGParseError::expect(
                     span.clone(),
                     &cache.trace,
