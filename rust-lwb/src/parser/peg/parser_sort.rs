@@ -4,7 +4,7 @@ use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
 use crate::parser::bootstrap::ast::{Annotation, Sort};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_result::ParseResult;
-use crate::parser::peg::parser::{ParserState, ParserContext};
+use crate::parser::peg::parser::{ParserContext, ParserState};
 use crate::parser::peg::parser_expression::parse_expression;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
@@ -130,7 +130,7 @@ fn parse_sort_sub<'src>(
                 },
                 res.pos,
                 res.pos_err,
-                res.recovered
+                res.recovered,
             );
         }
         if constructor.annotations.contains(&Annotation::NoLayout) {
@@ -156,6 +156,6 @@ fn parse_sort_sub<'src>(
             constructor_value: res.result,
         },
         res.pos,
-        res.pos_err
+        res.pos_err,
     )
 }

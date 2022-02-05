@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .render_report(&mut s, err)
             .unwrap();
     }
-    if errs.len() > 0 {
+    if !errs.is_empty() {
         panic!("{}", s);
     }
 

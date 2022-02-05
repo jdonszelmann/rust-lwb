@@ -146,7 +146,9 @@ impl PEGParseError {
                 //The span is extended such that the longest one is kept.
                 self.span.length = self.span.length.max(other.span.length);
                 //Merge the expected tokens
-                other.expected.drain().for_each(|e| {self.expected.insert(e);});
+                other.expected.drain().for_each(|e| {
+                    self.expected.insert(e);
+                });
                 //Left recursion
                 self.fail_left_rec |= other.fail_left_rec;
 

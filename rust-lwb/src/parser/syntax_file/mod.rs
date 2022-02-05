@@ -35,7 +35,7 @@ pub fn parse_language<AST: BasicAstNode>(input: &SourceFile) -> Result<AST, Pars
     // let legacy_ast = bootstrap::parse(&sf).expect("should parse");
 
     let (pairs, errs) = parse_file(&legacy_ast, input);
-    if errs.len() > 0 {
+    if !errs.is_empty() {
         return Err(ParseError::PEG(errs));
     }
 

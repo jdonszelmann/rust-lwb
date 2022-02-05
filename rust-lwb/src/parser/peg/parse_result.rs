@@ -27,23 +27,32 @@ impl<'src, O: Clone> ParseResult<'src, O> {
         }
     }
 
-    pub fn new_ok(result: O, pos: SourceFileIterator<'src>, pos_err: SourceFileIterator<'src>, recovered: bool) -> Self {
+    pub fn new_ok(
+        result: O,
+        pos: SourceFileIterator<'src>,
+        pos_err: SourceFileIterator<'src>,
+        recovered: bool,
+    ) -> Self {
         ParseResult {
             result,
             pos,
             pos_err,
             ok: true,
-            recovered
+            recovered,
         }
     }
 
-    pub fn new_err(result: O, pos: SourceFileIterator<'src>, pos_err: SourceFileIterator<'src>) -> Self {
+    pub fn new_err(
+        result: O,
+        pos: SourceFileIterator<'src>,
+        pos_err: SourceFileIterator<'src>,
+    ) -> Self {
         ParseResult {
             result,
             pos,
             pos_err,
             ok: false,
-            recovered: false
+            recovered: false,
         }
     }
 }
