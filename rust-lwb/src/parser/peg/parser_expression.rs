@@ -89,12 +89,14 @@ pub fn parse_expression<'src>(
                         }
                     }
 
+                    let start_pos = results.get(0).map(|pp| pp.span().position).unwrap_or(start_pos);
                     let span = Span::from_end(state.file, start_pos, pos.position());
                     return ParseResult::new_err(ParsePairExpression::List(span, results), pos, pos_err);
                 }
             }
 
             //Construct result
+            let start_pos = results.get(0).map(|pp| pp.span().position).unwrap_or(start_pos);
             let span = Span::from_end(state.file, start_pos, pos.position());
             ParseResult::new_ok(ParsePairExpression::List(span, results), pos, pos_err, recovered)
         }
@@ -138,6 +140,7 @@ pub fn parse_expression<'src>(
                     if i < *min {
                         pos = res.pos;
                         results.push(res.result);
+                        let start_pos = results.get(0).map(|pp| pp.span().position).unwrap_or(start_pos);
                         let span = Span::from_end(state.file, start_pos, pos.position());
                         return ParseResult::new_err(ParsePairExpression::List(span, results), pos, pos_err);
                     } else {
@@ -154,6 +157,7 @@ pub fn parse_expression<'src>(
             }
 
             //Construct result
+            let start_pos = results.get(0).map(|pp| pp.span().position).unwrap_or(start_pos);
             let span = Span::from_end(state.file, start_pos, pos.position());
             ParseResult::new_ok(ParsePairExpression::List(span, results), pos.clone(), pos_err, recovered)
         }
