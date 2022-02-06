@@ -100,7 +100,7 @@ if let ParsePairExpression::List(_, ref l) = {src} {{
             }
 
             if expressions.is_empty() {
-                todo!()
+                "()".to_string()
             } else if expressions.len() == 1 {
                 let line = format!(
                     r#"
