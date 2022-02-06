@@ -15,7 +15,7 @@ expression:
 
     index = expression "[" expression "]";
 
-    list = "[" expression? ("," expression)+ ","? "]";
+    list = "[" delimited(expression, ",", *, trailing) "]";
     bool = bool;
     int = int;
     identifier = identifier;

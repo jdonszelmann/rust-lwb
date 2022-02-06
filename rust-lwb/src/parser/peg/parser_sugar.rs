@@ -1,14 +1,12 @@
 use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
 use crate::parser::peg::parse_error::PEGParseError;
 use crate::parser::peg::parser_core_ast::{CoreAst, CoreExpression, ParsePairRaw};
-use crate::parser::peg::parser_core_expression::parse_expression;
 use crate::parser::peg::parser_core_file;
 use crate::parser::peg::parser_sugar_ast::{Annotation, Expression, Sort, SyntaxFileAst};
 use crate::sources::character_class::CharacterClass;
 use crate::sources::source_file::SourceFile;
 use itertools::Itertools;
 use std::collections::HashMap;
-use std::ops::Sub;
 
 /// Parse a file by:
 /// 1. Desugaring the AST to core syntax
@@ -121,8 +119,8 @@ fn desugar_expr(expr: &Expression) -> CoreExpression {
                     e.clone(),
                     CoreExpression::Repeat {
                         subexpr: Box::new(CoreExpression::Sequence(vec![delim.clone(), e.clone()])),
-                        min: min.checked_sub(1).unwrap_or(0),
-                        max: max.map(|max| max.checked_sub(1).unwrap_or(0)),
+                        min: min.saturating_sub(1),
+                        max: max.map(|max| max.saturating_sub(1)),
                     },
                 ]));
             }
@@ -216,7 +214,7 @@ fn resugar_expr<'src>(
             };
             //Get choice
             let (i, choice) =
-                if let ParsePairRaw::Choice(_, i, choice) = list.into_iter().nth(0).unwrap() {
+                if let ParsePairRaw::Choice(_, i, choice) = list.into_iter().next().unwrap() {
                     (i, choice)
                 } else {
                     return ParsePairExpression::Error(span);
@@ -239,7 +237,9 @@ fn resugar_expr<'src>(
             result.push(resugar_expr(ast, e, seq0));
 
             let next = seq_iter.next();
-            if next.is_none() { return ParsePairExpression::List(span, result) }
+            if next.is_none() {
+                return ParsePairExpression::List(span, result);
+            }
             let seq1 = if let ParsePairRaw::List(_, list) = next.unwrap() {
                 list
             } else {
