@@ -25,6 +25,8 @@ pub trait AstInfo {
 
 pub trait AstNode<M: AstInfo>: FromPairs<M> {
     fn ast_info(&self) -> &M;
+    fn sort(&self) -> &'static str;
+    fn constructor(&self) -> &'static str;
 
     fn traverse<F>(&self, _f: F)
     where
@@ -53,5 +55,13 @@ where
 {
     fn ast_info(&self) -> &M {
         T::ast_info(self)
+    }
+
+    fn sort(&self) -> &'static str {
+        T::sort(self)
+    }
+
+    fn constructor(&self) -> &'static str {
+        T::constructor(self)
     }
 }

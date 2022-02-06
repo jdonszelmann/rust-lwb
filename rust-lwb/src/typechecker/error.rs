@@ -3,21 +3,46 @@ use crate::sources::span::Span;
 use crate::typechecker::constraints::KnownVariable;
 use crate::typechecker::Type;
 use miette::{Diagnostic, LabeledSpan, Severity, SourceCode};
-use std::fmt::{Debug, Display};
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 use thiserror::Error;
 
 pub trait CustomTypeError: Debug + Display {}
 
-#[derive(Error, Debug)]
+#[derive(Debug)]
 pub enum GeneratedTypeError<TYPE: Type> {
-    #[error("can't unify {:?} and {:?}", _1.value, _3.value)]
     CantUnify(
         Option<Span>,
         Rc<KnownVariable<TYPE>>,
+        bool,
         Option<Span>,
         Rc<KnownVariable<TYPE>>,
+        bool,
     ),
+}
+
+impl<TYPE: Type> Error for GeneratedTypeError<TYPE> {}
+
+impl<TYPE: Type> Display for GeneratedTypeError<TYPE> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GeneratedTypeError::CantUnify(_, at, true, _, bt, true) => {
+                write!(f, "can't unify {:?} with {:?}", at.value, bt.value)
+            }
+            GeneratedTypeError::CantUnify(_, at, true, _, bt, false)
+            | GeneratedTypeError::CantUnify(_, bt, false, _, at, true) => {
+                write!(
+                    f,
+                    "can't use value with type {:?} in a place where {:?} is expected",
+                    bt.value, at.value
+                )
+            }
+            GeneratedTypeError::CantUnify(_, bt, false, _, at, false) => {
+                write!(f, "mistake in the type specification of the language: both {:?} and {:?} are expected at the same time", bt.value, at.value)
+            }
+        }
+    }
 }
 
 impl<TYPE: Type> Diagnostic for GeneratedTypeError<TYPE> {
@@ -27,8 +52,8 @@ impl<TYPE: Type> Diagnostic for GeneratedTypeError<TYPE> {
 
     fn source_code(&self) -> Option<&dyn SourceCode> {
         match self {
-            GeneratedTypeError::CantUnify(Some(a), _, _, _) => Some(&a.source),
-            GeneratedTypeError::CantUnify(_, _, Some(a), _) => Some(&a.source),
+            GeneratedTypeError::CantUnify(Some(a), _, _, _, _, _) => Some(&a.source),
+            GeneratedTypeError::CantUnify(_, _, _, Some(a), _, _) => Some(&a.source),
             _ => None,
         }
     }
@@ -37,7 +62,7 @@ impl<TYPE: Type> Diagnostic for GeneratedTypeError<TYPE> {
         let mut res = Vec::new();
 
         match self {
-            GeneratedTypeError::CantUnify(a_span, a, b_span, b) => {
+            GeneratedTypeError::CantUnify(a_span, a, _, b_span, b, _) => {
                 if let Some(i) = a_span {
                     res.push(LabeledSpan::new_with_span(
                         Some(format!("{:?}", a.value)),
