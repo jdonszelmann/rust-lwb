@@ -1,14 +1,13 @@
+use crate::bootstrap_config::{from_root, temporary_location, unwrap};
 use miette::GraphicalReportHandler;
 use rust_lwb::language::Language;
 use rust_lwb::parser::ast::generate_ast::generate_ast;
-use rust_lwb::parser::peg::parser_core_file::parse_file;
+use rust_lwb::parser::peg::parser_sugar::parse_file;
+use rust_lwb::parser::syntax_file::convert_syntax_file_ast::convert;
+use rust_lwb::parser::syntax_file::SyntaxFile;
 use rust_lwb::sources::source_file::SourceFile;
 use std::error::Error;
 use std::io::Write;
-// use rust_lwb::parser::bootstrap::parse;
-use crate::bootstrap_config::{from_root, temporary_location, unwrap};
-use rust_lwb::parser::syntax_file::convert_syntax_file_ast::convert;
-use rust_lwb::parser::syntax_file::SyntaxFile;
 
 mod bootstrap_config;
 
@@ -55,7 +54,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     // if everything went well, replace the old ast types with the new ast types
     let mut backup = config.output_location.clone();
     backup.push_str(".backup");
-    std::fs::remove_dir_all(from_root(&backup))?;
+
+    // ignore errors here
+    let _ = std::fs::remove_dir_all(from_root(&backup));
+
     std::fs::rename(from_root(&config.output_location), from_root(backup))?;
 
     println!("appending serialized ast");

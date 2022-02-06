@@ -1,8 +1,8 @@
 use crate::codegen::error::CodegenError;
 use crate::codegen::generate_trait_impls::{build_function, build_trait_impl};
 use crate::codegen::sanitize_identifier;
-use crate::parser::bootstrap::ast::Annotation::SingleString;
-use crate::parser::bootstrap::ast::{Expression, SyntaxFileAst};
+use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
+use crate::parser::peg::parser_sugar_ast::{Expression, SyntaxFileAst};
 use codegen::{Function, Scope};
 use std::fs::File;
 use std::io::Write;
