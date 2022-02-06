@@ -43,6 +43,6 @@ impl ParsePairRaw {
             ParsePairRaw::Empty(span) => span,
             ParsePairRaw::Error(span) => span,
         }
-            .clone()
+        .clone()
     }
 }
