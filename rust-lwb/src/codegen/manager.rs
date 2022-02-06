@@ -1,27 +1,20 @@
-use crate::codegen::generate_language;
+use std::fs::File;
+use crate::codegen::generate_headers::write_headers;
+// use crate::codegen::generate_language;
 use crate::language::Language;
-use crate::sources::source_file::SourceFile;
-use std::io::Write;
-use std::path::{Path, PathBuf};
-use thiserror::Error;
-// use crate::parser::bootstrap::parse;
 use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError;
 use crate::parser::syntax_file::{convert_syntax_file_ast, ParseError, SyntaxFile};
-
-#[derive(Debug, Error)]
-pub enum CodegenError {
-    #[error("An io error occurred: {0}")]
-    Io(#[from] std::io::Error),
-
-    #[error("a parse error occurred: {0}")]
-    ParseError(#[from] ParseError),
-
-    #[error("failed to convert saved syntax file definition ast to legacy syntax file definition ast (this is a bug! please report it)")]
-    ConvertAstError(#[from] AstConversionError),
-
-    #[error("failed to serialize parser")]
-    Bincode(#[from] bincode::Error),
-}
+use crate::sources::source_file::SourceFile;
+use std::io::Write;
+use std::mem::MaybeUninit;
+use std::path::{Path, PathBuf};
+use std::time::SystemTimeError;
+use thiserror::Error;
+use crate::codegen::error::CodegenError;
+use crate::codegen::error::CodegenError::NoExtension;
+use crate::codegen::generate_ast::write_ast;
+use crate::codegen::generate_from_pairs::write_from_pairs;
+use crate::codegen::generate_trait_impls::write_trait_impls;
 
 pub struct CodeGenJob {
     location: PathBuf,
@@ -33,6 +26,30 @@ pub struct CodeGenJob {
 
     #[doc(hidden)]
     pub write_serialized_ast: bool, // always true except bootstrap.
+}
+
+pub fn create_module_files<const N: usize>(location: impl AsRef<Path>, files: [&str; N]) -> Result<[(File, String); N], CodegenError> {
+    let mut location = location.as_ref().to_path_buf();
+    location.set_extension("");
+
+    std::fs::create_dir_all(&location)?;
+    println!("cargo:rerun-if-changed={:?}", location);
+
+    let mut res= files.clone().map(|_| None);
+    for (index, &i) in files.iter().enumerate() {
+        let mut filename = location.clone();
+        filename.push(i);
+        filename.set_extension("rs");
+
+        println!("cargo:rerun-if-changed={:?}", filename);
+        res[index] = Some((File::create(&filename)?, filename.file_stem().ok_or(NoExtension)?.to_string_lossy().into_owned()));
+    }
+
+    Ok(res.map(|i| i.unwrap()))
+}
+
+fn refs<'a>(inp: &'a mut (File, String)) -> (&'a mut File, &'a str) {
+    (&mut inp.0, &inp.1)
 }
 
 impl CodeGenJob {
@@ -62,6 +79,7 @@ impl CodeGenJob {
         self
     }
 
+    #[doc(hidden)]
     pub fn dont_generate_serialized_ast(&mut self) -> &mut Self {
         self.write_serialized_ast = false;
         self
@@ -80,25 +98,33 @@ impl CodeGenJob {
 
         let legacy_ast = convert_syntax_file_ast::convert(ast)?; // TODO make peg parser use new ast
 
-        // TODO: initial bootstrap (remove)
-        // let sf = SourceFile::open(&self.location)?;
-        // let legacy_ast = parse(&sf).expect("should parse");
+        let [mut modrs, mut rest @ ..] =
+            create_module_files(self.destination, ["mod.rs", "ast.rs", "from_pairs.rs", "ast_impls.rs", "parser.rs"])?;
 
-        let serialized_parser = if self.write_serialized_ast {
-            Some(serialized_parser.as_slice())
-        } else {
-            None
-        };
-
-        let res = generate_language(
-            legacy_ast,
+        write_headers(
+            &mut modrs.0,
+            &mut rest.iter_mut().map(refs).collect::<Vec<_>>(),
             &self.import_location,
-            self.serde,
-            serialized_parser,
-        );
+        )?;
 
-        let mut res_file = std::fs::File::create(self.destination)?;
-        res_file.write_all(res.as_bytes())?;
+        let [
+            ref mut f_ast,
+            ref mut f_from_pairs,
+            ref mut f_ast_trait_impls,
+            ref mut f_serialized_parser
+        ] = rest.map(|i| i.0);
+
+        let mut derives = vec!["Debug"];
+        if self.serde {
+            derives.extend(["Serialize, Deserialize"]);
+        }
+
+        write_ast(f_ast, &legacy_ast, &derives)?;
+        write_from_pairs(f_from_pairs, &legacy_ast)?;
+        write_trait_impls(f_ast_trait_impls, &legacy_ast)?;
+        // if self.write_serialized_ast {
+        //     write_serialized_parser(f_serialized_parser)?;
+        // }
 
         Ok(())
     }
@@ -124,7 +150,6 @@ impl CodegenManager {
 
     pub fn codegen(self) -> Result<(), CodegenError> {
         for job in self.jobs {
-            println!("cargo:rerun-if-changed={:?}", job.location);
             job.codegen()?;
         }
 
