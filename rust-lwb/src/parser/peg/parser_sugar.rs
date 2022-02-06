@@ -17,8 +17,7 @@ pub fn parse_file<'src>(
     let starting_sort = ast
         .sorts
         .iter()
-        .filter(|s| s.name == ast.starting_sort)
-        .next()
+        .find(|s| s.name == ast.starting_sort)
         .unwrap();
     (resugar_sort(ast, starting_sort, res), errs)
 }
@@ -58,7 +57,7 @@ fn desugar_expr(expr: &Expression) -> CoreExpression {
     match expr {
         Expression::Sort(name) => CoreExpression::Name(&name[..]),
         Expression::Sequence(constructors) => {
-            CoreExpression::Sequence(constructors.iter().map(|e| desugar_expr(e)).collect_vec())
+            CoreExpression::Sequence(constructors.iter().map(desugar_expr).collect_vec())
         }
         Expression::Repeat { c, min, max } => CoreExpression::Repeat {
             subexpr: Box::new(desugar_expr(c)),
@@ -67,7 +66,7 @@ fn desugar_expr(expr: &Expression) -> CoreExpression {
         },
         Expression::CharacterClass(cc) => CoreExpression::CharacterClass(cc.clone()),
         Expression::Choice(constructors) => {
-            CoreExpression::Choice(constructors.iter().map(|e| desugar_expr(e)).collect_vec())
+            CoreExpression::Choice(constructors.iter().map(desugar_expr).collect_vec())
         }
         Expression::Literal(lit) => {
             CoreExpression::FlagNoLayout(Box::new(CoreExpression::FlagNoErrors(
@@ -118,7 +117,7 @@ fn resugar_expr<'src>(
             span,
             Box::new(resugar_sort(
                 ast,
-                ast.sorts.iter().filter(|s| s.name == *name).next().unwrap(),
+                ast.sorts.iter().find(|s| s.name == *name).unwrap(),
                 *val,
             )),
         ),

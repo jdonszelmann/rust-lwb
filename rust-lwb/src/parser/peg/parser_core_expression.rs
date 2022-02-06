@@ -8,7 +8,7 @@ use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
 
 /// Given an expression and the current position, attempts to parse this constructor.
-pub fn parse_expression_name<'src, 'prs>(
+pub fn parse_expression_name<'src>(
     state: &ParserContext<'src>,
     cache: &mut ParserState<'src>,
     expr_name: &'src str,
@@ -20,7 +20,7 @@ pub fn parse_expression_name<'src, 'prs>(
         .get(expr_name)
         .expect("Name is guaranteed to exist");
     //Check if this result is cached
-    let key = (pos.position(), &expr_name[..]);
+    let key = (pos.position(), expr_name);
     if let Some(cached) = cache.get_mut(&key) {
         return cached.clone();
     }
@@ -252,7 +252,7 @@ pub fn parse_expression<'src>(
             let mut results = vec![];
             assert!(!subexprs.is_empty());
             for (i, subexpr) in subexprs.iter().enumerate() {
-                let res = parse_expression(state, cache, &subexpr, pos.clone());
+                let res = parse_expression(state, cache, subexpr, pos.clone());
                 if res.ok && !res.recovered {
                     return ParseResult::new_ok(
                         ParsePairRaw::Choice(res.result.span(), i, Box::new(res.result)),
