@@ -59,7 +59,7 @@ fn refs(inp: &mut (File, String)) -> (&mut File, &str) {
 }
 
 impl CodeGenJob {
-    pub fn from_path(p: PathBuf) -> CodeGenJob {
+    pub(crate) fn from_path(p: PathBuf) -> CodeGenJob {
         let mut destination = p.clone();
         destination.set_extension("rs");
         let name = destination.file_name().expect("no file name in path");
@@ -75,11 +75,22 @@ impl CodeGenJob {
         }
     }
 
+    /// Set the location where files for this job are to be generated.
+    ///
+    /// Defaults to the same path as the syntax definition file, but whithout
+    /// the `.syntax` extension.
     pub fn destination(&mut self, p: impl AsRef<Path>) -> &mut Self {
         self.destination = p.as_ref().to_path_buf();
         self
     }
 
+    /// Set the location where the generated code can import `rust_lwb` from.
+    ///
+    /// The default will usually be right for you, as it defaults to `rust_lwb`.
+    /// As long as `rust_lwb` is a direct dependency of the project the code is generated
+    /// in this works.
+    ///
+    /// For internal use in `rust_lwb` this parameter needs to be set to `crate`
     pub fn import_location(&mut self, path: impl AsRef<str>) -> &mut Self {
         self.import_location = path.as_ref().to_string();
         self
@@ -91,12 +102,13 @@ impl CodeGenJob {
         self
     }
 
+    /// Derive Serde's `Serialize` and `Deserialize` for AST enums.
     pub fn serde(&mut self, enable_serde: bool) -> &mut Self {
         self.serde = enable_serde;
         self
     }
 
-    pub fn codegen(self) -> Result<(), CodegenError> {
+    pub(crate) fn codegen(self) -> Result<(), CodegenError> {
         let sf = SourceFile::open(self.location)?;
         let ast = SyntaxFile::parse(&sf)?;
 
@@ -144,15 +156,32 @@ impl CodeGenJob {
     }
 }
 
+/// The CodegenManager manages one or more code generation jobs.
+/// Jobs can be submitted through [`add_syntax_file`]. Currently,
+/// the only thing that requires code generation is converting
+/// syntax definition files into asts. This may change in the future.
 pub struct CodegenManager {
     jobs: Vec<CodeGenJob>,
 }
 
 impl CodegenManager {
+    /// Create a new code generation manager.
     pub fn new() -> Self {
         Self { jobs: vec![] }
     }
 
+    /// Add the location of a syntax definition file to the manager. When [`codegen`]
+    /// is called, all syntax definition files are parsed and asts are created.
+    ///
+    /// Syntax definition files usually use the `.syntax` extension, though any extension
+    /// works. Make sure that there is at least *an* extension since by default the location
+    /// for generated files is the same as the name of the syntax definition file without the
+    /// extension.
+    ///
+    /// A mutable reference to a [`CodeGenJob`] is returned so you can configure
+    /// code generation parameters for this specific syntax definition file.
+    ///
+    /// See [`CodeGenJob`] for more details on options for code generation.
     pub fn add_syntax_file(&mut self, path: impl AsRef<Path>) -> &mut CodeGenJob {
         self.jobs
             .push(CodeGenJob::from_path(path.as_ref().to_path_buf()));
@@ -162,6 +191,7 @@ impl CodegenManager {
             .expect("must always be a last item since we just pushed something")
     }
 
+    /// Execute all code generation jobs.
     pub fn codegen(self) -> Result<(), CodegenError> {
         for job in self.jobs {
             job.codegen()?;
