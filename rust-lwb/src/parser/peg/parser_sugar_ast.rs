@@ -17,12 +17,19 @@ pub enum Expression {
     Literal(String),
     Sequence(Vec<Expression>),
     Repeat {
-        c: Box<Expression>,
+        e: Box<Expression>,
         min: u64,
         max: Option<u64>,
     },
     CharacterClass(CharacterClass),
     Choice(Vec<Expression>),
+    Delimited {
+        e: Box<Expression>,
+        delim: Box<Expression>,
+        min: u64,
+        max: Option<u64>,
+        trailing: bool,
+    },
 
     Negative(Box<Expression>),
     Positive(Box<Expression>),

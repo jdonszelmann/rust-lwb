@@ -104,10 +104,11 @@ pub fn parse_expression<'src>(
         }
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
         CoreExpression::CharacterClass(characters) => {
-            while cache.allow_layout
-                && !pos.clone().accept(characters) {
+            while cache.allow_layout && !pos.clone().accept(characters) {
                 let (ok, after_layout_pos) = skip_single_layout(state, cache, pos.clone());
-                if !ok { break };
+                if !ok {
+                    break;
+                };
                 pos = after_layout_pos;
             }
             let span = Span::from_length(state.file, pos.position(), 1);
@@ -145,6 +146,15 @@ pub fn parse_expression<'src>(
                         //The first token of the sequence can not be skipped, otherwise we can just parse a lot of empty sequences, if a sequence happens in a repeat
                         if i != 0 && cache.no_errors_nest_count == 0 {
                             pos = res.pos_err;
+                            //If we're at the end of the file, don't try
+                            if pos.peek().is_none() {
+                                let span = Span::from_end(state.file, start_pos, pos.position());
+                                return ParseResult::new_err(
+                                    ParsePairRaw::List(span, results),
+                                    pos,
+                                    pos_err,
+                                );
+                            }
                             pos.skip_n(offset);
                             recovered = true;
                             continue;
@@ -196,7 +206,16 @@ pub fn parse_expression<'src>(
                         if (offset > 0 || pos.position() != res.pos_err.position())
                             && cache.no_errors_nest_count == 0
                         {
-                            pos = res.pos_err;
+                            pos = res.pos_err.clone();
+                            //If we're at the end of the file, don't try
+                            if pos.peek().is_none() {
+                                let span = Span::from_end(state.file, start_pos, pos.position());
+                                return ParseResult::new_err(
+                                    ParsePairRaw::List(span, results),
+                                    pos,
+                                    pos_err,
+                                );
+                            }
                             pos.skip_n(offset);
                             results.push(res.result);
                             recovered = true;
@@ -309,18 +328,22 @@ pub fn parse_expression<'src>(
     }
 }
 
-pub fn skip_single_layout<'src>(state: &ParserContext<'src>,
-                                cache: &mut ParserState<'src>,
-                                pos: SourceFileIterator<'src>) -> (bool, SourceFileIterator<'src>) {
-    //Automatically make layout rule no-layout
+pub fn skip_single_layout<'src>(
+    state: &ParserContext<'src>,
+    cache: &mut ParserState<'src>,
+    pos: SourceFileIterator<'src>,
+) -> (bool, SourceFileIterator<'src>) {
+    //Automatically make layout rule no-layout and no-errors
     let prev_allow_layout = cache.allow_layout;
     cache.no_layout_nest_count += 1;
+    cache.no_errors_nest_count += 1;
     cache.allow_layout = false;
 
     let layout_sort = state.ast.sorts.get("layout").expect("Layout exists");
     let layout_res = parse_expression(state, cache, layout_sort, pos.clone());
 
     cache.no_layout_nest_count -= 1;
+    cache.no_errors_nest_count -= 1;
     cache.allow_layout = prev_allow_layout;
 
     (layout_res.ok, layout_res.pos)

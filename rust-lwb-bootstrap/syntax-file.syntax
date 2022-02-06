@@ -28,10 +28,19 @@ expression:
     literal = "\"" string-char* "\""; {no-layout}
     single-quote-literal = "'" string-char* "'"; {no-layout}
 
+    delimited = "delimited" "(" expression "," expression "," delimited-bound ("," "trailing")? ")";
+
     sort = identifier;
     class = character-class;
 
     paren = "(" expression+ ")"; {injection}
+
+delimited-bound:
+    num-num = number "," number;
+    num-inf = number "," "inf";
+    num = number;
+    star = "*";
+    plus = "+";
 
 annotation = "{" identifier? ("," identifier)* ","? "}";
 

@@ -72,8 +72,8 @@ fn generate_constructor_type(constructor: &Expression) -> Option<String> {
                 Some(format!("({})", parts.join(",")))
             }
         }
-        Expression::Repeat { c, min, max } => {
-            let subtype = generate_constructor_type(c.as_ref()).unwrap_or_else(|| "()".to_string());
+        Expression::Repeat { e, min, max } | Expression::Delimited { e, min, max, .. } => {
+            let subtype = generate_constructor_type(e.as_ref()).unwrap_or_else(|| "()".to_string());
 
             match (min, max) {
                 (0, Some(1)) if subtype == "()" => Some("bool".to_string()),

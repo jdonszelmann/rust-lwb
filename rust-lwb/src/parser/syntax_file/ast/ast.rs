@@ -7,7 +7,7 @@
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-// Generated at 06/02/2022 16:07:50 +01:00 - 06/02/2022 15:07:50 UTC
+// Generated at 06/02/2022 21:44:13 +01:00 - 06/02/2022 20:44:13 UTC
 use super::prelude::*;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -48,22 +48,32 @@ pub enum Expression<M : AstInfo> {
     Star(M, Box<Expression<M>>),
     Plus(M, Box<Expression<M>>),
     Maybe(M, Box<Expression<M>>),
-    RepeatExact(M, Box<Expression<M>>,Box<Number<M>>,Option<Box<Number<M>>>),
+    RepeatExact(M, Box<Expression<M>>, Box<Number<M>>, Option<Box<Number<M>>>),
     Literal(M, Vec<Box<StringChar<M>>>),
     SingleQuoteLiteral(M, Vec<Box<StringChar<M>>>),
+    Delimited(M, Box<Expression<M>>, Box<Expression<M>>, Box<DelimitedBound<M>>, bool),
     Sort(M, Box<Identifier<M>>),
     Class(M, Box<CharacterClass<M>>),
     Paren(M, Vec<Box<Expression<M>>>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Annotation<M : AstInfo> {
-    Annotation(M, Option<Box<Identifier<M>>>,Vec<Box<Identifier<M>>>,bool),
+pub enum DelimitedBound<M: AstInfo> {
+    NumNum(M, Box<Number<M>>, Box<Number<M>>),
+    NumInf(M, Box<Number<M>>),
+    Num(M, Box<Number<M>>),
+    Star(M),
+    Plus(M),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Constructor<M : AstInfo> {
-    Constructor(M, Box<Identifier<M>>,Vec<Box<Expression<M>>>,Option<Box<Annotation<M>>>),
+pub enum Annotation<M: AstInfo> {
+    Annotation(M, Option<Box<Identifier<M>>>, Vec<Box<Identifier<M>>>, bool),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Constructor<M: AstInfo> {
+    Constructor(M, Box<Identifier<M>>, Vec<Box<Expression<M>>>, Option<Box<Annotation<M>>>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]

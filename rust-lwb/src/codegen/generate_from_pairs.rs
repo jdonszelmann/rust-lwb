@@ -28,8 +28,8 @@ if let ParsePairExpression::Empty(ref span) = {src} {{
 }}
         "#
         ),
-        Expression::Repeat { min, max, c } => {
-            let ue = generate_unpack_expression(c, sort, "x");
+        Expression::Repeat { min, max, e } | Expression::Delimited { min, max, e, .. } => {
+            let ue = generate_unpack_expression(e, sort, "x");
 
             match (min, max) {
                 (0, Some(1)) if ue == "()" => {
@@ -180,7 +180,7 @@ if let ParsePairExpression::List(_, ref p) = pair.constructor_value {{
                 expressions.join(",")
             ));
         }
-        a @ Expression::Repeat { .. } => {
+        a @ Expression::Repeat { .. } | a @ Expression::Delimited { .. } => {
             f.line(format!(
                 "Self::{constructor}(info, {})",
                 generate_unpack_expression(a, sort, "pair.constructor_value")

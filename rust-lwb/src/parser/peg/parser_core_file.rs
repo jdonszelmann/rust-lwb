@@ -81,7 +81,9 @@ pub fn parse_file_sub<'src>(
     //If there is no input left, return Ok. Skip layout first
     loop {
         let (ok, after_layout_pos) = skip_single_layout(state, &mut cache, res.pos.clone());
-        if !ok { break };
+        if !ok {
+            break;
+        };
         res.pos = after_layout_pos;
     }
 
