@@ -1,7 +1,7 @@
 use miette::GraphicalReportHandler;
 use rust_lwb::language::Language;
 use rust_lwb::parser::ast::generate_ast::generate_ast;
-use rust_lwb::parser::peg::parser_file::parse_file;
+use rust_lwb::parser::peg::parser_core_file::parse_file;
 use rust_lwb::sources::source_file::SourceFile;
 use std::error::Error;
 use std::io::Write;
