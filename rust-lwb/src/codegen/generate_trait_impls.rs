@@ -77,7 +77,7 @@ pub fn write_trait_impls(file: &mut File, syntax: &SyntaxFileAst) -> Result<(), 
                     });
                     f.arg_ref_self().ret("&'static str");
                 }),
-                build_function("node_sort", |f| {
+                build_function("sort", |f| {
                     f.line(&format!(r#""{}""#, sort.name));
                     f.arg_ref_self().ret("&'static str");
                 }),

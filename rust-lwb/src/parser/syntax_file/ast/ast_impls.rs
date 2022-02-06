@@ -7,7 +7,7 @@
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-// Generated at 06/02/2022 13:49:04 +01:00 - 06/02/2022 12:49:04 UTC
+// Generated at 06/02/2022 13:55:19 +01:00 - 06/02/2022 12:55:19 UTC
 use super::prelude::*;
 
 impl<M: AstInfo> AstNode<M> for Identifier<M> {
@@ -29,7 +29,7 @@ impl<M: AstInfo> AstNode<M> for Identifier<M> {
         }
     }
 
-    fn node_sort(&self) -> &'static str {
+    fn sort(&self) -> &'static str {
         "identifier"
     }
 }
@@ -61,7 +61,7 @@ impl<M: AstInfo> AstNode<M> for EscapeClosingBracket<M> {
         }
     }
 
-    fn node_sort(&self) -> &'static str {
+    fn sort(&self) -> &'static str {
         "escape-closing-bracket"
     }
 }
@@ -93,7 +93,7 @@ impl<M: AstInfo> AstNode<M> for CharacterClassItem<M> {
         }
     }
 
-    fn node_sort(&self) -> &'static str {
+    fn sort(&self) -> &'static str {
         "character-class-item"
     }
 }
@@ -125,7 +125,7 @@ impl<M: AstInfo> AstNode<M> for StringChar<M> {
         }
     }
 
-    fn node_sort(&self) -> &'static str {
+    fn sort(&self) -> &'static str {
         "string-char"
     }
 }
@@ -149,7 +149,7 @@ impl<M: AstInfo> AstNode<M> for Number<M> {
         }
     }
 
-    fn node_sort(&self) -> &'static str {
+    fn sort(&self) -> &'static str {
         "number"
     }
 }
@@ -173,7 +173,7 @@ impl<M: AstInfo> AstNode<M> for CharacterClass<M> {
         }
     }
 
-    fn node_sort(&self) -> &'static str {
+    fn sort(&self) -> &'static str {
         "character-class"
     }
 }
@@ -261,7 +261,7 @@ impl<M: AstInfo> AstNode<M> for Expression<M> {
         }
     }
 
-    fn node_sort(&self) -> &'static str {
+    fn sort(&self) -> &'static str {
         "expression"
     }
 }
@@ -285,7 +285,7 @@ impl<M: AstInfo> AstNode<M> for Annotation<M> {
         }
     }
 
-    fn node_sort(&self) -> &'static str {
+    fn sort(&self) -> &'static str {
         "annotation"
     }
 }
@@ -309,7 +309,7 @@ impl<M: AstInfo> AstNode<M> for Constructor<M> {
         }
     }
 
-    fn node_sort(&self) -> &'static str {
+    fn sort(&self) -> &'static str {
         "constructor"
     }
 }
@@ -341,7 +341,7 @@ impl<M: AstInfo> AstNode<M> for Newline<M> {
         }
     }
 
-    fn node_sort(&self) -> &'static str {
+    fn sort(&self) -> &'static str {
         "newline"
     }
 }
@@ -365,7 +365,7 @@ impl<M: AstInfo> AstNode<M> for Sort<M> {
         }
     }
 
-    fn node_sort(&self) -> &'static str {
+    fn sort(&self) -> &'static str {
         "sort"
     }
 }
@@ -397,7 +397,7 @@ impl<M: AstInfo> AstNode<M> for Meta<M> {
         }
     }
 
-    fn node_sort(&self) -> &'static str {
+    fn sort(&self) -> &'static str {
         "meta"
     }
 }
@@ -429,7 +429,7 @@ impl<M: AstInfo> AstNode<M> for SortOrMeta<M> {
         }
     }
 
-    fn node_sort(&self) -> &'static str {
+    fn sort(&self) -> &'static str {
         "sort-or-meta"
     }
 }
@@ -453,7 +453,7 @@ impl<M: AstInfo> AstNode<M> for Program<M> {
         }
     }
 
-    fn node_sort(&self) -> &'static str {
+    fn sort(&self) -> &'static str {
         "program"
     }
 }

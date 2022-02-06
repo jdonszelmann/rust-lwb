@@ -116,7 +116,7 @@ impl<'ast, M: SpannedAstInfo, CTX, TYPE: Type> State<'ast, M, CTX, TYPE> {
     {
         let node_var = self.new_variable_with_span_and_msg(
             ast_node.ast_info().span().clone(),
-            format!("{}.{}", ast_node.node_sort(), ast_node.constructor()),
+            format!("{}.{}", ast_node.sort(), ast_node.constructor()),
         );
 
         match self.node_type_vars.entry(ast_node.ast_info().node_id()) {
