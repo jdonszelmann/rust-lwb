@@ -33,7 +33,6 @@ pub struct UnionFind<'var, TYPE: Type> {
     ds: HashMap<ById<'var, TYPE>, Element<'var, TYPE>>,
 }
 
-#[allow(clippy::format_in_format_args)]
 impl<'var, TYPE: Type> Debug for UnionFind<'var, TYPE> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for (key, value) in &self.ds {
@@ -42,9 +41,9 @@ impl<'var, TYPE: Type> Debug for UnionFind<'var, TYPE> {
                 f,
                 "{: <20} {: <20} ({:?}) --> {: <20} ({})",
                 key.0.dbg_msg(),
-                format!("{:?}", key.0),
+                format_args!("{:?}", key.0),
                 value.depth.get(),
-                format!("{:?}", repr),
+                format_args!("{:?}", repr),
                 elem.depth.get()
             )?;
         }
