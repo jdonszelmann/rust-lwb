@@ -9,11 +9,11 @@ use rust_lwb::sources::source_file::SourceFile;
 fn test_example() {
     let syntax = r#"
 x:
-    x = "x";
+    x = "hello kitty";
 start at x;
     "#;
 
-    let input = "x";
+    let input = "hello pussy";
 
     let sf = SourceFile::new(syntax.to_string(), "test.syntax".to_string());
     let ast = match SyntaxFile::parse(&sf) {

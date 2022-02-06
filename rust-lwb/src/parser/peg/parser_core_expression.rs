@@ -277,6 +277,8 @@ pub fn parse_expression<'src>(
                 res.recovered,
             )
         }
+        //No layout is parsed by setting the no layout flag during parsing
+        //After the block is completed, if no layout nest count is 0, re-allow layout.
         CoreExpression::FlagNoLayout(subexpr) => {
             cache.no_layout_nest_count += 1;
             let res = parse_expression(state, cache, subexpr, pos);
@@ -286,12 +288,17 @@ pub fn parse_expression<'src>(
             }
             res
         }
+        //No errors is parsed by setting the no errors flag during parsing
+        //After the block is completed, is not ok, produce an error.
         CoreExpression::FlagNoErrors(subexpr, name) => {
             cache.no_errors_nest_count += 1;
-            let res = parse_expression(state, cache, subexpr, pos);
+            let start_pos = pos.position();
+            let res = parse_expression(state, cache, subexpr, pos.clone());
             cache.no_errors_nest_count -= 1;
             if !res.ok {
-                let span = Span::from_length(state.file, res.pos.position(), 1);
+                let mut next_pos = res.pos.clone();
+                next_pos.skip_n(1);
+                let span = Span::from_end(state.file, start_pos, next_pos.position());
                 let err = PEGParseError::expect(span, Expect::ExpectSort(name.to_string()));
                 cache.add_error(err);
             }

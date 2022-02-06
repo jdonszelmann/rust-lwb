@@ -7,13 +7,21 @@ use crate::sources::source_file::SourceFile;
 use itertools::Itertools;
 use std::collections::HashMap;
 
+/// Parse a file by:
+/// 1. Desugaring the AST to core syntax
+/// 2. Parsing the source file using core syntax
+/// 3. Resugaring the resulting ParsePairRaw
 pub fn parse_file<'src>(
     ast: &'src SyntaxFileAst,
     file: &'src SourceFile,
 ) -> (ParsePairSort<'src>, Vec<PEGParseError>) {
+    //Desugar
     let core_ast = desugar_ast(ast);
+
+    //Parse
     let (res, errs) = parser_core_file::parse_file(&core_ast, file);
 
+    //Resugar
     let starting_sort = ast
         .sorts
         .iter()
@@ -68,6 +76,7 @@ fn desugar_expr(expr: &Expression) -> CoreExpression {
         Expression::Choice(constructors) => {
             CoreExpression::Choice(constructors.iter().map(desugar_expr).collect_vec())
         }
+        //Literals are desugared to a sequence of character classes
         Expression::Literal(lit) => {
             CoreExpression::FlagNoLayout(Box::new(CoreExpression::FlagNoErrors(
                 Box::new(CoreExpression::Sequence(
