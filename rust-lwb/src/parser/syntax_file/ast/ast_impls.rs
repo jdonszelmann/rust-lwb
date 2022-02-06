@@ -7,7 +7,7 @@
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-// Generated at 06/02/2022 15:08:43 +01:00 - 06/02/2022 14:08:43 UTC
+// Generated at 06/02/2022 16:07:50 +01:00 - 06/02/2022 15:07:50 UTC
 use super::prelude::*;
 
 impl<M: AstInfo> AstNode<M> for Identifier<M> {
@@ -349,19 +349,25 @@ impl<M: AstInfo> AstNode<M> for Newline<M> {
 impl<M: AstInfo> AstNode<M> for Sort<M> {
     fn ast_info(&self) -> &M {
         match self {
-        Self::Sort(info, ..) => {
-            info
-        }
+            Self::Sort(info, ..) => {
+                info
+            }
 
+            Self::SortSingle(info, ..) => {
+                info
+            }
         }
     }
 
     fn constructor(&self) -> &'static str {
         match self {
-        Self::Sort(info, ..) => {
-            "sort"
-        }
+            Self::Sort(info, ..) => {
+                "sort"
+            }
 
+            Self::SortSingle(info, ..) => {
+                "sort-single"
+            }
         }
     }
 
@@ -441,6 +447,7 @@ impl<M: AstInfo> AstNode<M> for Program<M> {
         Self::Program(info, ..) => {
             "program"
         }
+
         }
     }
 

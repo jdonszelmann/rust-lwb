@@ -103,8 +103,7 @@ failing tests:
 peg_test! {
 name: bad_leftrec,
 syntax: r#"
-X:
-    Fail = X;
+X = X;
 start at X;
 "#,
 passing tests:
@@ -119,8 +118,7 @@ failing tests:
 peg_test! {
 name: bad_loop,
 syntax: r#"
-X:
-    Fail = ""*;
+X = ""*;
 start at X;
 "#,
 passing tests:
@@ -135,10 +133,8 @@ failing tests:
 peg_test! {
 name: layout,
 syntax: r#"
-X:
-    X = "x" "y";
-layout:
-    layout = [\n\r\t ];
+X = "x" "y";
+layout = [\n\r\t ];
 start at X;
 "#,
 passing tests:
@@ -151,10 +147,8 @@ failing tests:
 peg_test! {
 name: no_layout,
 syntax: r#"
-X:
-    X = "x" "y"; {no-layout}
-layout:
-    layout = [\n\r\t ];
+X = "x" "y"; {no-layout}
+layout = [\n\r\t ];
 start at X;
 "#,
 passing tests:
@@ -169,8 +163,7 @@ y"
 peg_test! {
 name: simple,
 syntax: r#"
-X:
-    X = "x";
+X = "x";
 start at X;
 "#,
 passing tests:
@@ -181,10 +174,8 @@ failing tests:
 peg_test! {
 name: recovery1,
 syntax: r#"
-X:
-    X = "x"+ ";";
-XS:
-    XS = X*;
+X = "x"+ ";";
+XS = X*;
 start at XS;
 "#,
 passing tests:
@@ -203,8 +194,7 @@ failing tests:
 peg_test! {
 name: recovery2,
 syntax: r#"
-S:
-    S = ("{" ("x"+ ";")* "}")*;
+S = ("{" ("x"+ ";")* "}")*;
 start at S;
 "#,
 passing tests:
@@ -218,8 +208,7 @@ failing tests:
 peg_test! {
 name: recovery3,
 syntax: r#"
-S:
-    S = "0" "1" "2" "3" "4" "5" "6" "7" "8" "9";
+S = "0" "1" "2" "3" "4" "5" "6" "7" "8" "9";
 start at S;
 "#,
 passing tests:
@@ -232,12 +221,9 @@ failing tests:
 peg_test! {
 name: comments,
 syntax: r#"
-T:
-    T = "x"+ ";"; {no-layout}
-S:
-    S = ("{" T* "}")*;
-layout:
-    layout = "/*" [a-zA-Z]* "*/";
+T = "x"+ ";"; {no-layout}
+S = ("{" T* "}")*;
+layout = "/*" [a-zA-Z]* "*/";
 start at S;
 "#,
 passing tests:

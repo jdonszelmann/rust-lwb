@@ -7,7 +7,7 @@
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-// Generated at 06/02/2022 15:08:43 +01:00 - 06/02/2022 14:08:43 UTC
+// Generated at 06/02/2022 16:07:50 +01:00 - 06/02/2022 15:07:50 UTC
 use super::prelude::*;
 
 impl<M: AstInfo> FromPairs<M> for Identifier<M> {
@@ -492,17 +492,53 @@ impl<M: AstInfo> FromPairs<M> for Sort<M> {
         } else {
             panic!("expected empty parse pair expression in pair to ast conversion of sort")
         }
-                     }).collect()
+            }).collect()
         } else {
             panic!("expected empty parse pair expression in pair to ast conversion of sort")
         }
-                            )
+            )
         } else {
             panic!("expected empty parse pair expression in pair to ast conversion of sort")
         }
-                    
         }
-        a => unreachable!("{}", a)
+            "sort-single" => {
+                if let ParsePairExpression::List(_, ref p) = pair.constructor_value {
+                    Self::SortSingle(info,
+                                     if let ParsePairExpression::Sort(_, ref s) = p[0] {
+                                         Box::new(Identifier::from_pairs(s, generator))
+                                     } else {
+                                         panic!("expected empty parse pair expression in pair to ast conversion of sort")
+                                     }
+                                     ,
+                                     if let ParsePairExpression::List(_, ref l) = p[2] {
+                                         l.iter().map(|x| {
+                                             if let ParsePairExpression::Sort(_, ref s) = x {
+                                                 Box::new(Expression::from_pairs(s, generator))
+                                             } else {
+                                                 panic!("expected empty parse pair expression in pair to ast conversion of sort")
+                                             }
+                                         }).collect()
+                                     } else {
+                                         panic!("expected empty parse pair expression in pair to ast conversion of sort")
+                                     }
+                                     ,
+                                     if let ParsePairExpression::List(_, ref l) = p[4] {
+                                         l.first().map(|x| {
+                                             if let ParsePairExpression::Sort(_, ref s) = x {
+                                                 Box::new(Annotation::from_pairs(s, generator))
+                                             } else {
+                                                 panic!("expected empty parse pair expression in pair to ast conversion of sort")
+                                             }
+                                         })
+                                     } else {
+                                         panic!("expected empty parse pair expression in pair to ast conversion of sort")
+                                     },
+                    )
+                } else {
+                    panic!("expected empty parse pair expression in pair to ast conversion of sort")
+                }
+            }
+            a => unreachable!("{}", a)
         }
     }
 }
@@ -568,12 +604,12 @@ impl<M: AstInfo> FromPairs<M> for Program<M> {
         "program" => {
         Self::Program(info, 
         if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
-            l.iter().map(|x| { 
-        if let ParsePairExpression::Sort(_, ref s) = x {
-            Box::new(SortOrMeta::from_pairs(s, generator))
-        } else {
-            panic!("expected empty parse pair expression in pair to ast conversion of program")
-        }
+            l.iter().map(|x| {
+                if let ParsePairExpression::Sort(_, ref s) = x {
+                    Box::new(SortOrMeta::from_pairs(s, generator))
+                } else {
+                    panic!("expected empty parse pair expression in pair to ast conversion of program")
+                }
             }).collect()
         } else {
             panic!("expected empty parse pair expression in pair to ast conversion of program")

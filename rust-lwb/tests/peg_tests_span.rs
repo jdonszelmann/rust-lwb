@@ -14,12 +14,10 @@ expression:
 
     paren = "(" expression ")";
 
-program:
-    program = expression ";";
+program = expression ";";
 
 start at program;
-layout:
-    layout = [\n\r\t ];
+layout = [\n\r\t ];
 
     "#;
 

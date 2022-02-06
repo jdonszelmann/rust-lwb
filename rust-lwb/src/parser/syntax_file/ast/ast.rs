@@ -7,7 +7,7 @@
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-// Generated at 06/02/2022 15:08:43 +01:00 - 06/02/2022 14:08:43 UTC
+// Generated at 06/02/2022 16:07:50 +01:00 - 06/02/2022 15:07:50 UTC
 use super::prelude::*;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -74,7 +74,8 @@ pub enum Newline<M : AstInfo> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Sort<M : AstInfo> {
-    Sort(M, Box<Identifier<M>>,Vec<Box<Constructor<M>>>),
+    Sort(M, Box<Identifier<M>>, Vec<Box<Constructor<M>>>),
+    SortSingle(M, Box<Identifier<M>>, Vec<Box<Expression<M>>>, Option<Box<Annotation<M>>>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]

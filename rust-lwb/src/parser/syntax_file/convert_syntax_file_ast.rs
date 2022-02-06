@@ -148,6 +148,21 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
                 .map(|i| convert_constructor(*i))
                 .collect::<Result<_, _>>()?,
         },
+        ast::Sort::SortSingle(_, name, expressions, annotations) => {
+            let name = convert_identifier(*name);
+            Sort {
+                name: name.clone(),
+                constructors: vec![Constructor {
+                    name,
+                    expression: convert_expressions(expressions)?,
+                    annotations: if let Some(a) = annotations {
+                        convert_annotations(*a)?
+                    } else {
+                        Vec::new()
+                    },
+                }],
+            }
+        }
     })
 }
 

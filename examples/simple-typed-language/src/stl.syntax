@@ -1,9 +1,7 @@
 
-identifier:
-    identifier = [A-Za-z_][A-Za-z0-9-_]*; {single-string, no-layout}
+identifier = [A-Za-z_][A-Za-z0-9-_]*; {single-string, no-layout}
 
-int:
-    int = [0-9]+; {no-layout}
+int = [0-9]+; {no-layout}
 
 bool:
     true = "true";
@@ -29,10 +27,8 @@ statement:
     expression = expression ";";
     assignment = identifier "=" expression ";";
 
-program:
-    program = statement*;
+program = statement*;
 
 start at program;
-layout:
-    layout = [\n\r\t ];
+layout = [\n\r\t ];
 

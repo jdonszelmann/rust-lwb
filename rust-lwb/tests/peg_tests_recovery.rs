@@ -27,8 +27,7 @@ macro_rules! peg_test_recover {
 peg_test_recover! {
     sequence,
     r#"
-program:
-    program = "a" "b" "c" "d";
+program = "a" "b" "c" "d";
 start at program;
     "#,
     "" : [0],
@@ -42,8 +41,7 @@ start at program;
 peg_test_recover! {
     recovery_lang,
     r#"
-program:
-    program = ("{" ("x"+ ";")* "}")*;
+program = ("{" ("x"+ ";")* "}")*;
 start at program;
     "#,
     "{x;{x;}" : [3],
