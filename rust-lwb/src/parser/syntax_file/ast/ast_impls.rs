@@ -7,7 +7,7 @@
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-// Generated at 06/02/2022 14:10:54 +01:00 - 06/02/2022 13:10:54 UTC
+// Generated at 06/02/2022 15:08:43 +01:00 - 06/02/2022 14:08:43 UTC
 use super::prelude::*;
 
 impl<M: AstInfo> AstNode<M> for Identifier<M> {
@@ -373,10 +373,6 @@ impl<M: AstInfo> AstNode<M> for Sort<M> {
 impl<M: AstInfo> AstNode<M> for Meta<M> {
     fn ast_info(&self) -> &M {
         match self {
-        Self::Layout(info, ..) => {
-            info
-        }
-
         Self::Start(info, ..) => {
             info
         }
@@ -386,10 +382,6 @@ impl<M: AstInfo> AstNode<M> for Meta<M> {
 
     fn constructor(&self) -> &'static str {
         match self {
-        Self::Layout(info, ..) => {
-            "layout"
-        }
-
         Self::Start(info, ..) => {
             "start"
         }
@@ -449,11 +441,32 @@ impl<M: AstInfo> AstNode<M> for Program<M> {
         Self::Program(info, ..) => {
             "program"
         }
-
         }
     }
 
     fn sort(&self) -> &'static str {
         "program"
+    }
+}
+
+impl<M: AstInfo> AstNode<M> for Layout<M> {
+    fn ast_info(&self) -> &M {
+        match self {
+            Self::Layout(info, ..) => {
+                info
+            }
+        }
+    }
+
+    fn constructor(&self) -> &'static str {
+        match self {
+            Self::Layout(info, ..) => {
+                "layout"
+            }
+        }
+    }
+
+    fn sort(&self) -> &'static str {
+        "layout"
     }
 }

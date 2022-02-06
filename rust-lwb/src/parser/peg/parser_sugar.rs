@@ -6,6 +6,7 @@ use crate::parser::peg::parser_sugar_ast::{Annotation, Expression, Sort, SyntaxF
 use crate::sources::source_file::SourceFile;
 use itertools::Itertools;
 use std::collections::HashMap;
+use crate::sources::character_class::CharacterClass;
 
 /// Parse a file by:
 /// 1. Desugaring the AST to core syntax
@@ -32,13 +33,18 @@ pub fn parse_file<'src>(
 
 fn desugar_ast(ast: &SyntaxFileAst) -> CoreAst {
     let mut sorts = HashMap::new();
+    //Insert all sorts
     ast.sorts.iter().for_each(|s| {
         sorts.insert(&s.name[..], desugar_sort(s));
     });
+    //If there is no layout sort, insert one
+    if !sorts.contains_key("layout") {
+        sorts.insert("layout", CoreExpression::CharacterClass(CharacterClass::Nothing));
+    }
+
     CoreAst {
         sorts,
         starting_sort: &ast.starting_sort,
-        layout: ast.layout.clone(),
     }
 }
 

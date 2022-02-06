@@ -33,14 +33,12 @@ pub type ConversionResult<T> = Result<T, AstConversionError>;
 pub fn convert<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionResult<SyntaxFileAst> {
     match inp {
         ast::Program::Program(_, sort_or_metas) => {
-            let mut layout = CharacterClass::Nothing;
             let mut sorts = Vec::new();
             let mut start = None;
 
             for i in sort_or_metas {
                 match *i {
                     SortOrMeta::Meta(_, m) => match *m {
-                        Meta::Layout(_, l) => layout = layout.combine(convert_character_class(*l)?),
                         Meta::Start(_, name) => {
                             if start.is_some() {
                                 return Err(DuplicateStartingRule);
@@ -56,7 +54,6 @@ pub fn convert<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionResult<SyntaxFile
             Ok(SyntaxFileAst {
                 sorts,
                 starting_sort: start.ok_or(NoStartingSort)?,
-                layout,
             })
         }
     }

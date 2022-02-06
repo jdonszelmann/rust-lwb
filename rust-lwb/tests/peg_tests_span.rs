@@ -18,7 +18,8 @@ program:
     program = expression ";";
 
 start at program;
-layout = [\n\r\t ];
+layout:
+    layout = [\n\r\t ];
 
     "#;
 

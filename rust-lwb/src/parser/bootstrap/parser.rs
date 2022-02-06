@@ -74,7 +74,6 @@ fn parse_file(i: &mut SourceFileIterator) -> ParseResult<SyntaxFileAst> {
     Ok(SyntaxFileAst {
         sorts,
         starting_sort: starting_rule.ok_or(NoStartingRule)?,
-        layout,
     })
 }
 

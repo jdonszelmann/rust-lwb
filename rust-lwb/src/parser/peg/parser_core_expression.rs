@@ -105,9 +105,11 @@ pub fn parse_expression<'src>(
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
         CoreExpression::CharacterClass(characters) => {
             while cache.allow_layout
-                && !pos.clone().accept(characters)
-                && pos.accept(&state.ast.layout)
-            {}
+                && !pos.clone().accept(characters) {
+                let (ok, after_layout_pos) = skip_single_layout(state, cache, pos.clone());
+                if !ok { break };
+                pos = after_layout_pos;
+            }
             let span = Span::from_length(state.file, pos.position(), 1);
             if pos.accept(characters) {
                 if cache.no_layout_nest_count > 0 {
@@ -305,4 +307,21 @@ pub fn parse_expression<'src>(
             res
         }
     }
+}
+
+pub fn skip_single_layout<'src>(state: &ParserContext<'src>,
+                                cache: &mut ParserState<'src>,
+                                pos: SourceFileIterator<'src>) -> (bool, SourceFileIterator<'src>) {
+    //Automatically make layout rule no-layout
+    let prev_allow_layout = cache.allow_layout;
+    cache.no_layout_nest_count += 1;
+    cache.allow_layout = false;
+
+    let layout_sort = state.ast.sorts.get("layout").expect("Layout exists");
+    let layout_res = parse_expression(state, cache, layout_sort, pos.clone());
+
+    cache.no_layout_nest_count -= 1;
+    cache.allow_layout = prev_allow_layout;
+
+    (layout_res.ok, layout_res.pos)
 }

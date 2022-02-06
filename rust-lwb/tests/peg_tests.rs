@@ -137,7 +137,8 @@ name: layout,
 syntax: r#"
 X:
     X = "x" "y";
-layout = [\n\r\t ];
+layout:
+    layout = [\n\r\t ];
 start at X;
 "#,
 passing tests:
@@ -152,7 +153,8 @@ name: no_layout,
 syntax: r#"
 X:
     X = "x" "y"; {no-layout}
-layout = [\n\r\t ];
+layout:
+    layout = [\n\r\t ];
 start at X;
 "#,
 passing tests:

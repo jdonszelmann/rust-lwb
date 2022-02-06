@@ -68,5 +68,4 @@ pub struct Sort {
 pub struct SyntaxFileAst {
     pub sorts: Vec<Sort>,
     pub starting_sort: String,
-    pub layout: CharacterClass,
 }

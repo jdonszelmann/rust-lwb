@@ -7,7 +7,7 @@
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-// Generated at 06/02/2022 14:10:54 +01:00 - 06/02/2022 13:10:54 UTC
+// Generated at 06/02/2022 15:08:43 +01:00 - 06/02/2022 14:08:43 UTC
 use super::prelude::*;
 
 impl<M: AstInfo> FromPairs<M> for Identifier<M> {
@@ -512,21 +512,6 @@ impl<M: AstInfo> FromPairs<M> for Meta<M> {
         assert_eq!(pair.sort, "meta");
         let info = generator.generate(&pair);
         match pair.constructor_name {
-        "layout" => {
-
-        if let ParsePairExpression::List(_, ref p) = pair.constructor_value {
-            Self::Layout(info, 
-        if let ParsePairExpression::Sort(_, ref s) = p[2] {
-            Box::new(CharacterClass::from_pairs(s, generator))
-        } else {
-            panic!("expected empty parse pair expression in pair to ast conversion of meta")
-        }
-                    )
-        } else {
-            panic!("expected empty parse pair expression in pair to ast conversion of meta")
-        }
-                    
-        }
         "start" => {
 
         if let ParsePairExpression::List(_, ref p) = pair.constructor_value {
@@ -589,13 +574,32 @@ impl<M: AstInfo> FromPairs<M> for Program<M> {
         } else {
             panic!("expected empty parse pair expression in pair to ast conversion of program")
         }
-                     }).collect()
+            }).collect()
         } else {
             panic!("expected empty parse pair expression in pair to ast conversion of program")
         }
-                            )
+        )
         }
-        a => unreachable!("{}", a)
+            a => unreachable!("{}", a)
+        }
+    }
+}
+
+impl<M: AstInfo> FromPairs<M> for Layout<M> {
+    fn from_pairs<G: GenerateAstInfo<Result=M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
+        assert_eq!(pair.sort, "layout");
+        let info = generator.generate(&pair);
+        match pair.constructor_name {
+            "layout" => {
+                Self::Layout(info,
+                             if let ParsePairExpression::Empty(ref span) = pair.constructor_value {
+                                 span.as_str().to_string()
+                             } else {
+                                 panic!("expected empty parse pair expression in pair to ast conversion of layout")
+                             },
+                )
+            }
+            a => unreachable!("{}", a)
         }
     }
 }

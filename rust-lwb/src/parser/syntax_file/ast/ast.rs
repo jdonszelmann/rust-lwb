@@ -7,7 +7,7 @@
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-// Generated at 06/02/2022 14:10:54 +01:00 - 06/02/2022 13:10:54 UTC
+// Generated at 06/02/2022 15:08:43 +01:00 - 06/02/2022 14:08:43 UTC
 use super::prelude::*;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -79,19 +79,23 @@ pub enum Sort<M : AstInfo> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Meta<M : AstInfo> {
-    Layout(M, Box<CharacterClass<M>>),
     Start(M, Box<Identifier<M>>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum SortOrMeta<M : AstInfo> {
+pub enum SortOrMeta<M: AstInfo> {
     Meta(M, Box<Meta<M>>),
     Sort(M, Box<Sort<M>>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Program<M : AstInfo> {
+pub enum Program<M: AstInfo> {
     Program(M, Vec<Box<SortOrMeta<M>>>),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Layout<M: AstInfo> {
+    Layout(M, String),
 }
 
 pub type AST_ROOT<M> = Program<M>;
