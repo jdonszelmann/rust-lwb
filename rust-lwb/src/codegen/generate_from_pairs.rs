@@ -1,21 +1,23 @@
-use std::fs::File;
-use codegen::{Function, Scope};
 use crate::codegen::error::CodegenError;
-use crate::codegen::generate_trait_impls::{build_function, build_trait_impl, match_all_constructors};
+use crate::codegen::generate_trait_impls::{build_function, build_trait_impl};
 use crate::codegen::sanitize_identifier;
-use crate::parser::bootstrap::ast::{Expression, SyntaxFileAst};
 use crate::parser::bootstrap::ast::Annotation::SingleString;
+use crate::parser::bootstrap::ast::{Expression, SyntaxFileAst};
+use codegen::{Function, Scope};
+use std::fs::File;
 use std::io::Write;
 
 fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) -> String {
     match expression {
-        Expression::Sort(name) => format!(r#"
+        Expression::Sort(name) => format!(
+            r#"
 if let ParsePairExpression::Sort(_, ref s) = {src} {{
     Box::new({}::from_pairs(s, generator))
 }} else {{
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}
-            "#, sanitize_identifier(name)
+            "#,
+            sanitize_identifier(name)
         ),
         Expression::CharacterClass(_) => format!(
             r#"
@@ -24,13 +26,15 @@ if let ParsePairExpression::Empty(ref span) = {src} {{
 }} else {{
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}
-        "#),
+        "#
+        ),
         Expression::Repeat { min, max, c } => {
             let ue = generate_unpack_expression(c, sort, "x");
 
             match (min, max) {
                 (0, Some(1)) if ue == "()" => {
-                    format!(r#"
+                    format!(
+                        r#"
 if let ParsePairExpression::List(_, ref l) = {src} {{
     l.first().is_some()
 }} else {{
@@ -72,7 +76,8 @@ if let ParsePairExpression::List(_, ref l) = {src} {{
 }} else {{
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}
-                    "#, ue
+                    "#,
+                        ue
                     )
                 }
             }
@@ -97,14 +102,15 @@ if let ParsePairExpression::List(_, ref l) = {src} {{
             if expressions.is_empty() {
                 todo!()
             } else if expressions.len() == 1 {
-                let line = format!(r#"
+                let line = format!(
+                    r#"
 if let ParsePairExpression::List(_, ref p) = {src} {{
     {}
 }} else {{
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}
                     "#,
-                                   expressions.pop().unwrap()
+                    expressions.pop().unwrap()
                 );
 
                 line
@@ -153,9 +159,9 @@ fn generate_unpack(
                 match i {
                     Expression::Sequence(_) => unreachable!(),
                     Expression::Choice(_) => todo!(),
-                    Expression::Literal(_) |
-                    Expression::Negative(_) |
-                    Expression::Positive(_) => continue,
+                    Expression::Literal(_) | Expression::Negative(_) | Expression::Positive(_) => {
+                        continue
+                    }
                     _ => {}
                 }
 
@@ -163,14 +169,15 @@ fn generate_unpack(
                 expressions.push(line)
             }
 
-            f.line(format!(r#"
+            f.line(format!(
+                r#"
 if let ParsePairExpression::List(_, ref p) = pair.constructor_value {{
     Self::{constructor}(info, {})
 }} else {{
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}
             "#,
-                           expressions.join(",")
+                expressions.join(",")
             ));
         }
         a @ Expression::Repeat { .. } => {
@@ -198,12 +205,15 @@ if let ParsePairExpression::List(_, ref p) = pair.constructor_value {{
 
 pub fn write_from_pairs(file: &mut File, syntax: &SyntaxFileAst) -> Result<(), CodegenError> {
     let mut scope = Scope::new();
-    scope.import(&format!("super::prelude"), "*");
+    scope.import("super::prelude", "*");
 
     for sort in &syntax.sorts {
         let sortname = sanitize_identifier(&sort.name);
-        build_trait_impl(&mut scope, "FromPairs<M>", format!("{sortname}<M>"), vec![
-            build_function("from_pairs", |f| {
+        build_trait_impl(
+            &mut scope,
+            "FromPairs<M>",
+            format!("{sortname}<M>"),
+            vec![build_function("from_pairs", |f| {
                 f.generic("G: GenerateAstInfo<Result = M>");
                 f.arg("pair", "&ParsePairSort");
                 f.arg("generator", "&mut G");
@@ -228,8 +238,9 @@ pub fn write_from_pairs(file: &mut File, syntax: &SyntaxFileAst) -> Result<(), C
 
                 f.line(r#"a => unreachable!("{}", a)"#);
                 f.line("}");
-            }),
-        ]).generic("M: AstInfo");
+            })],
+        )
+        .generic("M: AstInfo");
     }
 
     write!(file, "{}", scope.to_string())?;

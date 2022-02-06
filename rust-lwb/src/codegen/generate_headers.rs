@@ -1,9 +1,7 @@
-use std::fs::File;
-use std::path::PathBuf;
-use std::time::UNIX_EPOCH;
 use crate::codegen::error::CodegenError;
+use chrono::{DateTime, Local, Utc};
+use std::fs::File;
 use std::io::Write;
-use chrono::{DateTime, Local, TimeZone, Utc};
 
 fn write_header(file: &mut File, codegen_stamp: &str) -> Result<(), CodegenError> {
     write!(
@@ -19,17 +17,24 @@ fn write_header(file: &mut File, codegen_stamp: &str) -> Result<(), CodegenError
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
 // Generated at {codegen_stamp}
-")?;
+"
+    )?;
 
     Ok(())
 }
 
-
-pub fn write_headers(modrs: &mut File, files: &mut [(&mut File, &str)], prelude_import_location: &str) -> Result<(), CodegenError> {
-    let codegen_time = std::time::SystemTime::now();
+pub fn write_headers(
+    modrs: &mut File,
+    files: &mut [(&mut File, &str)],
+    prelude_import_location: &str,
+) -> Result<(), CodegenError> {
     let now: DateTime<Local> = Local::now();
     let now_utc: DateTime<Utc> = Utc::now();
-    let codegen_stamp = format!("{} - {}", now.format("%d/%m/%Y %T %Z"), now_utc.format("%d/%m/%Y %T %Z"));
+    let codegen_stamp = format!(
+        "{} - {}",
+        now.format("%d/%m/%Y %T %Z"),
+        now_utc.format("%d/%m/%Y %T %Z")
+    );
 
     for (file, _) in files.iter_mut() {
         write_header(file, &codegen_stamp)?;
@@ -44,15 +49,19 @@ pub fn write_headers(modrs: &mut File, files: &mut [(&mut File, &str)], prelude_
 #[rustfmt::skip]
 mod {name};
 pub use {name}::*;
-")?;
+"
+        )?;
     }
 
-    write!(modrs, "
+    write!(
+        modrs,
+        "
 #[rustfmt::skip]
 mod prelude {{
     pub use {prelude_import_location}::codegen_prelude::*;
     pub use super::*;
-}}");
+}}"
+    )?;
 
     Ok(())
 }

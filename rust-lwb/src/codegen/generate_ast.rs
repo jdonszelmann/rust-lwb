@@ -1,14 +1,18 @@
-use std::fs::File;
-use codegen::Scope;
 use crate::codegen::error::CodegenError;
 use crate::codegen::sanitize_identifier;
 use crate::parser::bootstrap::ast::Annotation::SingleString;
 use crate::parser::bootstrap::ast::{Expression, SyntaxFileAst};
+use codegen::Scope;
+use std::fs::File;
 use std::io::Write;
 
-pub fn write_ast(file: &mut File, syntax: &SyntaxFileAst, derives: &[&str]) -> Result<(), CodegenError> {
+pub fn write_ast(
+    file: &mut File,
+    syntax: &SyntaxFileAst,
+    derives: &[&str],
+) -> Result<(), CodegenError> {
     let mut scope = Scope::new();
-    scope.import(&format!("super::prelude"), "*");
+    scope.import("super::prelude", "*");
 
     for rule in &syntax.sorts {
         let enumm = scope.new_enum(&sanitize_identifier(&rule.name));

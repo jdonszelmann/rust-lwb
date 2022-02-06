@@ -55,13 +55,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     // if everything went well, replace the old ast types with the new ast types
     let mut backup = config.output_location.clone();
     backup.push_str(".backup");
+    std::fs::remove_dir_all(from_root(&backup))?;
     std::fs::rename(from_root(&config.output_location), from_root(backup))?;
 
     println!("appending serialized ast");
     {
+        let mut serialized_parser_path = temporary_location();
+        serialized_parser_path.push("parser.rs");
+
         let mut file = std::fs::File::options()
             .append(true)
-            .open(temporary_location())?;
+            .open(serialized_parser_path)?;
         file.write_all(
             format!(r##"pub const PARSER: &[u8] = &{:?};"##, serialized_ast).as_bytes(),
         )?;

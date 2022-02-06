@@ -1,20 +1,16 @@
-use std::fs::File;
 use crate::codegen::generate_headers::write_headers;
+use std::fs::File;
 // use crate::codegen::generate_language;
-use crate::language::Language;
-use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError;
-use crate::parser::syntax_file::{convert_syntax_file_ast, ParseError, SyntaxFile};
-use crate::sources::source_file::SourceFile;
-use std::io::Write;
-use std::mem::MaybeUninit;
-use std::path::{Path, PathBuf};
-use std::time::SystemTimeError;
-use thiserror::Error;
 use crate::codegen::error::CodegenError;
 use crate::codegen::error::CodegenError::NoExtension;
 use crate::codegen::generate_ast::write_ast;
 use crate::codegen::generate_from_pairs::write_from_pairs;
 use crate::codegen::generate_trait_impls::write_trait_impls;
+use crate::language::Language;
+use crate::parser::syntax_file::{convert_syntax_file_ast, SyntaxFile};
+use crate::sources::source_file::SourceFile;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 pub struct CodeGenJob {
     location: PathBuf,
@@ -28,27 +24,37 @@ pub struct CodeGenJob {
     pub write_serialized_ast: bool, // always true except bootstrap.
 }
 
-pub fn create_module_files<const N: usize>(location: impl AsRef<Path>, files: [&str; N]) -> Result<[(File, String); N], CodegenError> {
+pub fn create_module_files<const N: usize>(
+    location: impl AsRef<Path>,
+    files: [&str; N],
+) -> Result<[(File, String); N], CodegenError> {
     let mut location = location.as_ref().to_path_buf();
     location.set_extension("");
 
     std::fs::create_dir_all(&location)?;
     println!("cargo:rerun-if-changed={:?}", location);
 
-    let mut res= files.clone().map(|_| None);
+    let mut res = files.map(|_| None);
     for (index, &i) in files.iter().enumerate() {
         let mut filename = location.clone();
         filename.push(i);
         filename.set_extension("rs");
 
         println!("cargo:rerun-if-changed={:?}", filename);
-        res[index] = Some((File::create(&filename)?, filename.file_stem().ok_or(NoExtension)?.to_string_lossy().into_owned()));
+        res[index] = Some((
+            File::create(&filename)?,
+            filename
+                .file_stem()
+                .ok_or(NoExtension)?
+                .to_string_lossy()
+                .into_owned(),
+        ));
     }
 
     Ok(res.map(|i| i.unwrap()))
 }
 
-fn refs<'a>(inp: &'a mut (File, String)) -> (&'a mut File, &'a str) {
+fn refs(inp: &mut (File, String)) -> (&mut File, &str) {
     (&mut inp.0, &inp.1)
 }
 
@@ -98,8 +104,16 @@ impl CodeGenJob {
 
         let legacy_ast = convert_syntax_file_ast::convert(ast)?; // TODO make peg parser use new ast
 
-        let [mut modrs, mut rest @ ..] =
-            create_module_files(self.destination, ["mod.rs", "ast.rs", "from_pairs.rs", "ast_impls.rs", "parser.rs"])?;
+        let [mut modrs, mut rest @ ..] = create_module_files(
+            self.destination,
+            [
+                "mod.rs",
+                "ast.rs",
+                "from_pairs.rs",
+                "ast_impls.rs",
+                "parser.rs",
+            ],
+        )?;
 
         write_headers(
             &mut modrs.0,
@@ -107,12 +121,8 @@ impl CodeGenJob {
             &self.import_location,
         )?;
 
-        let [
-            ref mut f_ast,
-            ref mut f_from_pairs,
-            ref mut f_ast_trait_impls,
-            ref mut f_serialized_parser
-        ] = rest.map(|i| i.0);
+        let [ref mut f_ast, ref mut f_from_pairs, ref mut f_ast_trait_impls, ref mut f_serialized_parser] =
+            rest.map(|i| i.0);
 
         let mut derives = vec!["Debug"];
         if self.serde {
@@ -123,7 +133,11 @@ impl CodeGenJob {
         write_from_pairs(f_from_pairs, &legacy_ast)?;
         write_trait_impls(f_ast_trait_impls, &legacy_ast)?;
         if self.write_serialized_ast {
-            write!(f_serialized_parser, r##"pub const PARSER: &[u8] = &{:?};"##, serialized_parser)?;
+            write!(
+                f_serialized_parser,
+                r##"pub const PARSER: &[u8] = &{:?};"##,
+                serialized_parser
+            )?;
         }
 
         Ok(())

@@ -1,7 +1,6 @@
 use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError;
-use std::time::SystemTimeError;
-use thiserror::Error;
 use crate::parser::syntax_file::ParseError;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum CodegenError {
@@ -17,9 +16,6 @@ pub enum CodegenError {
     #[error("failed to serialize parser")]
     Bincode(#[from] bincode::Error),
 
-    // #[error("couldn't format timestamp")]
-    // Time(#[from] time::error::Format),
-
     #[error("filename has no extension (while creating module structure for codegen phase)")]
-    NoExtension
+    NoExtension,
 }
