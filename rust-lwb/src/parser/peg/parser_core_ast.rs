@@ -21,7 +21,6 @@ pub enum CoreExpression<'src> {
 pub struct CoreAst<'src> {
     pub sorts: HashMap<&'src str, CoreExpression<'src>>,
     pub starting_sort: &'src str,
-    pub layout: CharacterClass,
 }
 
 #[derive(Debug, Clone)]

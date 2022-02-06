@@ -7,7 +7,7 @@ use crate::parser::syntax_file::ast::{
 use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError::{
     DuplicateStartingRule, NoStartingSort,
 };
-use crate::parser::syntax_file::AST::StringChar;
+use crate::parser::syntax_file::AST::{DelimitedBound, StringChar};
 use crate::sources::character_class::CharacterClass;
 use std::num::ParseIntError;
 use std::str::FromStr;
@@ -33,14 +33,12 @@ pub type ConversionResult<T> = Result<T, AstConversionError>;
 pub fn convert<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionResult<SyntaxFileAst> {
     match inp {
         ast::Program::Program(_, sort_or_metas) => {
-            let mut layout = CharacterClass::Nothing;
             let mut sorts = Vec::new();
             let mut start = None;
 
             for i in sort_or_metas {
                 match *i {
                     SortOrMeta::Meta(_, m) => match *m {
-                        Meta::Layout(_, l) => layout = layout.combine(convert_character_class(*l)?),
                         Meta::Start(_, name) => {
                             if start.is_some() {
                                 return Err(DuplicateStartingRule);
@@ -56,7 +54,6 @@ pub fn convert<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionResult<SyntaxFile
             Ok(SyntaxFileAst {
                 sorts,
                 starting_sort: start.ok_or(NoStartingSort)?,
-                layout,
             })
         }
     }
@@ -151,28 +148,43 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
                 .map(|i| convert_constructor(*i))
                 .collect::<Result<_, _>>()?,
         },
+        ast::Sort::SortSingle(_, name, expressions, annotations) => {
+            let name = convert_identifier(*name);
+            Sort {
+                name: name.clone(),
+                constructors: vec![Constructor {
+                    name,
+                    expression: convert_expressions(expressions)?,
+                    annotations: if let Some(a) = annotations {
+                        convert_annotations(*a)?
+                    } else {
+                        Vec::new()
+                    },
+                }],
+            }
+        }
     })
 }
 
 fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<Expression> {
     Ok(match inp {
         ast::Expression::Star(_, exp) => Expression::Repeat {
-            c: Box::new(convert_expression(*exp)?),
+            e: Box::new(convert_expression(*exp)?),
             min: 0,
             max: None,
         },
         ast::Expression::Plus(_, exp) => Expression::Repeat {
-            c: Box::new(convert_expression(*exp)?),
+            e: Box::new(convert_expression(*exp)?),
             min: 1,
             max: None,
         },
         ast::Expression::Maybe(_, exp) => Expression::Repeat {
-            c: Box::new(convert_expression(*exp)?),
+            e: Box::new(convert_expression(*exp)?),
             min: 0,
             max: Some(1),
         },
         ast::Expression::RepeatExact(_, exp, min, max) => Expression::Repeat {
-            c: Box::new(convert_expression(*exp)?),
+            e: Box::new(convert_expression(*exp)?),
             min: convert_number(*min)?,
             max: max.map(|i| convert_number(*i)).transpose()?,
         },
@@ -182,6 +194,24 @@ fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<E
         ast::Expression::Sort(_, s) => Expression::Sort(convert_identifier(*s)),
         ast::Expression::Class(_, cc) => Expression::CharacterClass(convert_character_class(*cc)?),
         ast::Expression::Paren(_, exp) => convert_expressions(exp)?,
+        ast::Expression::Delimited(_, exp, delim, bound, trailing) => {
+            let (min, max) = match *bound {
+                DelimitedBound::NumNum(_, min, max) => {
+                    (convert_number(*min)?, Some(convert_number(*max)?))
+                }
+                DelimitedBound::NumInf(_, min) => (convert_number(*min)?, None),
+                DelimitedBound::Num(_, min) => (convert_number(*min)?, None),
+                DelimitedBound::Star(_) => (0, None),
+                DelimitedBound::Plus(_) => (1, None),
+            };
+            Expression::Delimited {
+                e: Box::new(convert_expression(*exp)?),
+                delim: Box::new(convert_expression(*delim)?),
+                min,
+                max,
+                trailing,
+            }
+        }
     })
 }
 

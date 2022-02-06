@@ -7,7 +7,7 @@
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-// Generated at 06/02/2022 14:10:54 +01:00 - 06/02/2022 13:10:54 UTC
+// Generated at 06/02/2022 21:44:13 +01:00 - 06/02/2022 20:44:13 UTC
 use super::prelude::*;
 
 impl<M: AstInfo> AstNode<M> for Identifier<M> {
@@ -197,23 +197,27 @@ impl<M: AstInfo> AstNode<M> for Expression<M> {
             info
         }
 
-        Self::Literal(info, ..) => {
-            info
-        }
+            Self::Literal(info, ..) => {
+                info
+            }
 
-        Self::SingleQuoteLiteral(info, ..) => {
-            info
-        }
+            Self::SingleQuoteLiteral(info, ..) => {
+                info
+            }
 
-        Self::Sort(info, ..) => {
-            info
-        }
+            Self::Delimited(info, ..) => {
+                info
+            }
 
-        Self::Class(info, ..) => {
-            info
-        }
+            Self::Sort(info, ..) => {
+                info
+            }
 
-        Self::Paren(info, ..) => {
+            Self::Class(info, ..) => {
+                info
+            }
+
+            Self::Paren(info, ..) => {
             info
         }
 
@@ -238,26 +242,29 @@ impl<M: AstInfo> AstNode<M> for Expression<M> {
             "repeat-exact"
         }
 
-        Self::Literal(info, ..) => {
-            "literal"
-        }
+            Self::Literal(info, ..) => {
+                "literal"
+            }
 
-        Self::SingleQuoteLiteral(info, ..) => {
-            "single-quote-literal"
-        }
+            Self::SingleQuoteLiteral(info, ..) => {
+                "single-quote-literal"
+            }
 
-        Self::Sort(info, ..) => {
-            "sort"
-        }
+            Self::Delimited(info, ..) => {
+                "delimited"
+            }
 
-        Self::Class(info, ..) => {
-            "class"
-        }
+            Self::Sort(info, ..) => {
+                "sort"
+            }
 
-        Self::Paren(info, ..) => {
+            Self::Class(info, ..) => {
+                "class"
+            }
+
+            Self::Paren(info, ..) => {
             "paren"
-        }
-
+            }
         }
     }
 
@@ -266,13 +273,66 @@ impl<M: AstInfo> AstNode<M> for Expression<M> {
     }
 }
 
+impl<M: AstInfo> AstNode<M> for DelimitedBound<M> {
+    fn ast_info(&self) -> &M {
+        match self {
+            Self::NumNum(info, ..) => {
+                info
+            }
+
+            Self::NumInf(info, ..) => {
+                info
+            }
+
+            Self::Num(info, ..) => {
+                info
+            }
+
+            Self::Star(info, ..) => {
+                info
+            }
+
+            Self::Plus(info, ..) => {
+                info
+            }
+        }
+    }
+
+    fn constructor(&self) -> &'static str {
+        match self {
+            Self::NumNum(info, ..) => {
+                "num-num"
+            }
+
+            Self::NumInf(info, ..) => {
+                "num-inf"
+            }
+
+            Self::Num(info, ..) => {
+                "num"
+            }
+
+            Self::Star(info, ..) => {
+                "star"
+            }
+
+            Self::Plus(info, ..) => {
+                "plus"
+            }
+        }
+    }
+
+    fn sort(&self) -> &'static str {
+        "delimited-bound"
+    }
+}
+
 impl<M: AstInfo> AstNode<M> for Annotation<M> {
     fn ast_info(&self) -> &M {
         match self {
-        Self::Annotation(info, ..) => {
-            info
-        }
-
+            Self::Annotation(info, ..) => {
+                info
+            }
         }
     }
 
@@ -349,19 +409,25 @@ impl<M: AstInfo> AstNode<M> for Newline<M> {
 impl<M: AstInfo> AstNode<M> for Sort<M> {
     fn ast_info(&self) -> &M {
         match self {
-        Self::Sort(info, ..) => {
-            info
-        }
+            Self::Sort(info, ..) => {
+                info
+            }
 
+            Self::SortSingle(info, ..) => {
+                info
+            }
         }
     }
 
     fn constructor(&self) -> &'static str {
         match self {
-        Self::Sort(info, ..) => {
-            "sort"
-        }
+            Self::Sort(info, ..) => {
+                "sort"
+            }
 
+            Self::SortSingle(info, ..) => {
+                "sort-single"
+            }
         }
     }
 
@@ -373,10 +439,6 @@ impl<M: AstInfo> AstNode<M> for Sort<M> {
 impl<M: AstInfo> AstNode<M> for Meta<M> {
     fn ast_info(&self) -> &M {
         match self {
-        Self::Layout(info, ..) => {
-            info
-        }
-
         Self::Start(info, ..) => {
             info
         }
@@ -386,10 +448,6 @@ impl<M: AstInfo> AstNode<M> for Meta<M> {
 
     fn constructor(&self) -> &'static str {
         match self {
-        Self::Layout(info, ..) => {
-            "layout"
-        }
-
         Self::Start(info, ..) => {
             "start"
         }
@@ -455,5 +513,27 @@ impl<M: AstInfo> AstNode<M> for Program<M> {
 
     fn sort(&self) -> &'static str {
         "program"
+    }
+}
+
+impl<M: AstInfo> AstNode<M> for Layout<M> {
+    fn ast_info(&self) -> &M {
+        match self {
+            Self::Layout(info, ..) => {
+                info
+            }
+        }
+    }
+
+    fn constructor(&self) -> &'static str {
+        match self {
+            Self::Layout(info, ..) => {
+                "layout"
+            }
+        }
+    }
+
+    fn sort(&self) -> &'static str {
+        "layout"
     }
 }

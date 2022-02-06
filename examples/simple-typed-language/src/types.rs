@@ -116,14 +116,9 @@ impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Expression<M> {
                     Ok(StlType::List(Box::new(types[0].clone())))
                 })
                 .add_to(s),
-            Expression::List(_, fst, rst, _) => {
-                if let Some(i) = fst {
-                    let mut tvs = vec![s.get_type(i)];
-
-                    for i in rst {
-                        tvs.push(s.get_type(i))
-                    }
-
+            Expression::List(_, exprs) => {
+                if !exprs.is_empty() {
+                    let tvs: Vec<_> = exprs.iter().map(|i| s.get_type(i)).collect();
                     s.type_of_self(self)
                         .depends_on(&tvs, |types| Ok(StlType::List(Box::new(lub_list(types)?))))
                         .add_to(s);

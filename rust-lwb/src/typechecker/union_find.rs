@@ -41,9 +41,9 @@ impl<'var, TYPE: Type> Debug for UnionFind<'var, TYPE> {
                 f,
                 "{: <20} {: <20} ({:?}) --> {: <20} ({})",
                 key.0.dbg_msg(),
-                format!("{:?}", key.0),
+                format_args!("{:?}", key.0),
                 value.depth.get(),
-                format!("{:?}", repr),
+                format_args!("{:?}", repr),
                 elem.depth.get()
             )?;
         }

@@ -74,7 +74,6 @@ fn parse_file(i: &mut SourceFileIterator) -> ParseResult<SyntaxFileAst> {
     Ok(SyntaxFileAst {
         sorts,
         starting_sort: starting_rule.ok_or(NoStartingRule)?,
-        layout,
     })
 }
 
@@ -264,13 +263,13 @@ fn parse_simple_constructor(i: &mut SourceFileIterator) -> ParseResult<Expressio
 
     if i.accept(&'*'.into()) {
         Ok(Expression::Repeat {
-            c: Box::new(res),
+            e: Box::new(res),
             min: 0,
             max: None,
         })
     } else if i.accept(&'+'.into()) {
         Ok(Expression::Repeat {
-            c: Box::new(res),
+            e: Box::new(res),
             min: 1,
             max: None,
         })
@@ -291,13 +290,13 @@ fn parse_simple_constructor(i: &mut SourceFileIterator) -> ParseResult<Expressio
         }
 
         Ok(Expression::Repeat {
-            c: Box::new(res),
+            e: Box::new(res),
             min,
             max,
         })
     } else if i.accept(&'?'.into()) {
         Ok(Expression::Repeat {
-            c: Box::new(res),
+            e: Box::new(res),
             min: 0,
             max: Some(1),
         })

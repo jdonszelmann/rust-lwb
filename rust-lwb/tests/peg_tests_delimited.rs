@@ -61,176 +61,115 @@ macro_rules! peg_test {
 }
 
 peg_test! {
-name: as_rightrec,
+name: delimited_star,
 syntax: r#"
-As:
-    More = "a" As;
-    NoMore = "";
-start at As;
-"#,
-passing tests:
-    ""
-    "a"
-    "aa"
-    "aaa"
-failing tests:
-    "b"
-    "ab"
-    "ba"
-    "aac"
-}
-
-peg_test! {
-name: as_leftrec,
-syntax: r#"
-As:
-    More = As "a";
-    NoMore = "";
-start at As;
-"#,
-passing tests:
-    ""
-    "a"
-    "aa"
-    "aaa"
-failing tests:
-    "b"
-    "ab"
-    "ba"
-    "aac"
-}
-
-peg_test! {
-name: bad_leftrec,
-syntax: r#"
-X = X;
+X = delimited("x", ",", *);
 start at X;
 "#,
 passing tests:
-failing tests:
     ""
-    "a"
-    "aa"
-    "aaa"
-    "aaaa"
-}
-
-peg_test! {
-name: bad_loop,
-syntax: r#"
-X = ""*;
-start at X;
-"#,
-passing tests:
-failing tests:
-    "a"
-    "aa"
-    "aaa"
-    "aaaa"
-    ""
-}
-
-peg_test! {
-name: layout,
-syntax: r#"
-X = "x" "y";
-layout = [\n\r\t ];
-start at X;
-"#,
-passing tests:
-    "x y"
-    "xy"
-failing tests:
     "x"
-}
-
-peg_test! {
-name: no_layout,
-syntax: r#"
-X = "x" "y"; {no-layout}
-layout = [\n\r\t ];
-start at X;
-"#,
-passing tests:
-    "xy"
+    "x,x"
+    "x,x,x"
 failing tests:
-    "x y"
-    "x_y"
-    "x
-y"
+    "x,"
+    "x,x,"
+    ","
+    "x,,x"
+    "xx,x"
 }
 
 peg_test! {
-name: simple,
+name: delimited_plus,
 syntax: r#"
-X = "x";
+X = delimited("x", ",", +);
 start at X;
 "#,
 passing tests:
     "x"
+    "x,x"
+    "x,x,x"
 failing tests:
+    ""
+    "x,"
+    "x,x,"
+    ","
+    "x,,x"
+    "xx,x"
 }
 
 peg_test! {
-name: recovery1,
+name: delimited_least_two,
 syntax: r#"
-X = "x"+ ";";
-XS = X*;
-start at XS;
+X = delimited("x", ",", 2, inf);
+start at X;
 "#,
 passing tests:
-    "x;"
-    "xx;"
-    "xx;x;"
-    "x;xx;x;xxx;"
+    "x,x"
+    "x,x,x"
 failing tests:
+    ""
     "x"
-    "xx"
-    "x;x"
-    "xx;;"
-    ";"
+    "x,"
+    "x,x,"
+    ","
+    "x,,x"
+    "xx,x"
 }
 
 peg_test! {
-name: recovery2,
+name: delimited_most_two,
 syntax: r#"
-S = ("{" ("x"+ ";")* "}")*;
-start at S;
+X = delimited("x", ",", 0, 2);
+start at X;
 "#,
 passing tests:
+    ""
+    "x"
+    "x,x"
 failing tests:
-    "{x;{x;}"
-    "{x;{x;{x;}"
-    "{x;;x;;x;}"
-    "{x;x}{x;}"
+    "x,x,x"
+    "x,"
+    "x,x,"
+    ","
+    "x,,x"
+    "xx,x"
 }
 
 peg_test! {
-name: recovery3,
+name: delimited_trailing_star,
 syntax: r#"
-S = "0" "1" "2" "3" "4" "5" "6" "7" "8" "9";
-start at S;
+X = delimited("x", ",", *, trailing);
+start at X;
 "#,
 passing tests:
+    ""
+    "x"
+    "x,x"
+    "x,"
+    "x,x,"
+    "x,x,x"
+    ","
 failing tests:
-    "0234x679"
-    "0234679"
-    "0134569"
+    "x,,x"
+    "xx,x"
 }
 
 peg_test! {
-name: comments,
+name: delimited_trailing_plus,
 syntax: r#"
-T = "x"+ ";"; {no-layout}
-S = ("{" T* "}")*;
-layout = "/*" [a-zA-Z]* "*/";
-start at S;
+X = delimited("x", ",", +, trailing);
+start at X;
 "#,
 passing tests:
-    "{x;x;}"
-    "{x;/*comment*/x;}"
-    "{x;x;}/*comment*/"
-    "/*comment*/{x;x;}"
+    "x"
+    "x,x"
+    "x,"
+    "x,x,"
+    "x,x,x"
 failing tests:
-    "{x/*comment*/;x;}"
+    ""
+    ","
+    "x,,x"
+    "xx,x"
 }

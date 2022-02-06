@@ -2,7 +2,7 @@ use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_result::ParseResult;
 use crate::parser::peg::parser_core::{ParserContext, ParserState};
 use crate::parser::peg::parser_core_ast::{CoreAst, ParsePairRaw};
-use crate::parser::peg::parser_core_expression::parse_expression_name;
+use crate::parser::peg::parser_core_expression::{parse_expression_name, skip_single_layout};
 use crate::sources::source_file::{SourceFile, SourceFileIterator};
 use crate::sources::span::Span;
 use std::collections::{HashMap, VecDeque};
@@ -78,8 +78,14 @@ pub fn parse_file_sub<'src>(
         return (res, Some(cache.best_error.unwrap()));
     }
 
-    //If there is no input left, return Ok.
-    res.pos.skip_layout(&state.ast.layout);
+    //If there is no input left, return Ok. Skip layout first
+    loop {
+        let (ok, after_layout_pos) = skip_single_layout(state, &mut cache, res.pos.clone());
+        if !ok {
+            break;
+        };
+        res.pos = after_layout_pos;
+    }
 
     if res.pos.peek().is_none() {
         (res, None)

@@ -14,8 +14,7 @@ expression:
 
     paren = "(" expression ")";
 
-program:
-    program = expression ";";
+program = expression ";";
 
 start at program;
 layout = [\n\r\t ];
