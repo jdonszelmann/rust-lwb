@@ -1,18 +1,18 @@
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_result::ParseResult;
 use crate::parser::peg::parser_core::{ParserContext, ParserState};
+use crate::parser::peg::parser_core_ast::{CoreAst, ParsePairRaw};
+use crate::parser::peg::parser_core_expression::parse_expression_name;
 use crate::sources::source_file::{SourceFile, SourceFileIterator};
 use crate::sources::span::Span;
 use std::collections::{HashMap, VecDeque};
-use crate::parser::peg::parser_core_ast::{CoreAst, ParsePairRaw};
-use crate::parser::peg::parser_core_expression::parse_expression_name;
 
 /// Parses a file, given the syntax to parse it with, and the file.
 /// When successful, it returns a `ParsePairSort`.
 /// When unsuccessful, it returns a `ParseError`.
 #[allow(clippy::unnecessary_unwrap)] //Clippy gives a suggestion which makes code ugly
 pub fn parse_file<'src>(
-    ast: &'src CoreAst,
+    ast: &'src CoreAst<'src>,
     file: &'src SourceFile,
 ) -> (ParsePairRaw, Vec<PEGParseError>) {
     //Create a new parser state
@@ -28,7 +28,7 @@ pub fn parse_file<'src>(
     let mut last_err_pos: Option<usize> = None;
     let mut last_err_offset = 0usize;
     loop {
-        let (res, err) = parse_file_sub(&state, &state.ast.starting_sort, file.iter());
+        let (res, err) = parse_file_sub(&state, state.ast.starting_sort, file.iter());
         if !res.ok {
             let err = err.expect("Not ok means an error happened.");
 
@@ -61,12 +61,9 @@ pub fn parse_file<'src>(
 
 pub fn parse_file_sub<'src>(
     state: &ParserContext<'src>,
-    sort: &'src String,
+    sort: &'src str,
     pos: SourceFileIterator<'src>,
-) -> (
-    ParseResult<'src, ParsePairRaw>,
-    Option<PEGParseError>,
-) {
+) -> (ParseResult<'src, ParsePairRaw>, Option<PEGParseError>) {
     let mut cache = ParserState {
         cache: HashMap::new(),
         cache_stack: VecDeque::new(),

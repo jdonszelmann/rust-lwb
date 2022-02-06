@@ -8,46 +8,12 @@ use rust_lwb::sources::source_file::SourceFile;
 #[test]
 fn test_example() {
     let syntax = r#"
-
-identifier:
-    identifier = [A-Za-z_][A-Za-z0-9-_]*; {single-string, no-layout}
-
-int:
-    int = [0-9]+; {no-layout}
-
-bool:
-    true = "true";
-    false = "false";
-
-expression:
-    add = expression "+" expression;
-    sub = expression "-" expression;
-
-    eq = expression "==" expression;
-
-    index = expression "[" expression "]";
-
-    list = "[" expression? ("," expression)+ ","? "]";
-    bool = bool;
-    int = int;
-    identifier = identifier;
-    paren = "(" expression ")";
-
-
-statement:
-    if = "if" expression "{" statement* "}";
-    expression = expression ";";
-    assignment = identifier "=" expression ";";
-
-program:
-    program = statement*;
-
-start at program;
-layout = [\n\r\t ];
-
+x:
+    x = "x";
+start at x;
     "#;
 
-    let input = "true - (3 - 5);";
+    let input = "x";
 
     let sf = SourceFile::new(syntax.to_string(), "test.syntax".to_string());
     let ast = match SyntaxFile::parse(&sf) {

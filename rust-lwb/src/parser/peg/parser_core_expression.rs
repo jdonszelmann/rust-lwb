@@ -1,20 +1,20 @@
 #![allow(clippy::result_unit_err)]
 
-use crate::parser::peg::parser_core_ast::{CoreExpression, ParsePairRaw};
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_result::ParseResult;
 use crate::parser::peg::parser_core::{ParserContext, ParserState};
+use crate::parser::peg::parser_core_ast::{CoreExpression, ParsePairRaw};
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
 
 /// Given an expression and the current position, attempts to parse this constructor.
-pub fn parse_expression_name<'src>(
+pub fn parse_expression_name<'src, 'prs>(
     state: &ParserContext<'src>,
     cache: &mut ParserState<'src>,
-    expr_name: &'src String,
-    mut pos: SourceFileIterator<'src>,
+    expr_name: &'src str,
+    pos: SourceFileIterator<'src>,
 ) -> ParseResult<'src, ParsePairRaw> {
-    let expr = state
+    let expr: &'src CoreExpression = state
         .ast
         .sorts
         .get(expr_name)
@@ -31,11 +31,7 @@ pub fn parse_expression_name<'src>(
     cache.insert(
         key,
         ParseResult::new_err(
-            ParsePairRaw::Error(Span::from_length(
-                state.file,
-                pos.position(),
-                0,
-            )),
+            ParsePairRaw::Error(Span::from_length(state.file, pos.position(), 0)),
             pos.clone(),
             pos.clone(),
         ),
@@ -97,10 +93,10 @@ pub fn parse_expression_name<'src>(
 pub fn parse_expression<'src>(
     state: &ParserContext<'src>,
     cache: &mut ParserState<'src>,
-    constructor: &'src CoreExpression,
+    expr: &'src CoreExpression,
     mut pos: SourceFileIterator<'src>,
 ) -> ParseResult<'src, ParsePairRaw> {
-    match constructor {
+    match expr {
         //To parse a sort, call parse_sort recursively.
         CoreExpression::Name(sort_name) => {
             let res = parse_expression_name(state, cache, sort_name, pos);
@@ -129,15 +125,15 @@ pub fn parse_expression<'src>(
         //To parse a sequence, parse each constructor in the sequence.
         //The results are added to `results`, and the best error and position are updated each time.
         //Finally, construct a `ParsePairConstructor::List` with the results.
-        CoreExpression::Sequence(constructors) => {
+        CoreExpression::Sequence(subexprs) => {
             let mut results = vec![];
             let start_pos = pos.position();
             let mut pos_err = pos.clone();
             let mut recovered = false;
 
             //Parse all subconstructors in sequence
-            for (i, subconstructor) in constructors.iter().enumerate() {
-                let res = parse_expression(state, cache, subconstructor, pos);
+            for (i, subexpr) in subexprs.iter().enumerate() {
+                let res = parse_expression(state, cache, subexpr, pos);
                 pos = res.pos;
                 pos_err.max_pos(res.pos_err.clone());
                 results.push(res.result);
@@ -174,7 +170,7 @@ pub fn parse_expression<'src>(
         //Then keep trying to parse the constructor until the maximum is reached.
         //The results are added to `results`, and the best error and position are updated each time.
         //Finally, construct a `ParsePairConstructor::List` with the results.
-        CoreExpression::Repeat { c, min, max } => {
+        CoreExpression::Repeat { subexpr, min, max } => {
             let mut results = vec![];
             let start_pos = pos.position();
             let mut last_pos = pos.position();
@@ -183,7 +179,7 @@ pub fn parse_expression<'src>(
 
             //Parse at most maximum times
             for i in 0..max.unwrap_or(u64::MAX) {
-                let res = parse_expression(state, cache, c.as_ref(), pos.clone());
+                let res = parse_expression(state, cache, subexpr.as_ref(), pos.clone());
                 pos_err.max_pos(res.pos_err.clone());
                 recovered |= res.recovered;
 
@@ -250,14 +246,13 @@ pub fn parse_expression<'src>(
         }
         //To parse a choice, try each constructor, keeping track of the best error that occurred while doing so.
         //If none of the constructors succeed, we will return this error.
-        CoreExpression::Choice(constructors) => {
+        CoreExpression::Choice(subexprs) => {
             //Try each constructor, keeping track of the best error that occurred while doing so.
             //If none of the constructors succeed, we will return this error.
             let mut results = vec![];
-            assert!(!constructors.is_empty());
-            for (i, constructor) in constructors.iter().enumerate() {
-                let res = parse_expression(state, cache, &constructor, pos.clone());
-
+            assert!(!subexprs.is_empty());
+            for (i, subexpr) in subexprs.iter().enumerate() {
+                let res = parse_expression(state, cache, &subexpr, pos.clone());
                 if res.ok && !res.recovered {
                     return ParseResult::new_ok(
                         ParsePairRaw::Choice(res.result.span(), i, Box::new(res.result)),
@@ -266,15 +261,6 @@ pub fn parse_expression<'src>(
                         res.recovered,
                     );
                 }
-                // if constructor.annotations.contains(&Annotation::NoLayout) {
-                //     let span = Span::from_length(state.file, pos.position(), 1);
-                //     let err = PEGParseError::expect(
-                //         span,
-                //         &cache.trace,
-                //         Expect::ExpectSort(sort.name.clone(), constructor.name.clone()),
-                //     );
-                //     cache.add_error(err);
-                // }
                 results.push(res);
             }
             //Chose best candidate
@@ -290,6 +276,47 @@ pub fn parse_expression<'src>(
                 res.ok,
                 res.recovered,
             )
+        }
+        CoreExpression::FlagNoLayout(subexpr) => {
+            cache.no_layout_nest_count += 1;
+            let res = parse_expression(state, cache, subexpr, pos);
+            cache.no_layout_nest_count -= 1;
+            if cache.no_layout_nest_count == 0 {
+                cache.allow_layout = true;
+            }
+            res
+        }
+        CoreExpression::FlagNoErrors(subexpr, name) => {
+            cache.no_errors_nest_count += 1;
+            let res = parse_expression(state, cache, subexpr, pos);
+            cache.no_errors_nest_count -= 1;
+            if !res.ok {
+                let span = Span::from_length(state.file, res.pos.position(), 1);
+                let err = PEGParseError::expect(span, Expect::ExpectSort(name.to_string()));
+                cache.add_error(err);
+            }
+            res
+        }
+        //To parse a literal, use accept_str to check if it parses.
+        CoreExpression::Literal(lit) => {
+            while cache.allow_layout
+                && !pos.clone().accept_str(lit)
+                && pos.accept(&state.ast.layout)
+            {}
+            let mut span = Span::from_length(state.file, pos.position(), lit.len());
+            if pos.accept_str(lit) {
+                if cache.no_layout_nest_count > 0 {
+                    cache.allow_layout = false;
+                }
+                ParseResult::new_ok(ParsePairRaw::Empty(span), pos.clone(), pos, false)
+            } else {
+                span.length = 1;
+                cache.add_error(PEGParseError::expect(
+                    span.clone(),
+                    Expect::ExpectString(lit.to_string()),
+                ));
+                ParseResult::new_err(ParsePairRaw::Error(span), pos.clone(), pos)
+            }
         }
     }
 }

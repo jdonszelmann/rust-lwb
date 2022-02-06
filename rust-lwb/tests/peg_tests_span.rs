@@ -79,7 +79,7 @@ layout = [\n\r\t ];
 
     //True
     let p5 = if let ParsePairExpression::Empty(s) = &p4.1[0] {
-        (s)
+        s
     } else {
         unreachable!()
     };
@@ -88,7 +88,7 @@ layout = [\n\r\t ];
 
     //++
     let p6 = if let ParsePairExpression::Empty(s) = &p4.1[1] {
-        (s)
+        s
     } else {
         unreachable!()
     };

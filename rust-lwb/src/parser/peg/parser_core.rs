@@ -1,13 +1,13 @@
-use crate::parser::peg::parser_core_ast::{CoreAst, ParsePairRaw};
 use crate::parser::peg::parse_error::PEGParseError;
 use crate::parser::peg::parse_result::ParseResult;
+use crate::parser::peg::parser_core_ast::{CoreAst, ParsePairRaw};
 use crate::sources::source_file::SourceFile;
 use std::collections::{HashMap, VecDeque};
 
 /// This stores the immutable data that is used during the parsing process.
 pub struct ParserContext<'src> {
     pub(crate) file: &'src SourceFile,
-    pub(crate) ast: &'src CoreAst,
+    pub(crate) ast: &'src CoreAst<'src>,
     pub errors: HashMap<usize, usize>,
 }
 
@@ -49,11 +49,7 @@ impl<'src> ParserState<'src> {
     }
 
     /// Insert a new entry into the cache
-    pub fn insert(
-        &mut self,
-        key: (usize, &'src str),
-        value: ParseResult<'src, ParsePairRaw>,
-    ) {
+    pub fn insert(&mut self, key: (usize, &'src str), value: ParseResult<'src, ParsePairRaw>) {
         self.cache
             .insert(key, ParserCacheEntry { read: false, value });
         self.cache_stack.push_back(key);

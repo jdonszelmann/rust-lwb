@@ -3,7 +3,6 @@ use crate::sources::span::Span;
 use itertools::Itertools;
 use miette::{Diagnostic, LabeledSpan, Severity, SourceCode};
 use std::cmp::Ordering;
-use std::collections::VecDeque;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
@@ -35,11 +34,7 @@ impl Diagnostic for PEGParseError {
 
     /// Labels to apply to this Diagnostic's [Diagnostic::source_code]
     fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
-        let expect_str = self
-            .expected
-            .iter()
-            .map(|exp| exp.to_string())
-            .join(", ");
+        let expect_str = self.expected.iter().map(|exp| exp.to_string()).join(", ");
         let mut labels = vec![];
 
         //Leftrec label
@@ -108,7 +103,7 @@ pub enum Expect {
     ExpectString(String),
 
     /// Expect a certain sort
-    ExpectSort(String, String),
+    ExpectSort(String),
 
     /// This happens when not the entire input was parsed, but also no errors occurred during parsing.
     NotEntireInput(),
@@ -123,8 +118,8 @@ impl Display for Expect {
             Expect::ExpectString(s) => {
                 write!(f, "\'{}\'", s)
             }
-            Expect::ExpectSort(s, c) => {
-                write!(f, "{}.{}", s, c)
+            Expect::ExpectSort(s) => {
+                write!(f, "{}", s)
             }
             Expect::NotEntireInput() => {
                 write!(f, "more input")

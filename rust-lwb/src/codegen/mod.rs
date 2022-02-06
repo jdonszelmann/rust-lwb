@@ -1,8 +1,8 @@
+use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
 use crate::parser::peg::parser_sugar_ast::*;
 use codegen::{Block, Function, Scope};
 use convert_case::{Case, Casing};
 use std::ops::Deref;
-use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
 
 pub mod manager;
 

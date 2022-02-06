@@ -3,22 +3,26 @@ use crate::sources::span::Span;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub enum CoreExpression {
-    Name(String),
-    Sequence(Vec<CoreExpression>),
+pub enum CoreExpression<'src> {
+    Name(&'src str),
+    Literal(&'src str),
+    //TODO temp
+    Sequence(Vec<CoreExpression<'src>>),
     Repeat {
-        c: Box<CoreExpression>,
+        subexpr: Box<CoreExpression<'src>>,
         min: u64,
         max: Option<u64>,
     },
     CharacterClass(CharacterClass),
-    Choice(Vec<CoreExpression>),
+    Choice(Vec<CoreExpression<'src>>),
+    FlagNoLayout(Box<CoreExpression<'src>>),
+    FlagNoErrors(Box<CoreExpression<'src>>, String),
 }
 
 #[derive(Debug, Clone)]
-pub struct CoreAst {
-    pub sorts: HashMap<String, CoreExpression>,
-    pub starting_sort: String,
+pub struct CoreAst<'src> {
+    pub sorts: HashMap<&'src str, CoreExpression<'src>>,
+    pub starting_sort: &'src str,
     pub layout: CharacterClass,
 }
 
