@@ -5,13 +5,10 @@ use crate::codegen::sanitize_identifier;
 use crate::parser::bootstrap::ast::{Constructor, SyntaxFileAst};
 use std::io::Write;
 
-pub fn build_function(name: impl AsRef<str>, contents: impl FnOnce(&mut Block, &mut Function)) -> Function {
-    let mut block = Block::new("");
+pub fn build_function(name: impl AsRef<str>, contents: impl FnOnce(&mut Function)) -> Function {
     let mut f = Function::new(name.as_ref());
 
-    contents(&mut block, &mut f);
-
-    f.push_block(block);
+    contents(&mut f);
 
     f
 }
@@ -28,7 +25,7 @@ pub fn build_trait_impl(scope: &mut Scope, name: impl AsRef<str>, for_struct: im
 }
 
 pub fn match_all_constructors<'a>(
-    block: &mut Block,
+    block: &mut Function,
     constructors: impl IntoIterator<Item = &'a Constructor>,
     match_pattern: impl AsRef<str>,
     mut for_each: impl FnMut(&mut Block, &Constructor),
@@ -59,25 +56,23 @@ pub fn write_trait_impls(file: &mut File, syntax: &SyntaxFileAst) -> Result<(), 
     for sort in &syntax.sorts {
         let sortname = sanitize_identifier(&sort.name);
         build_trait_impl(&mut scope, "AstNode<M>", format!("{sortname}<M>"), vec![
-            build_function("ast_info", |block, f| {
-                match_all_constructors(block, &sort.constructors, "(info, ..)", |b, c| {
+            build_function("ast_info", |f| {
+                match_all_constructors(f, &sort.constructors, "(info, ..)", |b, c| {
                     b.line("info");
                 });
                 f.arg_ref_self().ret("&M");
             }),
 
-            build_function("constructor", |block, f| {
-                match_all_constructors(block, &sort.constructors, "(info, ..)", |b, c| {
-                    b.line("info");
+            build_function("constructor", |f| {
+                match_all_constructors(f, &sort.constructors, "(info, ..)", |b, c| {
+                    b.line(&format!(r#""{}""#, c.name));
                 });
-                f.arg_ref_self().ret("&M");
+                f.arg_ref_self().ret("&'static str");
             }),
 
-            build_function("node_sort", |block, f| {
-                match_all_constructors(block, &sort.constructors, "(info, ..)", |b, c| {
-                    b.line("info");
-                });
-                f.arg_ref_self().ret("&M");
+            build_function("node_sort", |f| {
+                f.line(&format!(r#""{}""#, sort.name));
+                f.arg_ref_self().ret("&'static str");
             })
         ]).generic("M: AstInfo");
     }

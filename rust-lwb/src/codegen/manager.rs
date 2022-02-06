@@ -122,9 +122,9 @@ impl CodeGenJob {
         write_ast(f_ast, &legacy_ast, &derives)?;
         write_from_pairs(f_from_pairs, &legacy_ast)?;
         write_trait_impls(f_ast_trait_impls, &legacy_ast)?;
-        // if self.write_serialized_ast {
-        //     write_serialized_parser(f_serialized_parser)?;
-        // }
+        if self.write_serialized_ast {
+            write!(f_serialized_parser, r##"pub const PARSER: &[u8] = &{:?};"##, serialized_parser)?;
+        }
 
         Ok(())
     }
