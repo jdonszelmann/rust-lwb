@@ -1,16 +1,13 @@
-use crate::codegen_prelude::ParsePairSort;
-use crate::parser::bootstrap::ast::{Constructor, Sort};
 use crate::parser::peg::parse_error::PEGParseError;
 use crate::parser::peg::parse_result::ParseResult;
-use crate::sources::character_class::CharacterClass;
+use crate::parser::peg::parser_core_ast::{CoreAst, ParsePairRaw};
 use crate::sources::source_file::SourceFile;
 use std::collections::{HashMap, VecDeque};
 
 /// This stores the immutable data that is used during the parsing process.
 pub struct ParserContext<'src> {
     pub(crate) file: &'src SourceFile,
-    pub(crate) rules: HashMap<&'src str, &'src Sort>,
-    pub layout: CharacterClass,
+    pub(crate) ast: &'src CoreAst<'src>,
     pub errors: HashMap<usize, usize>,
 }
 
@@ -21,7 +18,6 @@ pub struct ParserState<'src> {
     pub(crate) cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
     pub(crate) cache_stack: VecDeque<(usize, &'src str)>,
     pub best_error: Option<PEGParseError>,
-    pub trace: VecDeque<(&'src Sort, &'src Constructor)>,
     pub allow_layout: bool, // True if layout should be allowed at the moment
     pub no_layout_nest_count: usize, // How many times no layout has been nested
     pub no_errors_nest_count: usize, // How many times no errors has been nested
@@ -30,7 +26,7 @@ pub struct ParserState<'src> {
 /// A single entry in the cache. Contains the value, and a flag whether it has been read.
 pub struct ParserCacheEntry<'src> {
     read: bool,
-    value: ParseResult<'src, ParsePairSort<'src>>,
+    value: ParseResult<'src, ParsePairRaw>,
 }
 
 impl<'src> ParserState<'src> {
@@ -38,7 +34,7 @@ impl<'src> ParserState<'src> {
     pub fn get_mut(
         &mut self,
         key: &(usize, &'src str),
-    ) -> Option<&mut ParseResult<'src, ParsePairSort<'src>>> {
+    ) -> Option<&mut ParseResult<'src, ParsePairRaw>> {
         if let Some(v) = self.cache.get_mut(key) {
             v.read = true;
             Some(&mut v.value)
@@ -53,11 +49,7 @@ impl<'src> ParserState<'src> {
     }
 
     /// Insert a new entry into the cache
-    pub fn insert(
-        &mut self,
-        key: (usize, &'src str),
-        value: ParseResult<'src, ParsePairSort<'src>>,
-    ) {
+    pub fn insert(&mut self, key: (usize, &'src str), value: ParseResult<'src, ParsePairRaw>) {
         self.cache
             .insert(key, ParserCacheEntry { read: false, value });
         self.cache_stack.push_back(key);

@@ -1,10 +1,8 @@
-use crate::parser::bootstrap::ast::{Constructor, Sort};
 use crate::sources::character_class::CharacterClass;
 use crate::sources::span::Span;
 use itertools::Itertools;
 use miette::{Diagnostic, LabeledSpan, Severity, SourceCode};
 use std::cmp::Ordering;
-use std::collections::VecDeque;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
@@ -15,7 +13,7 @@ use thiserror::Error;
 #[error("A parse error occured!")]
 pub struct PEGParseError {
     pub span: Span,
-    pub expected: Vec<(VecDeque<(String, String)>, Expect)>,
+    pub expected: Vec<Expect>,
     pub fail_left_rec: bool,
     pub fail_loop: bool,
 }
@@ -36,11 +34,7 @@ impl Diagnostic for PEGParseError {
 
     /// Labels to apply to this Diagnostic's [Diagnostic::source_code]
     fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
-        let expect_str = self
-            .expected
-            .iter()
-            .map(|(_, exp)| exp.to_string())
-            .join(", ");
+        let expect_str = self.expected.iter().map(|exp| exp.to_string()).join(", ");
         let mut labels = vec![];
 
         //Leftrec label
@@ -71,16 +65,10 @@ impl Diagnostic for PEGParseError {
 }
 
 impl PEGParseError {
-    pub fn expect(span: Span, trace: &VecDeque<(&Sort, &Constructor)>, expect: Expect) -> Self {
+    pub fn expect(span: Span, expect: Expect) -> Self {
         PEGParseError {
             span,
-            expected: vec![(
-                trace
-                    .iter()
-                    .map(|(s, c)| (s.name.to_string(), c.name.to_string()))
-                    .collect(),
-                expect,
-            )],
+            expected: vec![expect],
             fail_left_rec: false,
             fail_loop: false,
         }
@@ -115,7 +103,7 @@ pub enum Expect {
     ExpectString(String),
 
     /// Expect a certain sort
-    ExpectSort(String, String),
+    ExpectSort(String),
 
     /// This happens when not the entire input was parsed, but also no errors occurred during parsing.
     NotEntireInput(),
@@ -130,8 +118,8 @@ impl Display for Expect {
             Expect::ExpectString(s) => {
                 write!(f, "\'{}\'", s)
             }
-            Expect::ExpectSort(s, c) => {
-                write!(f, "{}.{}", s, c)
+            Expect::ExpectSort(s) => {
+                write!(f, "{}", s)
             }
             Expect::NotEntireInput() => {
                 write!(f, "more input")

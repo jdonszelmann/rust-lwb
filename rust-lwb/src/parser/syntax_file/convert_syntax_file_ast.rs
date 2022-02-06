@@ -1,5 +1,5 @@
 use crate::codegen_prelude::AstInfo;
-use crate::parser::bootstrap::ast::{Annotation, Constructor, Expression, Sort, SyntaxFileAst};
+use crate::parser::peg::parser_sugar_ast::*;
 use crate::parser::syntax_file::ast;
 use crate::parser::syntax_file::ast::{
     CharacterClassItem, EscapeClosingBracket, Identifier, Meta, Number, SortOrMeta,

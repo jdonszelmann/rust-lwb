@@ -1,6 +1,6 @@
 use rust_lwb::codegen_prelude::ParsePairExpression;
 use rust_lwb::language::Language;
-use rust_lwb::parser::peg::parser_file::parse_file;
+use rust_lwb::parser::peg::parser_sugar::parse_file;
 use rust_lwb::parser::syntax_file::convert_syntax_file_ast::convert;
 use rust_lwb::parser::syntax_file::SyntaxFile;
 use rust_lwb::sources::source_file::SourceFile;
@@ -79,7 +79,7 @@ layout = [\n\r\t ];
 
     //True
     let p5 = if let ParsePairExpression::Empty(s) = &p4.1[0] {
-        (s)
+        s
     } else {
         unreachable!()
     };
@@ -88,7 +88,7 @@ layout = [\n\r\t ];
 
     //++
     let p6 = if let ParsePairExpression::Empty(s) = &p4.1[1] {
-        (s)
+        s
     } else {
         unreachable!()
     };

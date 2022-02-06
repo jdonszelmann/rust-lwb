@@ -1,5 +1,5 @@
-use crate::parser::bootstrap::ast::Annotation::SingleString;
-use crate::parser::bootstrap::ast::{Expression, SyntaxFileAst};
+use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
+use crate::parser::peg::parser_sugar_ast::*;
 use codegen::{Block, Function, Scope};
 use convert_case::{Case, Casing};
 use std::ops::Deref;
