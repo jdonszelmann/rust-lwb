@@ -228,3 +228,23 @@ failing tests:
     "0234679"
     "0134569"
 }
+
+peg_test! {
+name: comments,
+syntax: r#"
+T:
+    T = "x"+ ";"; {no-layout}
+S:
+    S = ("{" T* "}")*;
+layout:
+    layout = "/*" [a-zA-Z]* "*/";
+start at S;
+"#,
+passing tests:
+    "{x;x;}"
+    "{x;/*comment*/x;}"
+    "{x;x;}/*comment*/"
+    "/*comment*/{x;x;}"
+failing tests:
+    "{x/*comment*/;x;}"
+}
