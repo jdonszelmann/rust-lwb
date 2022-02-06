@@ -70,10 +70,14 @@ fn desugar_expr(expr: &Expression) -> CoreExpression {
             CoreExpression::Choice(constructors.iter().map(|e| desugar_expr(e)).collect_vec())
         }
         Expression::Literal(lit) => {
-            CoreExpression::Literal(&lit[..])
-            // CoreExpression::FlagNoLayout(Box::new(CoreExpression::FlagNoErrors(Box::new(CoreExpression::Sequence(
-            //     lit.chars().map(|c| CoreExpression::CharacterClass(c.into())).collect_vec()
-            // )), String::from_iter(["'", lit, "'"]))))
+            CoreExpression::FlagNoLayout(Box::new(CoreExpression::FlagNoErrors(
+                Box::new(CoreExpression::Sequence(
+                    lit.chars()
+                        .map(|c| CoreExpression::CharacterClass(c.into()))
+                        .collect_vec(),
+                )),
+                String::from_iter(["'", lit, "'"]),
+            )))
         }
         Expression::Negative(_) => {
             todo!()
@@ -144,8 +148,7 @@ fn resugar_expr<'src>(
                 Box::new(resugar_expr(ast, &constructors[i], *expr)),
             )
         }
-        (Expression::Literal(_), ParsePairRaw::Empty(span)) => ParsePairExpression::Empty(span),
-
+        (Expression::Literal(_), ParsePairRaw::List(span, _)) => ParsePairExpression::Empty(span),
         (_, ParsePairRaw::Error(span)) => ParsePairExpression::Error(span),
         (_, _) => unreachable!(),
     }

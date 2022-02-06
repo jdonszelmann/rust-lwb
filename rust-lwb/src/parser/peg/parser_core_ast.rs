@@ -5,8 +5,6 @@ use std::collections::HashMap;
 #[derive(Debug, Clone)]
 pub enum CoreExpression<'src> {
     Name(&'src str),
-    Literal(&'src str),
-    //TODO temp
     Sequence(Vec<CoreExpression<'src>>),
     Repeat {
         subexpr: Box<CoreExpression<'src>>,

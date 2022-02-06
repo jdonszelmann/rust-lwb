@@ -297,26 +297,5 @@ pub fn parse_expression<'src>(
             }
             res
         }
-        //To parse a literal, use accept_str to check if it parses.
-        CoreExpression::Literal(lit) => {
-            while cache.allow_layout
-                && !pos.clone().accept_str(lit)
-                && pos.accept(&state.ast.layout)
-            {}
-            let mut span = Span::from_length(state.file, pos.position(), lit.len());
-            if pos.accept_str(lit) {
-                if cache.no_layout_nest_count > 0 {
-                    cache.allow_layout = false;
-                }
-                ParseResult::new_ok(ParsePairRaw::Empty(span), pos.clone(), pos, false)
-            } else {
-                span.length = 1;
-                cache.add_error(PEGParseError::expect(
-                    span.clone(),
-                    Expect::ExpectString(lit.to_string()),
-                ));
-                ParseResult::new_err(ParsePairRaw::Error(span), pos.clone(), pos)
-            }
-        }
     }
 }
