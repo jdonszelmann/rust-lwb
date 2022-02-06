@@ -135,7 +135,8 @@ impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Expression<M> {
                 s.type_of_self(self).equiv(StlType::Bool).add_to(s);
             }
             Expression::Paren(_, e) => {
-                s.get_type(&*e);
+                let tp = s.get_type(&*e);
+                s.type_of_self(self).equiv(tp).add_to(s);
             }
         }
     }

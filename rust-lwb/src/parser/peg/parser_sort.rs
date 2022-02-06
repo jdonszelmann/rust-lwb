@@ -137,6 +137,7 @@ fn parse_sort_sub<'src>(
             let span = Span::from_length(state.file, pos.position(), 1);
             let err = PEGParseError::expect(
                 span,
+                &cache.trace,
                 Expect::ExpectSort(sort.name.clone(), constructor.name.clone()),
             );
             cache.add_error(err);
@@ -149,7 +150,7 @@ fn parse_sort_sub<'src>(
         .enumerate()
         .max_by_key(|(_, r)| r.pos_err.position())
         .unwrap();
-    ParseResult::new_err(
+    ParseResult::new(
         ParsePairSort {
             sort: &sort.name,
             constructor_name: &sort.constructors[i].name,
@@ -157,5 +158,7 @@ fn parse_sort_sub<'src>(
         },
         res.pos,
         res.pos_err,
+        res.ok,
+        res.recovered,
     )
 }

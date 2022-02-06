@@ -10,17 +10,28 @@ fn test_example() {
     let syntax = r#"
 
 identifier:
-    identifier = [A-Za-z_][A-Za-z0-9-_]*; {no-layout}
+    identifier = [A-Za-z_][A-Za-z0-9-_]*; {single-string, no-layout}
 
 int:
     int = [0-9]+; {no-layout}
+
+bool:
+    true = "true";
+    false = "false";
 
 expression:
     add = expression "+" expression;
     sub = expression "-" expression;
 
+    eq = expression "==" expression;
+
+    index = expression "[" expression "]";
+
+    list = "[" expression? ("," expression)+ ","? "]";
+    bool = bool;
     int = int;
     identifier = identifier;
+    paren = "(" expression ")";
 
 
 statement:
@@ -33,9 +44,10 @@ program:
 
 start at program;
 layout = [\n\r\t ];
+
     "#;
 
-    let input = r#" 3;"#;
+    let input = "if a + 5 { a = a + 3 }";
 
     let sf = SourceFile::new(syntax.to_string(), "test.syntax".to_string());
     let ast = match SyntaxFile::parse(&sf) {
