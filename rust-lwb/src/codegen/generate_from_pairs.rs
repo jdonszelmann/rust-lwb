@@ -160,7 +160,7 @@ fn generate_unpack(
                     Expression::Sequence(_) => unreachable!(),
                     Expression::Choice(_) => todo!(),
                     Expression::Literal(_) | Expression::Negative(_) | Expression::Positive(_) => {
-                        continue
+                        continue;
                     }
                     _ => {}
                 }

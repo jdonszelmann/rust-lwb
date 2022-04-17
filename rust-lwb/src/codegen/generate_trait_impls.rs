@@ -30,9 +30,9 @@ pub fn build_trait_impl(
     t
 }
 
-pub fn match_all_constructors<'a>(
+pub fn match_all_constructors(
     block: &mut Function,
-    constructors: &Vec<Constructor>,
+    constructors: &[Constructor],
     mut for_each: impl FnMut(&mut Block, &Constructor),
 ) {
     if constructors.len() == 1 {
@@ -47,7 +47,7 @@ pub fn match_all_constructors<'a>(
         block.line(res);
     } else {
         block.line("match self {");
-        for constructor in constructors.into_iter() {
+        for constructor in constructors.iter() {
             let mut b = Block::new("");
             for_each(&mut b, constructor);
             let mut res = String::new();
@@ -75,7 +75,7 @@ pub fn write_trait_impls(file: &mut File, syntax: &SyntaxFileAst) -> Result<(), 
             format!("{sortname}<M>"),
             vec![
                 build_function("ast_info", |f| {
-                    match_all_constructors(f, &sort.constructors,  |b, _c| {
+                    match_all_constructors(f, &sort.constructors, |b, _c| {
                         b.line("meta");
                     });
                     f.arg_ref_self().ret("&M");

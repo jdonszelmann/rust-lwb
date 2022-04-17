@@ -1,12 +1,12 @@
-use std::fmt::{Display, Formatter};
 use crate::codegen::error::CodegenError;
 use crate::codegen::sanitize_identifier;
 use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
 use crate::parser::peg::parser_sugar_ast::{Expression, SyntaxFileAst};
-use codegen::{Scope};
+use codegen::Scope;
+use itertools::Itertools;
+use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::Write;
-use itertools::Itertools;
 
 pub fn write_ast(
     file: &mut File,
@@ -41,9 +41,7 @@ pub fn write_ast(
                         }
                         buf
                     }
-                    Tree::Empty => {
-                        "()".to_string()
-                    }
+                    Tree::Empty => "()".to_string(),
                 }
             };
 
@@ -52,7 +50,7 @@ pub fn write_ast(
             } else {
                 &typ
             };
-            structt.tuple_field(format!("{}", typ));
+            structt.tuple_field(typ);
         } else {
             let enumm = scope.new_enum(&sanitize_identifier(&rule.name));
             enumm.vis("pub");
@@ -118,12 +116,13 @@ fn generate_constructor_type(constructor: &Expression) -> Tree<String> {
     match constructor {
         Expression::Sort(sort) => Tree::Leaf(format!("Box<{}<M>>", sanitize_identifier(sort))),
         Expression::Sequence(cons) => {
-            let mut parts: Vec<Tree<String>> = cons.iter().filter_map(|con| {
-                match generate_constructor_type(con) {
+            let mut parts: Vec<Tree<String>> = cons
+                .iter()
+                .filter_map(|con| match generate_constructor_type(con) {
                     Tree::Empty => None,
-                    x => Some(x)
-                }
-            }).collect_vec();
+                    x => Some(x),
+                })
+                .collect_vec();
 
             if parts.is_empty() {
                 Tree::Empty

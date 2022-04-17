@@ -22,6 +22,7 @@ pub enum StlTypeError {
     #[error("could not unify {0:?} and {0:?} for use in list")]
     NoLub(StlType, StlType),
 }
+
 impl CustomTypeError for StlTypeError {}
 
 fn lub(a: &StlType, b: &StlType) -> Result<StlType, TypeError<StlType>> {

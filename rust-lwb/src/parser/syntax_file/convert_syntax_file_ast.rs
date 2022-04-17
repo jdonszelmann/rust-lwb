@@ -1,9 +1,7 @@
 use crate::codegen_prelude::AstInfo;
 use crate::parser::peg::parser_sugar_ast::*;
 use crate::parser::syntax_file::ast;
-use crate::parser::syntax_file::ast::{
-    CharacterClassItem, EscapeClosingBracket, SortOrMeta,
-};
+use crate::parser::syntax_file::ast::{CharacterClassItem, EscapeClosingBracket, SortOrMeta};
 use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError::{
     DuplicateStartingRule, NoStartingSort,
 };
@@ -37,12 +35,13 @@ pub fn convert<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionResult<SyntaxFile
 
     for i in sort_or_metas {
         match *i {
-            SortOrMeta::Meta(_, m) =>
+            SortOrMeta::Meta(_, m) => {
                 if start.is_some() {
                     return Err(DuplicateStartingRule);
                 } else {
                     start = Some(convert_identifier(*m.1))
-                },
+                }
+            }
             SortOrMeta::Sort(_, sort) => sorts.push(convert_sort(*sort)?),
         }
     }
@@ -229,13 +228,9 @@ fn convert_annotations<M: AstInfo>(inp: ast::Annotation<M>) -> ConversionResult<
         res.push(convert_identifier(*i));
     }
 
-    Ok(res
-        .into_iter()
-        .map(|i| {
-            Annotation::from_str(&i)
-                .map_err(|_| AstConversionError::BadAnnotation(i.clone()))
-        })
-        .collect::<Result<_, _>>()?)
+    res.into_iter()
+        .map(|i| Annotation::from_str(&i).map_err(|_| AstConversionError::BadAnnotation(i.clone())))
+        .collect::<Result<_, _>>()
 }
 
 fn convert_constructor<M: AstInfo>(inp: ast::Constructor<M>) -> ConversionResult<Constructor> {
