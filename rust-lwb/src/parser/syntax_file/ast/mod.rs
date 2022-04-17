@@ -7,26 +7,22 @@
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-// Generated at 17/04/2022 23:31:51 +02:00 - 17/04/2022 21:31:51 UTC
+// Generated at 17/04/2022 23:43:28 +02:00 - 17/04/2022 21:43:28 UTC
 
 #[rustfmt::skip]
 mod ast;
-
 pub use ast::*;
 
 #[rustfmt::skip]
 mod from_pairs;
-
 pub use from_pairs::*;
 
 #[rustfmt::skip]
 mod ast_impls;
-
 pub use ast_impls::*;
 
 #[rustfmt::skip]
 mod parser;
-
 pub use parser::*;
 
 #[rustfmt::skip]
