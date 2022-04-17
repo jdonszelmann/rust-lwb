@@ -7,13 +7,11 @@
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-// Generated at 06/02/2022 21:44:13 +01:00 - 06/02/2022 20:44:13 UTC
+// Generated at 17/04/2022 23:43:28 +02:00 - 17/04/2022 21:43:28 UTC
 use super::prelude::*;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Identifier<M : AstInfo> {
-    Identifier(M, String),
-}
+pub struct Identifier<M : AstInfo>(pub M, pub String);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum EscapeClosingBracket<M : AstInfo> {
@@ -23,7 +21,7 @@ pub enum EscapeClosingBracket<M : AstInfo> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum CharacterClassItem<M : AstInfo> {
-    Range(M, Box<EscapeClosingBracket<M>>,Box<EscapeClosingBracket<M>>),
+    Range(M, Box<EscapeClosingBracket<M>>, Box<EscapeClosingBracket<M>>, ),
     SingleChar(M, Box<EscapeClosingBracket<M>>),
 }
 
@@ -34,47 +32,39 @@ pub enum StringChar<M : AstInfo> {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Number<M : AstInfo> {
-    Number(M, String),
-}
+pub struct Number<M : AstInfo>(pub M, pub String);
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum CharacterClass<M : AstInfo> {
-    Class(M, bool,Vec<Box<CharacterClassItem<M>>>),
-}
+pub struct CharacterClass<M : AstInfo>(pub M, pub bool, pub Vec<Box<CharacterClassItem<M>>>, );
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Expression<M : AstInfo> {
     Star(M, Box<Expression<M>>),
     Plus(M, Box<Expression<M>>),
     Maybe(M, Box<Expression<M>>),
-    RepeatExact(M, Box<Expression<M>>, Box<Number<M>>, Option<Box<Number<M>>>),
+    RepeatExact(M, Box<Expression<M>>, Box<Number<M>>, Option<Box<Number<M>>>, ),
     Literal(M, Vec<Box<StringChar<M>>>),
     SingleQuoteLiteral(M, Vec<Box<StringChar<M>>>),
-    Delimited(M, Box<Expression<M>>, Box<Expression<M>>, Box<DelimitedBound<M>>, bool),
+    Delimited(M, Box<Expression<M>>, Box<Expression<M>>, Box<DelimitedBound<M>>, bool, ),
     Sort(M, Box<Identifier<M>>),
     Class(M, Box<CharacterClass<M>>),
     Paren(M, Vec<Box<Expression<M>>>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum DelimitedBound<M: AstInfo> {
-    NumNum(M, Box<Number<M>>, Box<Number<M>>),
+pub enum DelimitedBound<M : AstInfo> {
+    NumNum(M, Box<Number<M>>, Box<Number<M>>, ),
     NumInf(M, Box<Number<M>>),
     Num(M, Box<Number<M>>),
-    Star(M),
-    Plus(M),
+    Star(M, ),
+    Plus(M, ),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Annotation<M: AstInfo> {
-    Annotation(M, Option<Box<Identifier<M>>>, Vec<Box<Identifier<M>>>, bool),
-}
+pub struct Annotation<M : AstInfo>(pub M, pub Option<Box<Identifier<M>>>, pub Vec<Box<Identifier<M>>>, pub bool, );
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Constructor<M: AstInfo> {
-    Constructor(M, Box<Identifier<M>>, Vec<Box<Expression<M>>>, Option<Box<Annotation<M>>>),
-}
+pub struct Constructor<M : AstInfo>(pub M, pub Box<Identifier<M>>, pub Vec<Box<Expression<M>>>, pub Option<Box<Annotation<M>>>, );
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Newline<M : AstInfo> {
@@ -84,29 +74,23 @@ pub enum Newline<M : AstInfo> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Sort<M : AstInfo> {
-    Sort(M, Box<Identifier<M>>, Vec<Box<Constructor<M>>>),
-    SortSingle(M, Box<Identifier<M>>, Vec<Box<Expression<M>>>, Option<Box<Annotation<M>>>),
+    Sort(M, Box<Identifier<M>>, Vec<Box<Constructor<M>>>, ),
+    SortSingle(M, Box<Identifier<M>>, Vec<Box<Expression<M>>>, Option<Box<Annotation<M>>>, ),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Meta<M : AstInfo> {
-    Start(M, Box<Identifier<M>>),
-}
+pub struct Meta<M : AstInfo>(pub M, pub Box<Identifier<M>>);
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum SortOrMeta<M: AstInfo> {
+pub enum SortOrMeta<M : AstInfo> {
     Meta(M, Box<Meta<M>>),
     Sort(M, Box<Sort<M>>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Program<M: AstInfo> {
-    Program(M, Vec<Box<SortOrMeta<M>>>),
-}
+pub struct Program<M : AstInfo>(pub M, pub Vec<Box<SortOrMeta<M>>>);
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Layout<M: AstInfo> {
-    Layout(M, String),
-}
+pub struct Layout<M : AstInfo>(pub M, pub String);
 
 pub type AST_ROOT<M> = Program<M>;

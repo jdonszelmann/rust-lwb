@@ -18,8 +18,10 @@ pub struct ParserState<'src> {
     pub(crate) cache: HashMap<(usize, &'src str), ParserCacheEntry<'src>>,
     pub(crate) cache_stack: VecDeque<(usize, &'src str)>,
     pub best_error: Option<PEGParseError>,
-    pub allow_layout: bool, // True if layout should be allowed at the moment
-    pub no_layout_nest_count: usize, // How many times no layout has been nested
+    pub allow_layout: bool,
+    // True if layout should be allowed at the moment
+    pub no_layout_nest_count: usize,
+    // How many times no layout has been nested
     pub no_errors_nest_count: usize, // How many times no errors has been nested
 }
 

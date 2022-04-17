@@ -141,7 +141,7 @@ fn generate_unpack(
     // if its a no-layout constructor then just return the contents as a string
     if no_layout {
         f.line(format!(
-            "Self::{constructor}(info, pair.constructor_value.span().as_str().to_string())"
+            "{constructor}(info, pair.constructor_value.span().as_str().to_string())"
         ));
         return;
     }
@@ -149,7 +149,7 @@ fn generate_unpack(
     match expression {
         a @ Expression::Sort(_) => {
             f.line(format!(
-                "Self::{constructor}(info, {})",
+                "{constructor}(info, {})",
                 generate_unpack_expression(a, sort, "pair.constructor_value")
             ));
         }
@@ -160,7 +160,7 @@ fn generate_unpack(
                     Expression::Sequence(_) => unreachable!(),
                     Expression::Choice(_) => todo!(),
                     Expression::Literal(_) | Expression::Negative(_) | Expression::Positive(_) => {
-                        continue
+                        continue;
                     }
                     _ => {}
                 }
@@ -172,7 +172,7 @@ fn generate_unpack(
             f.line(format!(
                 r#"
 if let ParsePairExpression::List(_, ref p) = pair.constructor_value {{
-    Self::{constructor}(info, {})
+    {constructor}(info, {})
 }} else {{
     panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
 }}
@@ -182,13 +182,13 @@ if let ParsePairExpression::List(_, ref p) = pair.constructor_value {{
         }
         a @ Expression::Repeat { .. } | a @ Expression::Delimited { .. } => {
             f.line(format!(
-                "Self::{constructor}(info, {})",
+                "{constructor}(info, {})",
                 generate_unpack_expression(a, sort, "pair.constructor_value")
             ));
         }
         a @ Expression::CharacterClass(_) => {
             f.line(format!(
-                "Self::{constructor}(info, {})",
+                "{constructor}(info, {})",
                 generate_unpack_expression(a, sort, "pair.constructor_value")
             ));
         }
@@ -196,7 +196,7 @@ if let ParsePairExpression::List(_, ref p) = pair.constructor_value {{
         Expression::Choice(_) => todo!(),
 
         Expression::Literal(_) => {
-            f.line(format!("Self::{constructor}(info)"));
+            f.line(format!("{constructor}(info)"));
         }
         Expression::Negative(_) => todo!(),
         Expression::Positive(_) => todo!(),
@@ -222,22 +222,33 @@ pub fn write_from_pairs(file: &mut File, syntax: &SyntaxFileAst) -> Result<(), C
                 f.line(format!(r#"assert_eq!(pair.sort, "{}");"#, sort.name));
                 f.line("let info = generator.generate(&pair);");
 
-                f.line("match pair.constructor_name {");
-
-                for constructor in &sort.constructors {
-                    f.line(format!(r#""{}" => {{"#, constructor.name));
+                if sort.constructors.len() == 1 {
+                    let constructor = &sort.constructors[0];
                     generate_unpack(
                         f,
                         &sort.name,
-                        &sanitize_identifier(&constructor.name),
+                        "Self",
                         &constructor.expression,
                         constructor.annotations.contains(&SingleString),
                     );
+                } else {
+                    f.line("match pair.constructor_name {");
+
+                    for constructor in &sort.constructors {
+                        f.line(format!(r#""{}" => {{"#, constructor.name));
+                        generate_unpack(
+                            f,
+                            &sort.name,
+                            &format!("Self::{}", sanitize_identifier(&constructor.name)),
+                            &constructor.expression,
+                            constructor.annotations.contains(&SingleString),
+                        );
+                        f.line("}");
+                    }
+
+                    f.line(r#"a => unreachable!("{}", a)"#);
                     f.line("}");
                 }
-
-                f.line(r#"a => unreachable!("{}", a)"#);
-                f.line("}");
             })],
         )
         .generic("M: AstInfo");

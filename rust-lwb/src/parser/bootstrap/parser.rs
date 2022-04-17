@@ -63,7 +63,7 @@ fn parse_file(i: &mut SourceFileIterator) -> ParseResult<SyntaxFileAst> {
         match parse_sort_or_meta(i)? {
             Some(SortOrMeta::Sort(c)) => sorts.push(c),
             Some(SortOrMeta::StartRule(_)) if starting_rule.is_some() => {
-                return Err(DuplicateStartingRule)
+                return Err(DuplicateStartingRule);
             }
             Some(SortOrMeta::StartRule(c)) => starting_rule = Some(c),
             Some(SortOrMeta::Layout(c)) => layout = layout.combine(c),

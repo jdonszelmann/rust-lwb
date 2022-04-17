@@ -13,6 +13,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static GLOBALLY_UNIQUE_VARIABLE_ID: AtomicU64 = AtomicU64::new(0);
+
 pub fn new_variable_id() -> VariableId {
     let value = GLOBALLY_UNIQUE_VARIABLE_ID.fetch_add(1, Ordering::Relaxed);
     VariableId(value)
@@ -154,8 +155,11 @@ mod sealed {
     use crate::typechecker::Type;
 
     pub trait Sealed {}
+
     impl<TYPE: Type> Sealed for Variable<TYPE> {}
+
     impl<TYPE: Type> Sealed for &Variable<TYPE> {}
+
     impl<TYPE: Type> Sealed for TYPE {}
 }
 
@@ -185,6 +189,7 @@ impl<TYPE: Type> IntoVariable<TYPE> for &Variable<TYPE> {
 }
 
 pub type ComputerConstraintResult<TYPE> = Result<TYPE, TypeError<TYPE>>;
+
 pub struct ComputedConstraint<TYPE: Type> {
     depends_on: Vec<Variable<TYPE>>,
     #[allow(dead_code)]

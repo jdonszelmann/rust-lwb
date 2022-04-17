@@ -3,6 +3,8 @@ use crate::codegen::sanitize_identifier;
 use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
 use crate::parser::peg::parser_sugar_ast::{Expression, SyntaxFileAst};
 use codegen::Scope;
+use itertools::Itertools;
+use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::Write;
 
@@ -15,22 +17,32 @@ pub fn write_ast(
     scope.import("super::prelude", "*");
 
     for rule in &syntax.sorts {
-        let enumm = scope.new_enum(&sanitize_identifier(&rule.name));
-        enumm.vis("pub");
+        if rule.constructors.len() == 1 {
+            let structt = scope.new_struct(&sanitize_identifier(&rule.name));
+            structt.vis("pub");
 
-        for i in derives {
-            enumm.derive(i);
-        }
+            for i in derives {
+                structt.derive(i);
+            }
 
-        enumm.generic("M : AstInfo");
-        for constr in &rule.constructors {
-            let variant = enumm.new_variant(&sanitize_identifier(&constr.name));
-            variant.tuple("M");
+            structt.generic("M : AstInfo");
+            let constr = &rule.constructors[0];
+            structt.tuple_field("pub M");
 
             let typ = if constr.annotations.contains(&SingleString) {
-                "String".to_string()
+                "pub String".to_string()
             } else {
-                generate_constructor_type(&constr.expression).unwrap_or_else(|| "()".to_string())
+                match generate_constructor_type(&constr.expression) {
+                    Tree::Leaf(s) => format!("pub {}", s),
+                    Tree::Node(trees) => {
+                        let mut buf = String::new();
+                        for t in trees {
+                            buf.push_str(&format!("pub {}, ", t));
+                        }
+                        buf
+                    }
+                    Tree::Empty => "()".to_string(),
+                }
             };
 
             let typ = if typ.starts_with('(') {
@@ -38,7 +50,33 @@ pub fn write_ast(
             } else {
                 &typ
             };
-            variant.tuple(typ);
+            structt.tuple_field(typ);
+        } else {
+            let enumm = scope.new_enum(&sanitize_identifier(&rule.name));
+            enumm.vis("pub");
+
+            for i in derives {
+                enumm.derive(i);
+            }
+
+            enumm.generic("M : AstInfo");
+            for constr in &rule.constructors {
+                let variant = enumm.new_variant(&sanitize_identifier(&constr.name));
+                variant.tuple("M");
+
+                let typ = if constr.annotations.contains(&SingleString) {
+                    "String".to_string()
+                } else {
+                    generate_constructor_type(&constr.expression).to_string()
+                };
+
+                let typ = if typ.starts_with('(') {
+                    &typ[1..typ.len() - 1]
+                } else {
+                    &typ
+                };
+                variant.tuple(typ);
+            }
         }
     }
 
@@ -52,40 +90,62 @@ pub fn write_ast(
     Ok(())
 }
 
-fn generate_constructor_type(constructor: &Expression) -> Option<String> {
-    match constructor {
-        Expression::Sort(sort) => Some(format!("Box<{}<M>>", sanitize_identifier(sort))),
-        Expression::Sequence(cons) => {
-            let mut parts = Vec::new();
+#[derive(Eq, PartialEq)]
+enum Tree<T> {
+    Leaf(T),
+    Node(Vec<Tree<T>>),
+    Empty,
+}
 
-            for con in cons {
-                if let Some(con_type) = generate_constructor_type(con) {
-                    parts.push(con_type);
+impl Display for Tree<String> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Tree::Leaf(s) => write!(f, "{}", s),
+            Tree::Node(trees) => {
+                for t in trees {
+                    write!(f, "{}, ", t)?;
                 }
+                Ok(())
             }
+            Tree::Empty => write!(f, "()"),
+        }
+    }
+}
+
+fn generate_constructor_type(constructor: &Expression) -> Tree<String> {
+    match constructor {
+        Expression::Sort(sort) => Tree::Leaf(format!("Box<{}<M>>", sanitize_identifier(sort))),
+        Expression::Sequence(cons) => {
+            let mut parts: Vec<Tree<String>> = cons
+                .iter()
+                .filter_map(|con| match generate_constructor_type(con) {
+                    Tree::Empty => None,
+                    x => Some(x),
+                })
+                .collect_vec();
 
             if parts.is_empty() {
-                None
+                Tree::Empty
             } else if parts.len() == 1 {
-                Some(parts.pop().unwrap())
+                parts.pop().unwrap()
             } else {
-                Some(format!("({})", parts.join(",")))
+                Tree::Node(parts)
             }
         }
         Expression::Repeat { e, min, max } | Expression::Delimited { e, min, max, .. } => {
-            let subtype = generate_constructor_type(e.as_ref()).unwrap_or_else(|| "()".to_string());
+            let subtype = generate_constructor_type(e.as_ref());
 
             match (min, max) {
-                (0, Some(1)) if subtype == "()" => Some("bool".to_string()),
-                (0, Some(1)) => Some(String::from_iter(["Option<", &subtype, ">"])),
-                _ if subtype == "()" => Some("usize".to_string()),
-                _ => Some(String::from_iter(["Vec<", &subtype, ">"])),
+                (0, Some(1)) if subtype == Tree::Empty => Tree::Leaf("bool".to_string()),
+                (0, Some(1)) => Tree::Leaf(format!("Option<{}>", subtype)),
+                _ if subtype == Tree::Empty => Tree::Leaf("usize".to_string()),
+                _ => Tree::Leaf(format!("Vec<{}>", subtype)),
             }
         }
-        Expression::Choice(_) => None, //TODO how to represent choice?
-        Expression::CharacterClass(_) => Some("String".to_string()),
-        Expression::Negative(_) => None,
-        Expression::Positive(_) => None,
-        Expression::Literal(_) => None,
+        Expression::Choice(_) => panic!(), //TODO how to represent choice?
+        Expression::CharacterClass(_) => Tree::Leaf("String".to_string()),
+        Expression::Negative(_) => Tree::Empty,
+        Expression::Positive(_) => Tree::Empty,
+        Expression::Literal(_) => Tree::Empty,
     }
 }

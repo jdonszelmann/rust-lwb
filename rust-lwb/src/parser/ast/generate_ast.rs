@@ -14,6 +14,7 @@ impl AstInfo for BasicAstInfo {
         self.node_id
     }
 }
+
 impl SpannedAstInfo for BasicAstInfo {
     fn span(&self) -> &Span {
         &self.span
@@ -21,6 +22,7 @@ impl SpannedAstInfo for BasicAstInfo {
 }
 
 pub trait BasicAstNode: AstNode<BasicAstInfo> {}
+
 impl<T> BasicAstNode for T where T: AstNode<BasicAstInfo> {}
 
 #[derive(Default)]

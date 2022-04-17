@@ -9,13 +9,15 @@ use std::ops::{Range, RangeInclusive};
 pub enum CharacterClass {
     /// Inclusive range. Both `from` and `to` are inclusive
     RangeInclusive {
-        from: char, // inclusive!
-        to: char,   // inclusive!
+        from: char,
+        // inclusive!
+        to: char, // inclusive!
     },
     /// Exclusive range. `from` is inclusive but `to` is exclusive
     Range {
-        from: char, // inclusive!
-        to: char,   // exclusive!
+        from: char,
+        // inclusive!
+        to: char, // exclusive!
     },
     /// all characters in the vec are in the character class.
     Contained(Vec<char>),
