@@ -7,7 +7,7 @@
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-// Generated at 17/04/2022 23:31:51 +02:00 - 17/04/2022 21:31:51 UTC
+// Generated at 17/04/2022 23:31:58 +02:00 - 17/04/2022 21:31:58 UTC
 
 #[rustfmt::skip]
 mod ast;
@@ -27,6 +27,6 @@ pub use parser::*;
 
 #[rustfmt::skip]
 mod prelude {
-    pub use crate::codegen_prelude::*;
+    pub use rust_lwb::codegen_prelude::*;
     pub use super::*;
 }

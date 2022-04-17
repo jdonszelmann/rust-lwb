@@ -50,12 +50,8 @@ fn lub_list(types: &[StlType]) -> Result<StlType, TypeError<StlType>> {
 
 impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Program<M> {
     fn create_constraints<'ast>(&'ast self, s: &mut State<'ast, M, (), StlType>, _: &()) {
-        match self {
-            Program::Program(_, statements) => {
-                for i in statements {
-                    s.type_ok(i);
-                }
-            }
+        for i in &self.1 {
+            s.type_ok(i);
         }
     }
 }
