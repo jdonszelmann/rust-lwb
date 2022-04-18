@@ -9,7 +9,6 @@ use crate::parser::syntax_file::AST::{DelimitedBound, StringChar};
 use crate::sources::character_class::CharacterClass;
 use std::num::ParseIntError;
 use std::str::FromStr;
-use itertools::Itertools;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
