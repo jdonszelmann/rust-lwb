@@ -69,12 +69,13 @@ pub fn write_ast(
             for constr in &rule.constructors {
                 // TODO: fix cursedness
                 let variant = if let Some(ref doc) = constr.documentation {
-                    let doc = doc.lines().map(|i| format!("/// {i}")).collect_vec().join("\n");
+                    let doc = doc
+                        .lines()
+                        .map(|i| format!("/// {i}"))
+                        .collect_vec()
+                        .join("\n");
 
-                    enumm.new_variant(&format!(
-                        "{doc}\n{}",
-                        sanitize_identifier(&constr.name),
-                    ))
+                    enumm.new_variant(&format!("{doc}\n{}", sanitize_identifier(&constr.name),))
                 } else {
                     enumm.new_variant(&sanitize_identifier(&constr.name))
                 };

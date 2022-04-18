@@ -152,20 +152,22 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
                 }],
             }
         }
-        ast::Sort::SortDocumented(_, comments, sort) => {
-            convert_sort(*sort)
-                .and_then(|mut i| {
-                    i.documentation = Some(convert_comments(comments)?);
-                    Ok(i)
-                })?
-        }
+        ast::Sort::SortDocumented(_, comments, sort) => convert_sort(*sort).and_then(|mut i| {
+            i.documentation = Some(convert_comments(comments)?);
+            Ok(i)
+        })?,
     })
 }
 
 fn convert_comments<M: AstInfo>(inp: Vec<Box<ast::DocComment<M>>>) -> ConversionResult<String> {
-    Ok(inp.into_iter()
+    Ok(inp
+        .into_iter()
         .map(|i| {
-            (*i).1.strip_prefix("///").unwrap_or(&(*i).1).trim().to_string()
+            (*i).1
+                .strip_prefix("///")
+                .unwrap_or(&(*i).1)
+                .trim()
+                .to_string()
         })
         .collect::<Vec<_>>()
         .join("\n"))
@@ -248,24 +250,21 @@ fn convert_annotations<M: AstInfo>(inp: ast::Annotation<M>) -> ConversionResult<
 
 fn convert_constructor<M: AstInfo>(inp: ast::Constructor<M>) -> ConversionResult<Constructor> {
     Ok(match inp {
-        ast::Constructor::Constructor(_, name, expressions, annotations) => {
-            Constructor {
-                documentation: None,
-                name: convert_identifier(*name),
-                expression: convert_expressions(expressions)?,
-                annotations: if let Some(a) = annotations {
-                    convert_annotations(*a)?
-                } else {
-                    Vec::new()
-                },
-            }
-        }
+        ast::Constructor::Constructor(_, name, expressions, annotations) => Constructor {
+            documentation: None,
+            name: convert_identifier(*name),
+            expression: convert_expressions(expressions)?,
+            annotations: if let Some(a) = annotations {
+                convert_annotations(*a)?
+            } else {
+                Vec::new()
+            },
+        },
         ast::Constructor::ConstructorDocumented(_, comments, constructor) => {
-            convert_constructor(*constructor)
-                .and_then(|mut i| {
-                    i.documentation = Some(convert_comments(comments)?);
-                    Ok(i)
-                })?
+            convert_constructor(*constructor).and_then(|mut i| {
+                i.documentation = Some(convert_comments(comments)?);
+                Ok(i)
+            })?
         }
     })
 }
