@@ -252,8 +252,11 @@ fn resugar_expr<'src>(
             //Map each element in the list to get the expr
             seq1.into_iter().for_each(|pair| {
                 result.push(if let ParsePairRaw::List(span, list) = pair {
-                    if list.len() < 2 { ParsePairExpression::Error(span) }
-                    else { resugar_expr(ast, e, list.into_iter().nth(1).unwrap()) }
+                    if list.len() < 2 {
+                        ParsePairExpression::Error(span)
+                    } else {
+                        resugar_expr(ast, e, list.into_iter().nth(1).unwrap())
+                    }
                 } else {
                     ParsePairExpression::Error(pair.span())
                 });
