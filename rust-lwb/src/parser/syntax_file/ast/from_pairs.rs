@@ -458,9 +458,11 @@ impl<M: AstInfo> FromPairs<M> for Constructor<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
         assert_eq!(pair.sort, "constructor");
         let info = generator.generate(&pair);
+        match pair.constructor_name {
+        "constructor" => {
 
         if let ParsePairExpression::List(_, ref p) = pair.constructor_value {
-            Self(info, 
+            Self::Constructor(info, 
         if let ParsePairExpression::Sort(_, ref s) = p[1] {
             Box::new(Identifier::from_pairs(s, generator))
         } else {
@@ -495,6 +497,36 @@ impl<M: AstInfo> FromPairs<M> for Constructor<M> {
             panic!("expected empty parse pair expression in pair to ast conversion of constructor")
         }
                     
+        }
+        "constructor-documented" => {
+
+        if let ParsePairExpression::List(_, ref p) = pair.constructor_value {
+            Self::ConstructorDocumented(info, 
+        if let ParsePairExpression::List(_, ref l) = p[0] {
+            l.iter().map(|x| { 
+        if let ParsePairExpression::Sort(_, ref s) = x {
+            Box::new(DocComment::from_pairs(s, generator))
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of constructor")
+        }
+                     }).collect()
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of constructor")
+        }
+                            ,
+        if let ParsePairExpression::Sort(_, ref s) = p[1] {
+            Box::new(Constructor::from_pairs(s, generator))
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of constructor")
+        }
+                    )
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of constructor")
+        }
+                    
+        }
+        a => unreachable!("{}", a)
+        }
     }
 }
 
@@ -519,6 +551,33 @@ impl<M: AstInfo> FromPairs<M> for Sort<M> {
         assert_eq!(pair.sort, "sort");
         let info = generator.generate(&pair);
         match pair.constructor_name {
+        "sort-documented" => {
+
+        if let ParsePairExpression::List(_, ref p) = pair.constructor_value {
+            Self::SortDocumented(info, 
+        if let ParsePairExpression::List(_, ref l) = p[0] {
+            l.iter().map(|x| { 
+        if let ParsePairExpression::Sort(_, ref s) = x {
+            Box::new(DocComment::from_pairs(s, generator))
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of sort")
+        }
+                     }).collect()
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of sort")
+        }
+                            ,
+        if let ParsePairExpression::Sort(_, ref s) = p[1] {
+            Box::new(Sort::from_pairs(s, generator))
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of sort")
+        }
+                    )
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of sort")
+        }
+                    
+        }
         "sort" => {
 
         if let ParsePairExpression::List(_, ref p) = pair.constructor_value {
@@ -655,6 +714,32 @@ impl<M: AstInfo> FromPairs<M> for Program<M> {
             panic!("expected empty parse pair expression in pair to ast conversion of program")
         }
                             )
+    }
+}
+
+impl<M: AstInfo> FromPairs<M> for DocComment<M> {
+    fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
+        assert_eq!(pair.sort, "doc-comment");
+        let info = generator.generate(&pair);
+
+        if let ParsePairExpression::List(_, ref p) = pair.constructor_value {
+            Self(info, 
+        if let ParsePairExpression::List(_, ref l) = p[1] {
+            l.iter().map(|x| { 
+        if let ParsePairExpression::Empty(ref span) = x {
+            span.as_str().to_string()
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of doc-comment")
+        }
+                 }).collect()
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of doc-comment")
+        }
+                            )
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of doc-comment")
+        }
+                    
     }
 }
 

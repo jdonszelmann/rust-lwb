@@ -44,13 +44,16 @@ delimited-bound:
 
 annotation = "{" delimited(identifier, ",", +, trailing) "}";
 
-constructor = "    " identifier "=" expression+ ";" annotation?;
+constructor:
+    constructor = "    " identifier "=" expression+ ";" annotation?;
+    constructor-documented = doc-comment+ constructor;
 
 newline:
     unix = "\n";
     windows = "\r\n";
 
 sort:
+    sort-documented = doc-comment+ sort;
     sort = identifier ":" constructor*;
     sort-single = identifier "=" expression+ ";" annotation?;
 
@@ -63,8 +66,10 @@ sort-or-meta:
 
 program = sort-or-meta*;
 
+doc-comment = "///" [^\n]*;
+
 layout:
     simple = [\n\r\t ];
-    comment = "#" [^\n]*;
+    comment = "//" [^\n]*;
 
 start at program;

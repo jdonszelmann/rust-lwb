@@ -149,6 +149,7 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
                 }],
             }
         }
+        ast::Sort::SortDocumented(_, _, _) => {todo!()}
     })
 }
 
@@ -224,14 +225,20 @@ fn convert_annotations<M: AstInfo>(inp: ast::Annotation<M>) -> ConversionResult<
 }
 
 fn convert_constructor<M: AstInfo>(inp: ast::Constructor<M>) -> ConversionResult<Constructor> {
-    let ast::Constructor(_, name, expressions, annotations) = inp;
-    Ok(Constructor {
-        name: convert_identifier(*name),
-        expression: convert_expressions(expressions)?,
-        annotations: if let Some(a) = annotations {
-            convert_annotations(*a)?
-        } else {
-            Vec::new()
-        },
+    Ok(match inp {
+        ast::Constructor::Constructor(_, name, expressions, annotations) => {
+            Constructor {
+                name: convert_identifier(*name),
+                expression: convert_expressions(expressions)?,
+                annotations: if let Some(a) = annotations {
+                    convert_annotations(*a)?
+                } else {
+                    Vec::new()
+                },
+            }
+        }
+        ast::Constructor::ConstructorDocumented(_, _, _) => {
+            todo!()
+        }
     })
 }
