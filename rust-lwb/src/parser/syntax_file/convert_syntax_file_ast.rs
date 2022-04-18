@@ -164,8 +164,11 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
 
 fn convert_comments<M: AstInfo>(inp: Vec<Box<ast::DocComment<M>>>) -> ConversionResult<String> {
     Ok(inp.into_iter()
-        .map(|i| i.1)
-        .collect())
+        .map(|i| {
+            (*i).1.strip_prefix("///").unwrap_or(&(*i).1).trim().to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n"))
 }
 
 fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<Expression> {

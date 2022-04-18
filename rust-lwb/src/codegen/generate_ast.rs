@@ -20,6 +20,9 @@ pub fn write_ast(
         if rule.constructors.len() == 1 {
             let structt = scope.new_struct(&sanitize_identifier(&rule.name));
             structt.vis("pub");
+            if let Some(ref doc) = rule.documentation {
+                structt.doc(doc);
+            }
 
             for i in derives {
                 structt.derive(i);
@@ -54,6 +57,9 @@ pub fn write_ast(
         } else {
             let enumm = scope.new_enum(&sanitize_identifier(&rule.name));
             enumm.vis("pub");
+            if let Some(ref doc) = rule.documentation {
+                enumm.doc(doc);
+            }
 
             for i in derives {
                 enumm.derive(i);
@@ -61,7 +67,17 @@ pub fn write_ast(
 
             enumm.generic("M : AstInfo");
             for constr in &rule.constructors {
-                let variant = enumm.new_variant(&sanitize_identifier(&constr.name));
+                // TODO: fix cursedness
+                let variant = if let Some(ref doc) = constr.documentation {
+                    let doc = doc.lines().map(|i| format!("/// {i}")).collect_vec().join("\n");
+
+                    enumm.new_variant(&format!(
+                        "{doc}\n{}",
+                        sanitize_identifier(&constr.name),
+                    ))
+                } else {
+                    enumm.new_variant(&sanitize_identifier(&constr.name))
+                };
                 variant.tuple("M");
 
                 let typ = if constr.annotations.contains(&SingleString) {
