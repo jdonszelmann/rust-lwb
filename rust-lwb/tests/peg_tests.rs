@@ -145,6 +145,23 @@ failing tests:
 }
 
 peg_test! {
+name: layout_in_layout,
+syntax: r#"
+X = "x" "y";
+layout = "a" "b";
+start at X;
+"#,
+passing tests:
+    "xy"
+    "xaby"
+    "xababy"
+failing tests:
+    "x"
+    "xa by"
+    "xaabby"
+}
+
+peg_test! {
 name: no_layout,
 syntax: r#"
 X = "x" "y"; {no-layout}

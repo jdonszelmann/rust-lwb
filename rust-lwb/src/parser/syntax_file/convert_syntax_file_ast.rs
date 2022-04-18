@@ -218,8 +218,12 @@ fn convert_expressions<M: AstInfo>(
 
 fn convert_annotations<M: AstInfo>(inp: ast::Annotation<M>) -> ConversionResult<Vec<Annotation>> {
     let ast::Annotation(_, annotations) = inp;
-    annotations.into_iter()
-        .map(|an| Annotation::from_str(&an.as_ref().1).map_err(|_| AstConversionError::BadAnnotation(an.as_ref().1.clone())))
+    annotations
+        .into_iter()
+        .map(|an| {
+            Annotation::from_str(&an.as_ref().1)
+                .map_err(|_| AstConversionError::BadAnnotation(an.as_ref().1.clone()))
+        })
         .collect::<Result<_, _>>()
 }
 
