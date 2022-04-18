@@ -436,37 +436,13 @@ impl<M: AstInfo> FromPairs<M> for Annotation<M> {
         if let ParsePairExpression::List(_, ref p) = pair.constructor_value {
             Self(info, 
         if let ParsePairExpression::List(_, ref l) = p[1] {
-            l.first().map(|x| { 
+            l.iter().map(|x| { 
         if let ParsePairExpression::Sort(_, ref s) = x {
             Box::new(Identifier::from_pairs(s, generator))
         } else {
             panic!("expected empty parse pair expression in pair to ast conversion of annotation")
         }
-                     })
-        } else {
-            panic!("expected empty parse pair expression in pair to ast conversion of annotation")
-        }
-                            ,
-        if let ParsePairExpression::List(_, ref l) = p[2] {
-            l.iter().map(|x| { 
-        if let ParsePairExpression::List(_, ref p) = x {
-            
-        if let ParsePairExpression::Sort(_, ref s) = p[1] {
-            Box::new(Identifier::from_pairs(s, generator))
-        } else {
-            panic!("expected empty parse pair expression in pair to ast conversion of annotation")
-        }
-                    
-        } else {
-            panic!("expected empty parse pair expression in pair to ast conversion of annotation")
-        }
-                             }).collect()
-        } else {
-            panic!("expected empty parse pair expression in pair to ast conversion of annotation")
-        }
-                            ,
-        if let ParsePairExpression::List(_, ref l) = p[3] {
-            l.first().is_some()
+                     }).collect()
         } else {
             panic!("expected empty parse pair expression in pair to ast conversion of annotation")
         }

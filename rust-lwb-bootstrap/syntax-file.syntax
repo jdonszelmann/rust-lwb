@@ -42,7 +42,7 @@ delimited-bound:
     star = "*";
     plus = "+";
 
-annotation = "{" identifier? ("," identifier)* ","? "}";
+annotation = "{" delimited(identifier, ",", +, trailing) "}";
 
 constructor = "    " identifier "=" expression+ ";" annotation?;
 

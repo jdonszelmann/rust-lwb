@@ -60,7 +60,7 @@ pub enum DelimitedBound<M : AstInfo> {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Annotation<M : AstInfo>(pub M, pub Option<Box<Identifier<M>>>, pub Vec<Box<Identifier<M>>>, pub bool, );
+pub struct Annotation<M : AstInfo>(pub M, pub Vec<Box<Identifier<M>>>);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Constructor<M : AstInfo>(pub M, pub Box<Identifier<M>>, pub Vec<Box<Expression<M>>>, pub Option<Box<Annotation<M>>>, );

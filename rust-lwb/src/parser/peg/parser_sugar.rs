@@ -233,21 +233,26 @@ fn resugar_expr<'src>(
             let mut result = vec![];
             let mut seq_iter = seq.into_iter();
 
+            //Inside choice is first an expr, then a repeat of seq (delim, expr)
+            //We first find the first expr
             let seq0 = seq_iter.next().unwrap();
             result.push(resugar_expr(ast, e, seq0));
 
+            //See if the rest of the expr is present
             let next = seq_iter.next();
             if next.is_none() {
                 return ParsePairExpression::List(span, result);
             }
+            //It is present, lets get the list of them
             let seq1 = if let ParsePairRaw::List(_, list) = next.unwrap() {
                 list
             } else {
                 return ParsePairExpression::Error(span);
             };
+            //Map each element in the list to get the expr
             seq1.into_iter().for_each(|pair| {
                 result.push(if let ParsePairRaw::List(_, list) = pair {
-                    resugar_expr(ast, e, list.into_iter().next().unwrap())
+                    resugar_expr(ast, e, list.into_iter().skip(1).next().unwrap())
                 } else {
                     ParsePairExpression::Error(pair.span())
                 });

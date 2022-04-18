@@ -9,6 +9,7 @@ use crate::parser::syntax_file::AST::{DelimitedBound, StringChar};
 use crate::sources::character_class::CharacterClass;
 use std::num::ParseIntError;
 use std::str::FromStr;
+use itertools::Itertools;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -217,19 +218,9 @@ fn convert_expressions<M: AstInfo>(
 }
 
 fn convert_annotations<M: AstInfo>(inp: ast::Annotation<M>) -> ConversionResult<Vec<Annotation>> {
-    let ast::Annotation(_, first, rest, _) = inp;
-    let mut res = Vec::new();
-
-    if let Some(i) = first {
-        res.push(convert_identifier(*i));
-    }
-
-    for i in rest {
-        res.push(convert_identifier(*i));
-    }
-
-    res.into_iter()
-        .map(|i| Annotation::from_str(&i).map_err(|_| AstConversionError::BadAnnotation(i.clone())))
+    let ast::Annotation(_, annotations) = inp;
+    annotations.into_iter()
+        .map(|an| Annotation::from_str(&an.as_ref().1).map_err(|_| AstConversionError::BadAnnotation(an.as_ref().1.clone())))
         .collect::<Result<_, _>>()
 }
 
