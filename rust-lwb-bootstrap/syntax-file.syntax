@@ -25,7 +25,8 @@ number = [0-9]+; {single-string}
 /// For example, `[^\n]` means it matches any character that is not a newline.
 ///
 /// Character classes can contain a range of characters. Either by listing each individual character, or using
-/// a dash (`-`). For example, `[a-z]` means any character in the range a through z, and `[abc]` means an a, b or c
+/// a dash (`-`). For example, `[a-z]` means any character in the range a through z (inclusive!),
+/// and `[abc]` means an a, b or c
 ///
 /// Note that to use a closing square bracket within a character class, you need to escape it.
 ///
@@ -33,31 +34,71 @@ number = [0-9]+; {single-string}
 character-class:
     class =  "[" "^"? character-class-item* "]"; {no-layout}
 
+/// With expressions, you can give the syntax rules of a single constructor.
+/// Expressions can be nested and combined.
 expression:
+    /// Repeat some expression zero or more times
+    /// Equivalent to `<expression> {0,}`
     star = expression "*";
+
+    /// Repeat some expression one or more times
+    /// Equivalent to `<expression> {1,}`
     plus = expression "+";
+
+    /// Optionally have some expression.
+    /// Equivalent to `<expression> {0,1}`
     maybe = expression "?";
+
+    /// Exact repetition. You can give a lower bound, and optionally an upper bound
+    /// of how many repetitions are allowed. If the upper bound is left out, an infinite
+    /// number of repetitions is allowed.
     repeat-exact = expression "{" number "," number? "}";
 
+    /// Matches a piece of text exactly. Layout is parsed within a literal.
     literal = "\"" string-char* "\""; {no-layout}
+    /// Also a literal, see [`literal`]
     single-quote-literal = "'" string-char* "'"; {no-layout}
 
+    /// Delimited expressions. Says that some expression should be repeatedly parsed,
+    /// but between two parses, a delimiter should be parsed too. For example, comma seperated expressions.
     delimited = "delimited" "(" expression "," expression "," delimited-bound ("," "trailing")? ")";
 
+    /// Reference another sort within this expression. That sort should be parsed in this position in the expression.
     sort = identifier;
+
+    /// A [`character class`](character-class) (range of characters) should be parsed here.
     class = character-class;
 
+    /// You can use parentheses to group parts of expressions.
     paren = "(" expression+ ")"; {injection}
 
+/// A delimited expression can be repeated just like normal repetition expressions.
+/// To denote this, you can use a delimitation bound.
 delimited-bound:
+    /// Within a range or possible repetitions.
     num-num = number "," number;
+    /// At least some number of repetitions, but no upper bound.
     num-inf = number "," "inf";
+
+    /// Exactly this number of repetitions.
     num = number;
+
+    // Zero or more repetitions.
     star = "*";
+
+    /// One or more repetitions.
     plus = "+";
 
+/// Annotations are tags that modify a specific sort or more often constructor.
+/// TODO: Document each
 annotation = "{" delimited(identifier, ",", +, trailing) "}";
 
+/// A [`sort`] consists of constructors. A sort will try each of the constructors
+/// from top to bottom, and use the first one that succesfully parses the input string.
+///
+/// A constructor consists of a name, followed by an [`expression`]
+///
+/// Constructors can have doc-comments using triple slashes.
 constructor:
     constructor = "    " identifier "=" expression+ ";" annotation?;
     constructor-documented = doc-comment+ constructor;
@@ -66,12 +107,24 @@ newline:
     unix = "\n";
     windows = "\r\n";
 
+/// A sort is a group of constructors. See [`constructor`] for more details.
+///
+/// There is one special sort, called `layout`. It can be used to denote
+/// that a grammar should for example ignore certain whitespace or comments.
+/// Between every part of an expression, the parser will attempt to parse the
+/// layout sort 0 or more times, and throw away whatever it parses.
+///
+/// Sorts can have doc-comments using triple slashes.
 sort:
     sort-documented = doc-comment+ sort;
     sort = identifier ":" constructor*;
+
+    /// When a sort has only one constructor, it has simpler syntax.
     sort-single = identifier "=" expression+ ";" annotation?;
 
+/// Other top-level constructs that are not sorts
 meta:
+    /// The starting rule is an indication for the parser
     start = "start" "at" identifier ";";
 
 sort-or-meta:
@@ -80,6 +133,9 @@ sort-or-meta:
 
 program = sort-or-meta*;
 
+/// A documentation comment (doc comment) is always associated with a sort
+/// or constructor. It documents what it does. Doc comments will be interpreted
+/// and will be put on the generated types during codegen.
 doc-comment = "///" [^\n]*; {no-layout, single-string}
 
 layout:
