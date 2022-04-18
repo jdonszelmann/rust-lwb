@@ -90,6 +90,9 @@ pub enum SortOrMeta<M : AstInfo> {
 pub struct Program<M : AstInfo>(pub M, pub Vec<Box<SortOrMeta<M>>>);
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Layout<M : AstInfo>(pub M, pub String);
+pub enum Layout<M : AstInfo> {
+    Simple(M, String),
+    Comment(M, Vec<String>),
+}
 
 pub type AST_ROOT<M> = Program<M>;

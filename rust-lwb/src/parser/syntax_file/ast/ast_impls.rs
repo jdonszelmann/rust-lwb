@@ -509,19 +509,29 @@ impl<M: AstInfo> AstNode<M> for Program<M> {
 
 impl<M: AstInfo> AstNode<M> for Layout<M> {
     fn ast_info(&self) -> &M {
-        let meta = &self.0;
-        {
+        match self {
+        Self::Simple(meta, ..) => {
             meta
         }
 
+        Self::Comment(meta, ..) => {
+            meta
+        }
+
+        }
     }
 
     fn constructor(&self) -> &'static str {
-        let meta = &self.0;
-        {
-            "layout"
+        match self {
+        Self::Simple(meta, ..) => {
+            "simple"
         }
 
+        Self::Comment(meta, ..) => {
+            "comment"
+        }
+
+        }
     }
 
     fn sort(&self) -> &'static str {

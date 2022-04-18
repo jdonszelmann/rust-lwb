@@ -662,12 +662,38 @@ impl<M: AstInfo> FromPairs<M> for Layout<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
         assert_eq!(pair.sort, "layout");
         let info = generator.generate(&pair);
-        Self(info, 
+        match pair.constructor_name {
+        "simple" => {
+        Self::Simple(info, 
         if let ParsePairExpression::Empty(ref span) = pair.constructor_value {
             span.as_str().to_string()
         } else {
             panic!("expected empty parse pair expression in pair to ast conversion of layout")
         }
                 )
+        }
+        "comment" => {
+
+        if let ParsePairExpression::List(_, ref p) = pair.constructor_value {
+            Self::Comment(info, 
+        if let ParsePairExpression::List(_, ref l) = p[1] {
+            l.iter().map(|x| { 
+        if let ParsePairExpression::Empty(ref span) = x {
+            span.as_str().to_string()
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of layout")
+        }
+                 }).collect()
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of layout")
+        }
+                            )
+        } else {
+            panic!("expected empty parse pair expression in pair to ast conversion of layout")
+        }
+                    
+        }
+        a => unreachable!("{}", a)
+        }
     }
 }
