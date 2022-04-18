@@ -347,19 +347,29 @@ impl<M: AstInfo> AstNode<M> for Annotation<M> {
 
 impl<M: AstInfo> AstNode<M> for Constructor<M> {
     fn ast_info(&self) -> &M {
-        let meta = &self.0;
-        {
+        match self {
+        Self::Constructor(meta, ..) => {
             meta
         }
 
+        Self::ConstructorDocumented(meta, ..) => {
+            meta
+        }
+
+        }
     }
 
     fn constructor(&self) -> &'static str {
-        let meta = &self.0;
-        {
+        match self {
+        Self::Constructor(meta, ..) => {
             "constructor"
         }
 
+        Self::ConstructorDocumented(meta, ..) => {
+            "constructor-documented"
+        }
+
+        }
     }
 
     fn sort(&self) -> &'static str {
@@ -402,6 +412,10 @@ impl<M: AstInfo> AstNode<M> for Newline<M> {
 impl<M: AstInfo> AstNode<M> for Sort<M> {
     fn ast_info(&self) -> &M {
         match self {
+        Self::SortDocumented(meta, ..) => {
+            meta
+        }
+
         Self::Sort(meta, ..) => {
             meta
         }
@@ -415,6 +429,10 @@ impl<M: AstInfo> AstNode<M> for Sort<M> {
 
     fn constructor(&self) -> &'static str {
         match self {
+        Self::SortDocumented(meta, ..) => {
+            "sort-documented"
+        }
+
         Self::Sort(meta, ..) => {
             "sort"
         }
@@ -507,7 +525,7 @@ impl<M: AstInfo> AstNode<M> for Program<M> {
     }
 }
 
-impl<M: AstInfo> AstNode<M> for Layout<M> {
+impl<M: AstInfo> AstNode<M> for DocComment<M> {
     fn ast_info(&self) -> &M {
         let meta = &self.0;
         {
@@ -519,9 +537,41 @@ impl<M: AstInfo> AstNode<M> for Layout<M> {
     fn constructor(&self) -> &'static str {
         let meta = &self.0;
         {
-            "layout"
+            "doc-comment"
         }
 
+    }
+
+    fn sort(&self) -> &'static str {
+        "doc-comment"
+    }
+}
+
+impl<M: AstInfo> AstNode<M> for Layout<M> {
+    fn ast_info(&self) -> &M {
+        match self {
+        Self::Simple(meta, ..) => {
+            meta
+        }
+
+        Self::Comment(meta, ..) => {
+            meta
+        }
+
+        }
+    }
+
+    fn constructor(&self) -> &'static str {
+        match self {
+        Self::Simple(meta, ..) => {
+            "simple"
+        }
+
+        Self::Comment(meta, ..) => {
+            "comment"
+        }
+
+        }
     }
 
     fn sort(&self) -> &'static str {

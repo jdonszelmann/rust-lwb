@@ -6,6 +6,7 @@ use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Constructor {
+    pub documentation: Option<String>,
     pub name: String,
     pub expression: Expression,
     pub annotations: Vec<Annotation>,
@@ -67,6 +68,7 @@ impl FromStr for Annotation {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sort {
+    pub documentation: Option<String>,
     pub name: String,
     pub constructors: Vec<Constructor>,
 }

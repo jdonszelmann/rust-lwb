@@ -9,6 +9,10 @@
 // |==========================================================|
 use super::prelude::*;
 
+/// An identifier is any name of a constructor or sort, and is used in various places.
+/// Identifiers always start with a letter (capital or not) or an underscore, and can be
+/// followed by letters or numbers. This is very similar to how variables in most major
+/// programming languages work.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Identifier<M : AstInfo>(pub M, pub String);
 
@@ -33,9 +37,22 @@ pub enum StringChar<M : AstInfo> {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Number<M : AstInfo>(pub M, pub String);
 
+/// A character class represent a selection of terminal characters. This is similar to
+/// Regex character classes. Character classes can be inverted by starting them with a `^`.
+/// For example, `[^\n]` means it matches any character that is not a newline.
+/// 
+/// Character classes can contain a range of characters. Either by listing each individual character, or using
+/// a dash (`-`). For example, `[a-z]` means any character in the range a through z (inclusive!),
+/// and `[abc]` means an a, b or c
+/// 
+/// Note that to use a closing square bracket within a character class, you need to escape it.
+/// 
+/// `[^\]]` means any character that isn't a square bracket.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CharacterClass<M : AstInfo>(pub M, pub bool, pub Vec<Box<CharacterClassItem<M>>>, );
 
+/// With expressions, you can give the syntax rules of a single constructor.
+/// Expressions can be nested and combined.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Expression<M : AstInfo> {
     Star(M, Box<Expression<M>>),
@@ -50,6 +67,8 @@ pub enum Expression<M : AstInfo> {
     Paren(M, Vec<Box<Expression<M>>>),
 }
 
+/// A delimited expression can be repeated just like normal repetition expressions.
+/// To denote this, you can use a delimitation bound.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum DelimitedBound<M : AstInfo> {
     NumNum(M, Box<Number<M>>, Box<Number<M>>, ),
@@ -59,11 +78,22 @@ pub enum DelimitedBound<M : AstInfo> {
     Plus(M, ),
 }
 
+/// Annotations are tags that modify a specific sort or more often constructor.
+/// TODO: Document each
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Annotation<M : AstInfo>(pub M, pub Vec<Box<Identifier<M>>>);
 
+/// A [`sort`] consists of constructors. A sort will try each of the constructors
+/// from top to bottom, and use the first one that succesfully parses the input string.
+/// 
+/// A constructor consists of a name, followed by an [`expression`]
+/// 
+/// Constructors can have doc-comments using triple slashes.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Constructor<M : AstInfo>(pub M, pub Box<Identifier<M>>, pub Vec<Box<Expression<M>>>, pub Option<Box<Annotation<M>>>, );
+pub enum Constructor<M : AstInfo> {
+    Constructor(M, Box<Identifier<M>>, Vec<Box<Expression<M>>>, Option<Box<Annotation<M>>>, ),
+    ConstructorDocumented(M, Vec<Box<DocComment<M>>>, Box<Constructor<M>>, ),
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Newline<M : AstInfo> {
@@ -71,12 +101,22 @@ pub enum Newline<M : AstInfo> {
     Windows(M, ),
 }
 
+/// A sort is a group of constructors. See [`constructor`] for more details.
+/// 
+/// There is one special sort, called `layout`. It can be used to denote
+/// that a grammar should for example ignore certain whitespace or comments.
+/// Between every part of an expression, the parser will attempt to parse the
+/// layout sort 0 or more times, and throw away whatever it parses.
+/// 
+/// Sorts can have doc-comments using triple slashes.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Sort<M : AstInfo> {
+    SortDocumented(M, Vec<Box<DocComment<M>>>, Box<Sort<M>>, ),
     Sort(M, Box<Identifier<M>>, Vec<Box<Constructor<M>>>, ),
     SortSingle(M, Box<Identifier<M>>, Vec<Box<Expression<M>>>, Option<Box<Annotation<M>>>, ),
 }
 
+/// Other top-level constructs that are not sorts
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Meta<M : AstInfo>(pub M, pub Box<Identifier<M>>);
 
@@ -89,7 +129,16 @@ pub enum SortOrMeta<M : AstInfo> {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Program<M : AstInfo>(pub M, pub Vec<Box<SortOrMeta<M>>>);
 
+/// A documentation comment (doc comment) is always associated with a sort
+/// or constructor. It documents what it does. Doc comments will be interpreted
+/// and will be put on the generated types during codegen.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Layout<M : AstInfo>(pub M, pub String);
+pub struct DocComment<M : AstInfo>(pub M, pub String);
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Layout<M : AstInfo> {
+    Simple(M, String),
+    Comment(M, Vec<String>),
+}
 
 pub type AST_ROOT<M> = Program<M>;
