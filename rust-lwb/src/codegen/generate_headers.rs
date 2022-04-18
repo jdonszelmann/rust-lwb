@@ -3,7 +3,7 @@ use chrono::{DateTime, Local, Utc};
 use std::fs::File;
 use std::io::Write;
 
-fn write_header(file: &mut File, codegen_stamp: &str) -> Result<(), CodegenError> {
+fn write_header(file: &mut File, _codegen_stamp: &str) -> Result<(), CodegenError> {
     write!(
         file,
         "\
@@ -16,7 +16,6 @@ fn write_header(file: &mut File, codegen_stamp: &str) -> Result<(), CodegenError
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-// Generated at {codegen_stamp}
 "
     )?;
 

@@ -7,7 +7,6 @@
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-// Generated at 17/04/2022 23:43:35 +02:00 - 17/04/2022 21:43:35 UTC
 use super::prelude::*;
 
 impl<M: AstInfo> FromPairs<M> for Identifier<M> {
