@@ -128,6 +128,7 @@ fn convert_character_class<M: AstInfo>(
 fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
     Ok(match inp {
         ast::Sort::Sort(_, name, constructors) => Sort {
+            documentation: None,
             name: convert_identifier(*name),
             constructors: constructors
                 .into_iter()
@@ -137,8 +138,10 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
         ast::Sort::SortSingle(_, name, expressions, annotations) => {
             let name = convert_identifier(*name);
             Sort {
+                documentation: None,
                 name: name.clone(),
                 constructors: vec![Constructor {
+                    documentation: None,
                     name,
                     expression: convert_expressions(expressions)?,
                     annotations: if let Some(a) = annotations {
@@ -149,8 +152,20 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
                 }],
             }
         }
-        ast::Sort::SortDocumented(_, _, _) => {todo!()}
+        ast::Sort::SortDocumented(_, comments, sort) => {
+            convert_sort(*sort)
+                .and_then(|mut i| {
+                    i.documentation = Some(convert_comments(comments)?);
+                    Ok(i)
+                })?
+        }
     })
+}
+
+fn convert_comments<M: AstInfo>(inp: Vec<Box<ast::DocComment<M>>>) -> ConversionResult<String> {
+    Ok(inp.into_iter()
+        .map(|i| i.1)
+        .collect())
 }
 
 fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<Expression> {
@@ -232,6 +247,7 @@ fn convert_constructor<M: AstInfo>(inp: ast::Constructor<M>) -> ConversionResult
     Ok(match inp {
         ast::Constructor::Constructor(_, name, expressions, annotations) => {
             Constructor {
+                documentation: None,
                 name: convert_identifier(*name),
                 expression: convert_expressions(expressions)?,
                 annotations: if let Some(a) = annotations {
@@ -241,8 +257,12 @@ fn convert_constructor<M: AstInfo>(inp: ast::Constructor<M>) -> ConversionResult
                 },
             }
         }
-        ast::Constructor::ConstructorDocumented(_, _, _) => {
-            todo!()
+        ast::Constructor::ConstructorDocumented(_, comments, constructor) => {
+            convert_constructor(*constructor)
+                .and_then(|mut i| {
+                    i.documentation = Some(convert_comments(comments)?);
+                    Ok(i)
+                })?
         }
     })
 }

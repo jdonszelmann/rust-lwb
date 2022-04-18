@@ -721,25 +721,7 @@ impl<M: AstInfo> FromPairs<M> for DocComment<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
         assert_eq!(pair.sort, "doc-comment");
         let info = generator.generate(&pair);
-
-        if let ParsePairExpression::List(_, ref p) = pair.constructor_value {
-            Self(info, 
-        if let ParsePairExpression::List(_, ref l) = p[1] {
-            l.iter().map(|x| { 
-        if let ParsePairExpression::Empty(ref span) = x {
-            span.as_str().to_string()
-        } else {
-            panic!("expected empty parse pair expression in pair to ast conversion of doc-comment")
-        }
-                 }).collect()
-        } else {
-            panic!("expected empty parse pair expression in pair to ast conversion of doc-comment")
-        }
-                            )
-        } else {
-            panic!("expected empty parse pair expression in pair to ast conversion of doc-comment")
-        }
-                    
+        Self(info, pair.constructor_value.span().as_str().to_string())
     }
 }
 

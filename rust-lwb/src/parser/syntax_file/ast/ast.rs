@@ -94,7 +94,7 @@ pub enum SortOrMeta<M : AstInfo> {
 pub struct Program<M : AstInfo>(pub M, pub Vec<Box<SortOrMeta<M>>>);
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct DocComment<M : AstInfo>(pub M, pub Vec<String>);
+pub struct DocComment<M : AstInfo>(pub M, pub String);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Layout<M : AstInfo> {

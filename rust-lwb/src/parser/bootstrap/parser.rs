@@ -165,6 +165,7 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
             }
 
             constructors.push(Constructor {
+                documentation: None,
                 name,
                 expression: constructor,
                 annotations,
@@ -173,7 +174,7 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
 
         i.skip_layout(&SYNTAX_FILE_LAYOUT);
 
-        Ok(Some(SortOrMeta::Sort(Sort { name, constructors })))
+        Ok(Some(SortOrMeta::Sort(Sort { documentation: None, name, constructors })))
     }
 }
 
