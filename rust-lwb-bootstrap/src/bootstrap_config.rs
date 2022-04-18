@@ -18,7 +18,7 @@ pub fn from_root(path_from_root: impl AsRef<Path>) -> PathBuf {
 }
 
 pub fn temporary_location() -> PathBuf {
-    from_root("src/temp.rs")
+    from_root("src/temp")
 }
 
 pub fn root() -> PathBuf {

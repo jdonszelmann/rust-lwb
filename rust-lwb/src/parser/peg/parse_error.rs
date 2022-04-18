@@ -3,7 +3,6 @@ use crate::sources::span::Span;
 use itertools::Itertools;
 use miette::{Diagnostic, LabeledSpan, Severity, SourceCode};
 use std::cmp::Ordering;
-use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
@@ -14,7 +13,7 @@ use thiserror::Error;
 #[error("A parse error occured!")]
 pub struct PEGParseError {
     pub span: Span,
-    pub expected: HashSet<Expect>,
+    pub expected: Vec<Expect>,
     pub fail_left_rec: bool,
     pub fail_loop: bool,
 }
@@ -69,7 +68,7 @@ impl PEGParseError {
     pub fn expect(span: Span, expect: Expect) -> Self {
         PEGParseError {
             span,
-            expected: HashSet::from([expect]),
+            expected: vec![expect],
             fail_left_rec: false,
             fail_loop: false,
         }
@@ -78,7 +77,7 @@ impl PEGParseError {
     pub fn fail_left_recursion(span: Span) -> Self {
         PEGParseError {
             span,
-            expected: HashSet::new(),
+            expected: vec![],
             fail_left_rec: true,
             fail_loop: false,
         }
@@ -87,7 +86,7 @@ impl PEGParseError {
     pub fn fail_loop(span: Span) -> Self {
         PEGParseError {
             span,
-            expected: HashSet::new(),
+            expected: vec![],
             fail_left_rec: false,
             fail_loop: true,
         }
@@ -104,7 +103,7 @@ pub enum Expect {
     ExpectString(String),
 
     /// Expect a certain sort
-    ExpectSort(String, String),
+    ExpectSort(String),
 
     /// This happens when not the entire input was parsed, but also no errors occurred during parsing.
     NotEntireInput(),
@@ -119,8 +118,8 @@ impl Display for Expect {
             Expect::ExpectString(s) => {
                 write!(f, "\'{}\'", s)
             }
-            Expect::ExpectSort(s, c) => {
-                write!(f, "{}.{}", s, c)
+            Expect::ExpectSort(s) => {
+                write!(f, "{}", s)
             }
             Expect::NotEntireInput() => {
                 write!(f, "more input")
@@ -146,9 +145,7 @@ impl PEGParseError {
                 //The span is extended such that the longest one is kept.
                 self.span.length = self.span.length.max(other.span.length);
                 //Merge the expected tokens
-                other.expected.drain().for_each(|e| {
-                    self.expected.insert(e);
-                });
+                self.expected.append(&mut other.expected);
                 //Left recursion
                 self.fail_left_rec |= other.fail_left_rec;
 

@@ -22,6 +22,7 @@ pub enum StlTypeError {
     #[error("could not unify {0:?} and {0:?} for use in list")]
     NoLub(StlType, StlType),
 }
+
 impl CustomTypeError for StlTypeError {}
 
 fn lub(a: &StlType, b: &StlType) -> Result<StlType, TypeError<StlType>> {
@@ -50,12 +51,8 @@ fn lub_list(types: &[StlType]) -> Result<StlType, TypeError<StlType>> {
 
 impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Program<M> {
     fn create_constraints<'ast>(&'ast self, s: &mut State<'ast, M, (), StlType>, _: &()) {
-        match self {
-            Program::Program(_, statements) => {
-                for i in statements {
-                    s.type_ok(i);
-                }
-            }
+        for i in &self.1 {
+            s.type_ok(i);
         }
     }
 }
@@ -116,14 +113,9 @@ impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Expression<M> {
                     Ok(StlType::List(Box::new(types[0].clone())))
                 })
                 .add_to(s),
-            Expression::List(_, fst, rst, _) => {
-                if let Some(i) = fst {
-                    let mut tvs = vec![s.get_type(i)];
-
-                    for i in rst {
-                        tvs.push(s.get_type(i))
-                    }
-
+            Expression::List(_, exprs) => {
+                if !exprs.is_empty() {
+                    let tvs: Vec<_> = exprs.iter().map(|i| s.get_type(i)).collect();
                     s.type_of_self(self)
                         .depends_on(&tvs, |types| Ok(StlType::List(Box::new(lub_list(types)?))))
                         .add_to(s);
@@ -135,7 +127,8 @@ impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Expression<M> {
                 s.type_of_self(self).equiv(StlType::Bool).add_to(s);
             }
             Expression::Paren(_, e) => {
-                s.get_type(&*e);
+                let tp = s.get_type(&*e);
+                s.type_of_self(self).equiv(tp).add_to(s);
             }
         }
     }

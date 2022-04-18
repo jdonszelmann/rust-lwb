@@ -7,12 +7,12 @@ build = "src/build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rust-lwb = {path = "../rust-lwb"}
+rust-lwb = { path = "../rust-lwb" }
 toml = "0.5.8"
-serde = {version = "1.0.136", features=["derive"]}
+serde = { version = "1.0.136", features = ["derive"] }
 miette = "3.3.0"
 
 [build-dependencies]
-rust-lwb = {path = "../rust-lwb"}
+rust-lwb = { path = "../rust-lwb" }
 toml = "0.5.8"
-serde = {version = "1.0.136", features=["derive"]}
+serde = { version = "1.0.136", features = ["derive"] }

@@ -1,6 +1,6 @@
 use miette::GraphicalReportHandler;
 use rust_lwb::language::Language;
-use rust_lwb::parser::peg::parser_file::parse_file;
+use rust_lwb::parser::peg::parser_sugar::parse_file;
 use rust_lwb::parser::syntax_file::convert_syntax_file_ast::convert;
 use rust_lwb::parser::syntax_file::SyntaxFile;
 use rust_lwb::sources::source_file::SourceFile;
@@ -103,8 +103,7 @@ failing tests:
 peg_test! {
 name: bad_leftrec,
 syntax: r#"
-X:
-    Fail = X;
+X = X;
 start at X;
 "#,
 passing tests:
@@ -119,8 +118,7 @@ failing tests:
 peg_test! {
 name: bad_loop,
 syntax: r#"
-X:
-    Fail = ""*;
+X = ""*;
 start at X;
 "#,
 passing tests:
@@ -135,8 +133,7 @@ failing tests:
 peg_test! {
 name: layout,
 syntax: r#"
-X:
-    X = "x" "y";
+X = "x" "y";
 layout = [\n\r\t ];
 start at X;
 "#,
@@ -150,8 +147,7 @@ failing tests:
 peg_test! {
 name: no_layout,
 syntax: r#"
-X:
-    X = "x" "y"; {no-layout}
+X = "x" "y"; {no-layout}
 layout = [\n\r\t ];
 start at X;
 "#,
@@ -167,8 +163,7 @@ y"
 peg_test! {
 name: simple,
 syntax: r#"
-X:
-    X = "x";
+X = "x";
 start at X;
 "#,
 passing tests:
@@ -179,10 +174,8 @@ failing tests:
 peg_test! {
 name: recovery1,
 syntax: r#"
-X:
-    X = "x"+ ";";
-XS:
-    XS = X*;
+X = "x"+ ";";
+XS = X*;
 start at XS;
 "#,
 passing tests:
@@ -201,8 +194,7 @@ failing tests:
 peg_test! {
 name: recovery2,
 syntax: r#"
-S:
-    S = ("{" ("x"+ ";")* "}")*;
+S = ("{" ("x"+ ";")* "}")*;
 start at S;
 "#,
 passing tests:
@@ -216,8 +208,7 @@ failing tests:
 peg_test! {
 name: recovery3,
 syntax: r#"
-S:
-    S = "0" "1" "2" "3" "4" "5" "6" "7" "8" "9";
+S = "0" "1" "2" "3" "4" "5" "6" "7" "8" "9";
 start at S;
 "#,
 passing tests:
@@ -225,4 +216,21 @@ failing tests:
     "0234x679"
     "0234679"
     "0134569"
+}
+
+peg_test! {
+name: comments,
+syntax: r#"
+T = "x"+ ";"; {no-layout}
+S = ("{" T* "}")*;
+layout = "/*" [a-zA-Z]* "*/";
+start at S;
+"#,
+passing tests:
+    "{x;x;}"
+    "{x;/*comment*/x;}"
+    "{x;x;}/*comment*/"
+    "/*comment*/{x;x;}"
+failing tests:
+    "{x/*comment*/;x;}"
 }

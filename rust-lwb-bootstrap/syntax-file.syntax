@@ -1,6 +1,5 @@
 
-identifier:
-    identifier = [A-Za-z_][A-Za-z0-9-_]*; {no-layout, single-string}
+identifier = [A-Za-z_][A-Za-z0-9-_]*; {no-layout, single-string}
 
 escape-closing-bracket:
     escaped = "\\" [\]nrt\\];
@@ -15,8 +14,7 @@ string-char:
     escaped = "\\" [nrt\\"];
     normal = [^"\\];
 
-number:
-    number = [0-9]+; {single-string}
+number = [0-9]+; {single-string}
 
 character-class:
     class =  "[" "^"? character-class-item* "]"; {no-layout}
@@ -30,16 +28,23 @@ expression:
     literal = "\"" string-char* "\""; {no-layout}
     single-quote-literal = "'" string-char* "'"; {no-layout}
 
+    delimited = "delimited" "(" expression "," expression "," delimited-bound ("," "trailing")? ")";
+
     sort = identifier;
     class = character-class;
 
     paren = "(" expression+ ")"; {injection}
 
-annotation:
-    annotation = "{" identifier? ("," identifier)* ","? "}";
+delimited-bound:
+    num-num = number "," number;
+    num-inf = number "," "inf";
+    num = number;
+    star = "*";
+    plus = "+";
 
-constructor:
-    constructor = "    " identifier "=" expression+ ";" annotation?;
+annotation = "{" delimited(identifier, ",", +, trailing) "}";
+
+constructor = "    " identifier "=" expression+ ";" annotation?;
 
 newline:
     unix = "\n";
@@ -47,17 +52,16 @@ newline:
 
 sort:
     sort = identifier ":" constructor*;
+    sort-single = identifier "=" expression+ ";" annotation?;
 
 meta:
-    layout = "layout" "=" character-class ";";
     start = "start" "at" identifier ";";
 
 sort-or-meta:
     meta = meta;
     sort = sort;
 
-program:
-    program = sort-or-meta*;
+program = sort-or-meta*;
 
 layout = [\n\r\t ];
 
