@@ -63,6 +63,8 @@ sort-or-meta:
 
 program = sort-or-meta*;
 
-layout = [\n\r\t ];
+layout:
+    simple = [\n\r\t ];
+    comment = "#" [^\n]*;
 
 start at program;
