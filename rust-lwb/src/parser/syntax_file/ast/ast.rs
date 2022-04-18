@@ -63,7 +63,10 @@ pub enum DelimitedBound<M : AstInfo> {
 pub struct Annotation<M : AstInfo>(pub M, pub Vec<Box<Identifier<M>>>);
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Constructor<M : AstInfo>(pub M, pub Box<Identifier<M>>, pub Vec<Box<Expression<M>>>, pub Option<Box<Annotation<M>>>, );
+pub enum Constructor<M : AstInfo> {
+    Constructor(M, Box<Identifier<M>>, Vec<Box<Expression<M>>>, Option<Box<Annotation<M>>>, ),
+    ConstructorDocumented(M, Vec<Box<DocComment<M>>>, Box<Constructor<M>>, ),
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Newline<M : AstInfo> {
@@ -73,6 +76,7 @@ pub enum Newline<M : AstInfo> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Sort<M : AstInfo> {
+    SortDocumented(M, Vec<Box<DocComment<M>>>, Box<Sort<M>>, ),
     Sort(M, Box<Identifier<M>>, Vec<Box<Constructor<M>>>, ),
     SortSingle(M, Box<Identifier<M>>, Vec<Box<Expression<M>>>, Option<Box<Annotation<M>>>, ),
 }
@@ -88,6 +92,9 @@ pub enum SortOrMeta<M : AstInfo> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Program<M : AstInfo>(pub M, pub Vec<Box<SortOrMeta<M>>>);
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DocComment<M : AstInfo>(pub M, pub Vec<String>);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Layout<M : AstInfo> {
