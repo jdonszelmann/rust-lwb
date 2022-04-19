@@ -166,14 +166,14 @@ impl<M: AstInfo> AstNode<M> for Annotation<M> {
 impl<M: AstInfo> AstNode<M> for Constructor<M> {
     fn ast_info(&self) -> &M {
         match self {
-            Self::Constructor(meta, ..) => meta,
             Self::ConstructorDocumented(meta, ..) => meta,
+            Self::Constructor(meta, ..) => meta,
         }
     }
     fn constructor(&self) -> &'static str {
         match self {
-            Self::Constructor(..) => "constructor",
             Self::ConstructorDocumented(..) => "constructor-documented",
+            Self::Constructor(..) => "constructor",
         }
     }
     fn sort(&self) -> &'static str {

@@ -446,6 +446,28 @@ impl<M: AstInfo> FromPairs<M> for Constructor<M> {
         assert_eq!(pair.sort, "constructor");
         let info = generator.generate(&pair);
         match pair.constructor_name {
+            "constructor-documented" => {
+                if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
+                    Self::ConstructorDocumented(
+                        info,
+                        if let ParsePairExpression::List(_, ref l) = l[0usize] {
+                            l . iter () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { Box :: new (DocComment :: from_pairs (s , generator)) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor") ; }) . collect ()
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[1usize] {
+                            Box::new(Constructor::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor");
+                        },
+                    )
+                } else {
+                    unreachable!(
+                        "expected different parse pair expression in pair to ast conversion of {}",
+                        "constructor"
+                    );
+                }
+            }
             "constructor" => {
                 if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
                     Self::Constructor(
@@ -462,28 +484,6 @@ impl<M: AstInfo> FromPairs<M> for Constructor<M> {
                         },
                         if let ParsePairExpression::List(_, ref l) = l[5usize] {
                             l . first () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { Box :: new (Annotation :: from_pairs (s , generator)) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor") ; })
-                        } else {
-                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor");
-                        },
-                    )
-                } else {
-                    unreachable!(
-                        "expected different parse pair expression in pair to ast conversion of {}",
-                        "constructor"
-                    );
-                }
-            }
-            "constructor-documented" => {
-                if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
-                    Self::ConstructorDocumented(
-                        info,
-                        if let ParsePairExpression::List(_, ref l) = l[0usize] {
-                            l . iter () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { Box :: new (DocComment :: from_pairs (s , generator)) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor") ; }) . collect ()
-                        } else {
-                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor");
-                        },
-                        if let ParsePairExpression::Sort(_, ref s) = l[1usize] {
-                            Box::new(Constructor::from_pairs(s, generator))
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor");
                         },

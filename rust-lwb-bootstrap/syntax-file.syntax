@@ -100,8 +100,8 @@ annotation = "{" delimited(identifier, ",", +, trailing) "}";
 ///
 /// Constructors can have doc-comments using triple slashes.
 constructor:
-    constructor = "    " identifier "=" expression+ ";" annotation?;
     constructor-documented = doc-comment+ constructor;
+    constructor = "    " identifier "=" expression+ ";" annotation?;
 
 newline:
     unix = "\n";

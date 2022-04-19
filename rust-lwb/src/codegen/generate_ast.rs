@@ -138,7 +138,6 @@ impl<'a, T> Iterator for TreeIterator<'a, T> {
 
 fn generate_constructor_type(constructor: &Expression) -> Tree<TokenStream> {
     match constructor {
-        // format!("Box<{}<M>>", sanitize_identifier(sort))
         Expression::Sort(sort) => {
             let name = format_ident!("{}", sanitize_identifier(sort));
             Tree::Leaf(quote!(

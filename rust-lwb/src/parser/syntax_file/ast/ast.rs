@@ -52,17 +52,30 @@ pub struct CharacterClass<M: AstInfo>(pub M, pub bool, pub Vec<Box<CharacterClas
 #[doc = "Expressions can be nested and combined."]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Expression<M: AstInfo> {
+    #[doc = "Repeat some expression zero or more times"]
+    #[doc = "Equivalent to `<expression> {0,}`"]
     Star(M, Box<Expression<M>>),
+    #[doc = "Repeat some expression one or more times"]
+    #[doc = "Equivalent to `<expression> {1,}`"]
     Plus(M, Box<Expression<M>>),
+    #[doc = "Optionally have some expression."]
+    #[doc = "Equivalent to `<expression> {0,1}`"]
     Maybe(M, Box<Expression<M>>),
+    #[doc = "Exact repetition. You can give a lower bound, and optionally an upper bound"]
+    #[doc = "of how many repetitions are allowed. If the upper bound is left out, an infinite"]
+    #[doc = "number of repetitions is allowed."]
     RepeatExact(
         M,
         Box<Expression<M>>,
         Box<Number<M>>,
         Option<Box<Number<M>>>,
     ),
+    #[doc = "Matches a piece of text exactly. Layout is parsed within a literal."]
     Literal(M, Vec<Box<StringChar<M>>>),
+    #[doc = "Also a literal, see [`literal`]"]
     SingleQuoteLiteral(M, Vec<Box<StringChar<M>>>),
+    #[doc = "Delimited expressions. Says that some expression should be repeatedly parsed,"]
+    #[doc = "but between two parses, a delimiter should be parsed too. For example, comma seperated expressions."]
     Delimited(
         M,
         Box<Expression<M>>,
@@ -70,18 +83,25 @@ pub enum Expression<M: AstInfo> {
         Box<DelimitedBound<M>>,
         bool,
     ),
+    #[doc = "Reference another sort within this expression. That sort should be parsed in this position in the expression."]
     Sort(M, Box<Identifier<M>>),
+    #[doc = "A [`character class`](character-class) (range of characters) should be parsed here."]
     Class(M, Box<CharacterClass<M>>),
+    #[doc = "You can use parentheses to group parts of expressions."]
     Paren(M, Vec<Box<Expression<M>>>),
 }
 #[doc = "A delimited expression can be repeated just like normal repetition expressions."]
 #[doc = "To denote this, you can use a delimitation bound."]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum DelimitedBound<M: AstInfo> {
+    #[doc = "Within a range or possible repetitions."]
     NumNum(M, Box<Number<M>>, Box<Number<M>>),
+    #[doc = "At least some number of repetitions, but no upper bound."]
     NumInf(M, Box<Number<M>>),
+    #[doc = "Exactly this number of repetitions."]
     Num(M, Box<Number<M>>),
     Star(M),
+    #[doc = "One or more repetitions."]
     Plus(M),
 }
 #[doc = "Annotations are tags that modify a specific sort or more often constructor."]
@@ -96,13 +116,13 @@ pub struct Annotation<M: AstInfo>(pub M, pub Vec<Box<Identifier<M>>>);
 #[doc = "Constructors can have doc-comments using triple slashes."]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Constructor<M: AstInfo> {
+    ConstructorDocumented(M, Vec<Box<DocComment<M>>>, Box<Constructor<M>>),
     Constructor(
         M,
         Box<Identifier<M>>,
         Vec<Box<Expression<M>>>,
         Option<Box<Annotation<M>>>,
     ),
-    ConstructorDocumented(M, Vec<Box<DocComment<M>>>, Box<Constructor<M>>),
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Newline<M: AstInfo> {
@@ -121,6 +141,7 @@ pub enum Newline<M: AstInfo> {
 pub enum Sort<M: AstInfo> {
     SortDocumented(M, Vec<Box<DocComment<M>>>, Box<Sort<M>>),
     Sort(M, Box<Identifier<M>>, Vec<Box<Constructor<M>>>),
+    #[doc = "When a sort has only one constructor, it has simpler syntax."]
     SortSingle(
         M,
         Box<Identifier<M>>,
