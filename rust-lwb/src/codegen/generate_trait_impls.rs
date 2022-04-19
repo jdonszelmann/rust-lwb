@@ -1,101 +1,77 @@
 use crate::codegen::error::CodegenError;
-use crate::codegen::sanitize_identifier;
-use crate::parser::peg::parser_sugar_ast::{Constructor, SyntaxFileAst};
-use codegen::{Block, Formatter, Function, Impl, Scope};
-use std::fs::File;
+use crate::codegen::{FormattingFile, sanitize_identifier};
+use crate::parser::peg::parser_sugar_ast::SyntaxFileAst;
 use std::io::Write;
+use itertools::Itertools;
+use quote::{format_ident, quote};
 
-pub fn build_function(name: impl AsRef<str>, contents: impl FnOnce(&mut Function)) -> Function {
-    let mut f = Function::new(name.as_ref());
-
-    contents(&mut f);
-
-    f
-}
-
-pub fn build_trait_impl(
-    scope: &mut Scope,
-    name: impl AsRef<str>,
-    for_struct: impl AsRef<str>,
-    contents: Vec<Function>,
-) -> &mut Impl {
-    let t = scope
-        .new_impl(for_struct.as_ref())
-        .impl_trait(name.as_ref());
-
-    for i in contents {
-        t.push_fn(i);
-    }
-
-    t
-}
-
-pub fn match_all_constructors(
-    block: &mut Function,
-    constructors: &[Constructor],
-    mut for_each: impl FnMut(&mut Block, &Constructor),
-) {
-    if constructors.len() == 1 {
-        let constructor = &constructors[0];
-        block.line("let meta = &self.0;");
-
-        let mut b = Block::new("");
-        for_each(&mut b, constructor);
-        let mut res = String::new();
-        b.fmt(&mut Formatter::new(&mut res))
-            .expect("codegen format error");
-        block.line(res);
-    } else {
-        block.line("match self {");
-        for constructor in constructors.iter() {
-            let mut b = Block::new("");
-            for_each(&mut b, constructor);
-            let mut res = String::new();
-            b.fmt(&mut Formatter::new(&mut res))
-                .expect("codegen format error");
-
-            block.line(format!(
-                r#"Self::{}(meta, ..) => {res}"#,
-                sanitize_identifier(&constructor.name),
-            ));
-        }
-        block.line("}");
-    }
-}
-
-pub fn write_trait_impls(file: &mut File, syntax: &SyntaxFileAst) -> Result<(), CodegenError> {
-    let mut scope = Scope::new();
-    scope.import("super::prelude", "*");
+pub fn write_trait_impls(file: &mut FormattingFile, syntax: &SyntaxFileAst) -> Result<(), CodegenError> {
+    let mut impls = Vec::new();
 
     for sort in &syntax.sorts {
-        let sortname = sanitize_identifier(&sort.name);
-        build_trait_impl(
-            &mut scope,
-            "AstNode<M>",
-            format!("{sortname}<M>"),
-            vec![
-                build_function("ast_info", |f| {
-                    match_all_constructors(f, &sort.constructors, |b, _c| {
-                        b.line("meta");
-                    });
-                    f.arg_ref_self().ret("&M");
-                }),
-                build_function("constructor", |f| {
-                    match_all_constructors(f, &sort.constructors, |b, c| {
-                        b.line(&format!(r#""{}""#, c.name));
-                    });
-                    f.arg_ref_self().ret("&'static str");
-                }),
-                build_function("sort", |f| {
-                    f.line(&format!(r#""{}""#, sort.name));
-                    f.arg_ref_self().ret("&'static str");
-                }),
-            ],
-        )
-        .generic("M: AstInfo");
+        let sortname = format_ident!("{}", sanitize_identifier(&sort.name));
+        let sortname_str = &sort.name;
+
+        let constructor_names = sort.constructors.iter()
+            .map(|i| format_ident!("{}", sanitize_identifier(&i.name)))
+            .collect_vec();
+
+        let constructor_names_str = sort.constructors.iter()
+            .map(|i| i.name.as_str())
+            .collect_vec();
+
+        let (ast_info_body, constructor_body) = if constructor_names.len() == 1 {
+            let constructor_name_str = &constructor_names_str[0];
+            (
+                quote!(
+                    let Self (meta, ..) = self;
+                    meta
+                ),
+                quote!(
+                    #constructor_name_str
+                )
+            )
+        } else {
+            (
+                quote!(
+                    match self {
+                        #(
+                            Self::#constructor_names (meta, ..) => meta
+                        ),*
+                    }
+                ),
+                quote!(
+                    match self {
+                        #(
+                            Self::#constructor_names (..) => #constructor_names_str
+                        ),*
+                    }
+                )
+            )
+        };
+
+        impls.push(quote!(
+            impl<M: AstInfo> AstNode<M> for #sortname<M> {
+                fn ast_info(&self) -> &M {
+                    #ast_info_body
+                }
+
+                fn constructor(&self) -> &'static str {
+                    #constructor_body
+                }
+
+                fn sort(&self) -> &'static str {
+                    #sortname_str
+                }
+            }
+        ));
     }
 
-    write!(file, "{}", scope.to_string())?;
+    write!(file, "{}", quote!(
+        use super::prelude::*;
+
+        #(#impls)*
+    ).to_string())?;
 
     Ok(())
 }

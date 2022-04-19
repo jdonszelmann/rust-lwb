@@ -1,5 +1,4 @@
 use crate::codegen::generate_headers::write_headers;
-use std::fs::File;
 // use crate::codegen::generate_language;
 use crate::codegen::error::CodegenError;
 use crate::codegen::error::CodegenError::NoExtension;
@@ -11,6 +10,7 @@ use crate::parser::syntax_file::{convert_syntax_file_ast, SyntaxFile};
 use crate::sources::source_file::SourceFile;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use crate::codegen::FormattingFile;
 
 pub struct CodeGenJob {
     location: PathBuf,
@@ -27,7 +27,7 @@ pub struct CodeGenJob {
 pub fn create_module_files<const N: usize>(
     location: impl AsRef<Path>,
     files: [&str; N],
-) -> Result<[(File, String); N], CodegenError> {
+) -> Result<[(FormattingFile, String); N], CodegenError> {
     let mut location = location.as_ref().to_path_buf();
     location.set_extension("");
 
@@ -42,7 +42,7 @@ pub fn create_module_files<const N: usize>(
 
         println!("cargo:rerun-if-changed={:?}", filename);
         res[index] = Some((
-            File::create(&filename)?,
+            FormattingFile::create(&filename)?,
             filename
                 .file_stem()
                 .ok_or(NoExtension)?
@@ -54,7 +54,7 @@ pub fn create_module_files<const N: usize>(
     Ok(res.map(|i| i.unwrap()))
 }
 
-fn refs(inp: &mut (File, String)) -> (&mut File, &str) {
+fn refs(inp: &mut (FormattingFile, String)) -> (&mut FormattingFile, &str) {
     (&mut inp.0, &inp.1)
 }
 
@@ -138,7 +138,7 @@ impl CodeGenJob {
 
         let mut derives = vec!["Debug"];
         if self.serde {
-            derives.extend(["Serialize, Deserialize"]);
+            derives.extend(["Serialize", "Deserialize"]);
         }
 
         write_ast(f_ast, &legacy_ast, &derives)?;
