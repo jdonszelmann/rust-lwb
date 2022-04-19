@@ -1,16 +1,15 @@
 use crate::codegen::error::CodegenError;
-use crate::codegen::{FormattingFile, sanitize_identifier};
+use crate::codegen::{sanitize_identifier, FormattingFile};
 use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
 use crate::parser::peg::parser_sugar_ast::{Expression, SyntaxFileAst};
 use itertools::Itertools;
-use std::io::Write;
-use quote::{format_ident, quote};
 use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
+use std::io::Write;
 
 pub fn convert_docs(docs: Option<&String>) -> Vec<TokenStream> {
-    docs
-        .cloned()
-        .unwrap_or_else(|| String::new())
+    docs.cloned()
+        .unwrap_or_default()
         .lines()
         .map(|i| quote!(#[doc=#i]))
         .collect_vec()
@@ -40,9 +39,7 @@ pub fn write_ast(
                 ));
             } else {
                 let c = generate_constructor_type(&constr.expression);
-                let fields = c.flatten().map(|i| {
-                    quote!(pub #i)
-                }).collect_vec();
+                let fields = c.flatten().map(|i| quote!(pub #i)).collect_vec();
 
                 items.push(quote!(
                     #(#doc)*
@@ -88,15 +85,19 @@ pub fn write_ast(
 
     let start_sort_identifier = format_ident!("{}", sanitize_identifier(&syntax.starting_sort));
 
-    write!(file, "{}", quote!(
-        use super::prelude::*;
+    write!(
+        file,
+        "{}",
+        quote!(
+            use super::prelude::*;
 
-        #(
-            #items
-        )*
+            #(
+                #items
+            )*
 
-        pub type AST_ROOT<M> = #start_sort_identifier<M>;
-    ).to_string())?;
+            pub type AST_ROOT<M> = #start_sort_identifier<M>;
+        )
+    )?;
 
     Ok(())
 }
@@ -110,9 +111,7 @@ enum Tree<T> {
 
 impl<T> Tree<T> {
     pub fn flatten(&self) -> TreeIterator<T> {
-        TreeIterator {
-            todo: vec![self]
-        }
+        TreeIterator { todo: vec![self] }
     }
 }
 
@@ -139,7 +138,6 @@ impl<'a, T> Iterator for TreeIterator<'a, T> {
 
 fn generate_constructor_type(constructor: &Expression) -> Tree<TokenStream> {
     match constructor {
-
         // format!("Box<{}<M>>", sanitize_identifier(sort))
         Expression::Sort(sort) => {
             let name = format_ident!("{}", sanitize_identifier(sort));
@@ -168,14 +166,13 @@ fn generate_constructor_type(constructor: &Expression) -> Tree<TokenStream> {
             let subtype = generate_constructor_type(e.as_ref());
             let flattened_subtype = subtype.flatten().collect_vec();
 
-
             match (min, max) {
                 (0, Some(1)) if matches!(subtype, Tree::Empty) => Tree::Leaf(quote!(bool)),
                 (0, Some(1)) if flattened_subtype.len() == 1 => {
                     let elem = flattened_subtype[0];
 
                     Tree::Leaf(quote!(Option<#elem>))
-                },
+                }
                 (0, Some(1)) => Tree::Leaf(quote!(Option<
                     (#(#flattened_subtype),*)
                 >)),
@@ -184,7 +181,7 @@ fn generate_constructor_type(constructor: &Expression) -> Tree<TokenStream> {
                     let elem = flattened_subtype[0];
 
                     Tree::Leaf(quote!(Vec<#elem>))
-                },
+                }
                 _ => Tree::Leaf(quote!(Vec<(
                     #(#flattened_subtype>)*,
                 )>)),

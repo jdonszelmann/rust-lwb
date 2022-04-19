@@ -1,7 +1,7 @@
 use crate::codegen::error::CodegenError;
+use crate::codegen::FormattingFile;
 use chrono::{DateTime, Local, Utc};
 use std::io::Write;
-use crate::codegen::FormattingFile;
 
 fn write_header(file: &mut FormattingFile, _codegen_stamp: &str) -> Result<(), CodegenError> {
     write!(

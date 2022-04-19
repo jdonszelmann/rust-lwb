@@ -1,9 +1,9 @@
+use convert_case::{Case, Casing};
 use std::fs::File;
 use std::io;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use convert_case::{Case, Casing};
 
 mod error;
 pub mod generate_ast;
@@ -30,15 +30,10 @@ impl FormattingFile {
 }
 
 fn try_fmt(p: impl AsRef<Path>) -> io::Result<()> {
-    Command::new("rustfmt")
-        .arg(p.as_ref())
-        .spawn()?
-        .wait()?;
+    Command::new("rustfmt").arg(p.as_ref()).spawn()?.wait()?;
 
     Ok(())
 }
-
-
 
 impl Drop for FormattingFile {
     fn drop(&mut self) {

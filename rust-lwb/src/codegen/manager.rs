@@ -5,12 +5,12 @@ use crate::codegen::error::CodegenError::NoExtension;
 use crate::codegen::generate_ast::write_ast;
 use crate::codegen::generate_from_pairs::write_from_pairs;
 use crate::codegen::generate_trait_impls::write_trait_impls;
+use crate::codegen::FormattingFile;
 use crate::language::Language;
 use crate::parser::syntax_file::{convert_syntax_file_ast, SyntaxFile};
 use crate::sources::source_file::SourceFile;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use crate::codegen::FormattingFile;
 
 pub struct CodeGenJob {
     location: PathBuf,

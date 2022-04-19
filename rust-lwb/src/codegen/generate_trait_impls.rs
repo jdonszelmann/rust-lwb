@@ -1,22 +1,29 @@
 use crate::codegen::error::CodegenError;
-use crate::codegen::{FormattingFile, sanitize_identifier};
+use crate::codegen::{sanitize_identifier, FormattingFile};
 use crate::parser::peg::parser_sugar_ast::SyntaxFileAst;
-use std::io::Write;
 use itertools::Itertools;
 use quote::{format_ident, quote};
+use std::io::Write;
 
-pub fn write_trait_impls(file: &mut FormattingFile, syntax: &SyntaxFileAst) -> Result<(), CodegenError> {
+pub fn write_trait_impls(
+    file: &mut FormattingFile,
+    syntax: &SyntaxFileAst,
+) -> Result<(), CodegenError> {
     let mut impls = Vec::new();
 
     for sort in &syntax.sorts {
         let sortname = format_ident!("{}", sanitize_identifier(&sort.name));
         let sortname_str = &sort.name;
 
-        let constructor_names = sort.constructors.iter()
+        let constructor_names = sort
+            .constructors
+            .iter()
             .map(|i| format_ident!("{}", sanitize_identifier(&i.name)))
             .collect_vec();
 
-        let constructor_names_str = sort.constructors.iter()
+        let constructor_names_str = sort
+            .constructors
+            .iter()
             .map(|i| i.name.as_str())
             .collect_vec();
 
@@ -29,7 +36,7 @@ pub fn write_trait_impls(file: &mut FormattingFile, syntax: &SyntaxFileAst) -> R
                 ),
                 quote!(
                     #constructor_name_str
-                )
+                ),
             )
         } else {
             (
@@ -46,7 +53,7 @@ pub fn write_trait_impls(file: &mut FormattingFile, syntax: &SyntaxFileAst) -> R
                             Self::#constructor_names (..) => #constructor_names_str
                         ),*
                     }
-                )
+                ),
             )
         };
 
@@ -67,11 +74,15 @@ pub fn write_trait_impls(file: &mut FormattingFile, syntax: &SyntaxFileAst) -> R
         ));
     }
 
-    write!(file, "{}", quote!(
-        use super::prelude::*;
+    write!(
+        file,
+        "{}",
+        quote!(
+            use super::prelude::*;
 
-        #(#impls)*
-    ).to_string())?;
+            #(#impls)*
+        )
+    )?;
 
     Ok(())
 }

@@ -12,14 +12,14 @@ impl<M: AstInfo> FromPairs<M> for Identifier<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
         assert_eq!(pair.sort, "identifier");
         let info = generator.generate(&pair);
-        return Identifier(info, pair.constructor_value.span().as_str().to_string());
+        return Self(info, pair.constructor_value.span().as_str().to_string());
     }
 }
 impl<M: AstInfo> FromPairs<M> for Int<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
         assert_eq!(pair.sort, "int");
         let info = generator.generate(&pair);
-        Int(
+        Self(
             info,
             if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
                 l . iter () . map (| x | if let ParsePairExpression :: Empty (ref span) = x { span . as_str () . to_string () } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "int") ; }) . collect ()
@@ -278,7 +278,7 @@ impl<M: AstInfo> FromPairs<M> for Program<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
         assert_eq!(pair.sort, "program");
         let info = generator.generate(&pair);
-        Program(
+        Self(
             info,
             if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
                 l . iter () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { Box :: new (Statement :: from_pairs (s , generator)) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "program") ; }) . collect ()
@@ -295,7 +295,7 @@ impl<M: AstInfo> FromPairs<M> for Layout<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
         assert_eq!(pair.sort, "layout");
         let info = generator.generate(&pair);
-        Layout(
+        Self(
             info,
             if let ParsePairExpression::Empty(ref span) = pair.constructor_value {
                 span.as_str().to_string()

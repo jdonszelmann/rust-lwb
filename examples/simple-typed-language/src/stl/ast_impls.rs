@@ -10,7 +10,7 @@
 use super::prelude::*;
 impl<M: AstInfo> AstNode<M> for Identifier<M> {
     fn ast_info(&self) -> &M {
-        let Identifier(meta, ..) = self;
+        let Self(meta, ..) = self;
         meta
     }
     fn constructor(&self) -> &'static str {
@@ -22,7 +22,7 @@ impl<M: AstInfo> AstNode<M> for Identifier<M> {
 }
 impl<M: AstInfo> AstNode<M> for Int<M> {
     fn ast_info(&self) -> &M {
-        let Int(meta, ..) = self;
+        let Self(meta, ..) = self;
         meta
     }
     fn constructor(&self) -> &'static str {
@@ -101,7 +101,7 @@ impl<M: AstInfo> AstNode<M> for Statement<M> {
 }
 impl<M: AstInfo> AstNode<M> for Program<M> {
     fn ast_info(&self) -> &M {
-        let Program(meta, ..) = self;
+        let Self(meta, ..) = self;
         meta
     }
     fn constructor(&self) -> &'static str {
@@ -113,7 +113,7 @@ impl<M: AstInfo> AstNode<M> for Program<M> {
 }
 impl<M: AstInfo> AstNode<M> for Layout<M> {
     fn ast_info(&self) -> &M {
-        let Layout(meta, ..) = self;
+        let Self(meta, ..) = self;
         meta
     }
     fn constructor(&self) -> &'static str {

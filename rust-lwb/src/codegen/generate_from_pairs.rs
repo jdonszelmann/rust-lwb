@@ -1,13 +1,17 @@
 use crate::codegen::error::CodegenError;
-use crate::codegen::{FormattingFile, sanitize_identifier};
+use crate::codegen::{sanitize_identifier, FormattingFile};
 use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
 use crate::parser::peg::parser_sugar_ast::{Expression, SyntaxFileAst};
-use std::io::Write;
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
+use std::io::Write;
 
-fn generate_unpack_expression(expression: &Expression, sort: &str, src: TokenStream) -> Option<TokenStream> {
+fn generate_unpack_expression(
+    expression: &Expression,
+    sort: &str,
+    src: TokenStream,
+) -> Option<TokenStream> {
     let unreachable_exp = quote!(unreachable!("expected different parse pair expression in pair to ast conversion of {}", #sort););
 
     Some(match expression {
@@ -39,7 +43,7 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: TokenStr
                         if let ParsePairExpression::List(_, ref l) = #src {
                             l.iter().map(|x| #ue).collect()
                         } else { #unreachable_exp }
-                    )
+                    ),
                 }
             } else {
                 match (min, max) {
@@ -52,7 +56,7 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: TokenStr
                         if let ParsePairExpression::List(_, ref l) = #src {
                             l.iter().len()
                         } else { #unreachable_exp }
-                    )
+                    ),
                 }
             }
         }
@@ -90,7 +94,10 @@ fn generate_unpack_expression(expression: &Expression, sort: &str, src: TokenStr
                 )
             }
         }
-        a => unreachable!("this expression should never be given to generate_unpack_expression: {:?}", a),
+        a => unreachable!(
+            "this expression should never be given to generate_unpack_expression: {:?}",
+            a
+        ),
     })
 }
 
@@ -133,7 +140,7 @@ fn generate_unpack(
                 }
             }
 
-            if expressions.len() == 0 {
+            if expressions.is_empty() {
                 quote!(
                     #constructor(info)
                 )
@@ -145,21 +152,17 @@ fn generate_unpack(
                 )
             }
         }
-        a @ Expression::Repeat { .. } | a @ Expression::Delimited { .. } => {
-            if let Some(expression) = generate_unpack_expression(a, sort, quote!(pair.constructor_value)) {
+        a @ Expression::Repeat { .. }
+        | a @ Expression::Delimited { .. }
+        | a @ Expression::CharacterClass(_) => {
+            if let Some(expression) =
+                generate_unpack_expression(a, sort, quote!(pair.constructor_value))
+            {
                 quote!(#constructor(info, #expression))
             } else {
                 quote!(#constructor(info))
             }
         }
-        a @ Expression::CharacterClass(_) => {
-            if let Some(expression) = generate_unpack_expression(a, sort, quote!(pair.constructor_value)) {
-                quote!(#constructor(info, #expression))
-            } else {
-                quote!(#constructor(info))
-            }
-        }
-
         Expression::Choice(_) => todo!(),
         Expression::Literal(_) => {
             quote!(#constructor(info))
@@ -169,7 +172,10 @@ fn generate_unpack(
     }
 }
 
-pub fn write_from_pairs(file: &mut FormattingFile, syntax: &SyntaxFileAst) -> Result<(), CodegenError> {
+pub fn write_from_pairs(
+    file: &mut FormattingFile,
+    syntax: &SyntaxFileAst,
+) -> Result<(), CodegenError> {
     let mut impls = Vec::new();
 
     for sort in &syntax.sorts {
@@ -181,18 +187,20 @@ pub fn write_from_pairs(file: &mut FormattingFile, syntax: &SyntaxFileAst) -> Re
 
             generate_unpack(
                 &sort.name,
-                quote!(
-                            Self
-                ),
+                quote!(Self),
                 &constr.expression,
                 constr.annotations.contains(&SingleString),
             )
         } else {
-            let constructor_names_str = sort.constructors.iter()
+            let constructor_names_str = sort
+                .constructors
+                .iter()
                 .map(|i| i.name.as_str())
                 .collect_vec();
 
-            let unpacks = sort.constructors.iter()
+            let unpacks = sort
+                .constructors
+                .iter()
                 .map(|constr| {
                     let name = format_ident!("{}", sanitize_identifier(&constr.name));
 
@@ -229,11 +237,15 @@ pub fn write_from_pairs(file: &mut FormattingFile, syntax: &SyntaxFileAst) -> Re
         ));
     }
 
-    write!(file, "{}", quote!(
-        use super::prelude::*;
+    write!(
+        file,
+        "{}",
+        quote!(
+            use super::prelude::*;
 
-        #(#impls)*
-    ).to_string())?;
+            #(#impls)*
+        )
+    )?;
 
     Ok(())
 }
