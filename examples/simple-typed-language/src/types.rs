@@ -130,6 +130,7 @@ impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Expression<M> {
                 let tp = s.get_type(&*e);
                 s.type_of_self(self).equiv(tp).add_to(s);
             }
+            Expression::Testexpr(_, _, _, _, _, _, _, _, _, _, _, _) => {}
         }
     }
 }

@@ -136,6 +136,73 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                     );
                 }
             }
+            "testexpr" => {
+                if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
+                    Self::Testexpr(
+                        info,
+                        if let ParsePairExpression::Sort(_, ref s) = l[0usize] {
+                            Box::new(Int::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[1usize] {
+                            Box::new(Bool::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[2usize] {
+                            Box::new(Int::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[3usize] {
+                            Box::new(Bool::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[4usize] {
+                            Box::new(Bool::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[5usize] {
+                            Box::new(Int::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[6usize] {
+                            Box::new(Bool::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[7usize] {
+                            Box::new(Bool::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[8usize] {
+                            Box::new(Int::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[9usize] {
+                            Box::new(Bool::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[10usize] {
+                            Box::new(Int::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                    )
+                } else {
+                    unreachable!(
+                        "expected different parse pair expression in pair to ast conversion of {}",
+                        "expression"
+                    );
+                }
+            }
             "list" => {
                 if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
                     Self::List(

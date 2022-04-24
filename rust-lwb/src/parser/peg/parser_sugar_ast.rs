@@ -12,7 +12,7 @@ pub struct Constructor {
     pub annotations: Vec<Annotation>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Expression {
     Sort(String),
     Literal(String),

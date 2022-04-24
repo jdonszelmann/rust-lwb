@@ -152,11 +152,9 @@ fn generate_unpack(
                 )
             }
         }
-        a @ Expression::Repeat { .. }
-        | a @ Expression::Delimited { .. }
-        | a @ Expression::CharacterClass(_) => {
+        a @ Expression::Repeat { .. } | a @ Expression::Delimited { .. } | a @ Expression::CharacterClass(_) => {
             if let Some(expression) =
-                generate_unpack_expression(a, sort, quote!(pair.constructor_value))
+            generate_unpack_expression(a, sort, quote!(pair.constructor_value))
             {
                 quote!(#constructor(info, #expression))
             } else {
@@ -169,6 +167,23 @@ fn generate_unpack(
         }
         Expression::Negative(_) => todo!(),
         Expression::Positive(_) => todo!(),
+    }
+}
+
+pub fn flatten_sequences(syntax: Expression) -> Expression {
+    match syntax {
+        Expression::Sequence(s) => {
+            Expression::Sequence(
+                s.into_iter()
+                    .map(|i| match flatten_sequences(i) {
+                        Expression::Sequence(s) => s,
+                        a => vec![a]
+                    })
+                    .flatten()
+                    .collect()
+            )
+        }
+        a => a,
     }
 }
 
@@ -188,7 +203,7 @@ pub fn write_from_pairs(
             generate_unpack(
                 &sort.name,
                 quote!(Self),
-                &constr.expression,
+                &flatten_sequences(constr.expression.clone()),
                 constr.annotations.contains(&SingleString),
             )
         } else {
@@ -209,7 +224,7 @@ pub fn write_from_pairs(
                         quote!(
                             Self::#name
                         ),
-                        &constr.expression,
+                        &flatten_sequences(constr.expression.clone()),
                         constr.annotations.contains(&SingleString),
                     )
                 })
@@ -248,4 +263,51 @@ pub fn write_from_pairs(
     )?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::codegen::generate_from_pairs::flatten_sequences;
+    use crate::parser::peg::parser_sugar_ast::Expression::{Literal, Sequence};
+
+    #[test]
+    fn test_flatten_sequences() {
+        assert_eq!(
+            flatten_sequences(Sequence(vec![Literal("a".to_string())])),
+            Sequence(vec![Literal("a".to_string())])
+        );
+        assert_eq!(
+            flatten_sequences(Sequence(vec![
+                Literal("a".to_string()),
+                Literal("b".to_string()),
+            ])),
+            Sequence(vec![
+                Literal("a".to_string()),
+                Literal("b".to_string()),
+            ])
+        );
+        assert_eq!(
+            flatten_sequences(Sequence(vec![
+                Sequence(vec![
+                    Literal("a".to_string()),
+                    Literal("b".to_string()),
+                ]),
+                Sequence(vec![
+                    Literal("c".to_string()),
+                    Sequence(vec![
+                        Literal("d".to_string()),
+                        Literal("e".to_string()),
+                    ])
+                ])
+
+            ])),
+            Sequence(vec![
+                Literal("a".to_string()),
+                Literal("b".to_string()),
+                Literal("c".to_string()),
+                Literal("d".to_string()),
+                Literal("e".to_string()),
+            ])
+        );
+    }
 }
