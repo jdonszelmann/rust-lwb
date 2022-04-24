@@ -152,9 +152,11 @@ fn generate_unpack(
                 )
             }
         }
-        a @ Expression::Repeat { .. } | a @ Expression::Delimited { .. } | a @ Expression::CharacterClass(_) => {
+        a @ Expression::Repeat { .. }
+        | a @ Expression::Delimited { .. }
+        | a @ Expression::CharacterClass(_) => {
             if let Some(expression) =
-            generate_unpack_expression(a, sort, quote!(pair.constructor_value))
+                generate_unpack_expression(a, sort, quote!(pair.constructor_value))
             {
                 quote!(#constructor(info, #expression))
             } else {
@@ -172,17 +174,14 @@ fn generate_unpack(
 
 pub fn flatten_sequences(syntax: Expression) -> Expression {
     match syntax {
-        Expression::Sequence(s) => {
-            Expression::Sequence(
-                s.into_iter()
-                    .map(|i| match flatten_sequences(i) {
-                        Expression::Sequence(s) => s,
-                        a => vec![a]
-                    })
-                    .flatten()
-                    .collect()
-            )
-        }
+        Expression::Sequence(s) => Expression::Sequence(
+            s.into_iter()
+                .flat_map(|i| match flatten_sequences(i) {
+                    Expression::Sequence(s) => s,
+                    a => vec![a],
+                })
+                .collect(),
+        ),
         a => a,
     }
 }
@@ -281,25 +280,15 @@ mod tests {
                 Literal("a".to_string()),
                 Literal("b".to_string()),
             ])),
-            Sequence(vec![
-                Literal("a".to_string()),
-                Literal("b".to_string()),
-            ])
+            Sequence(vec![Literal("a".to_string()), Literal("b".to_string()),])
         );
         assert_eq!(
             flatten_sequences(Sequence(vec![
-                Sequence(vec![
-                    Literal("a".to_string()),
-                    Literal("b".to_string()),
-                ]),
+                Sequence(vec![Literal("a".to_string()), Literal("b".to_string()),]),
                 Sequence(vec![
                     Literal("c".to_string()),
-                    Sequence(vec![
-                        Literal("d".to_string()),
-                        Literal("e".to_string()),
-                    ])
+                    Sequence(vec![Literal("d".to_string()), Literal("e".to_string()),])
                 ])
-
             ])),
             Sequence(vec![
                 Literal("a".to_string()),
