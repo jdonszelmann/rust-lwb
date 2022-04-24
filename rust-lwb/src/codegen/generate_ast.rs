@@ -1,108 +1,103 @@
 use crate::codegen::error::CodegenError;
-use crate::codegen::sanitize_identifier;
+use crate::codegen::{sanitize_identifier, FormattingFile};
 use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
 use crate::parser::peg::parser_sugar_ast::{Expression, SyntaxFileAst};
-use codegen::Scope;
 use itertools::Itertools;
-use std::fmt::{Display, Formatter};
-use std::fs::File;
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
 use std::io::Write;
 
+pub fn convert_docs(docs: Option<&String>) -> Vec<TokenStream> {
+    docs.cloned()
+        .unwrap_or_default()
+        .lines()
+        .map(|i| quote!(#[doc=#i]))
+        .collect_vec()
+}
+
 pub fn write_ast(
-    file: &mut File,
+    file: &mut FormattingFile,
     syntax: &SyntaxFileAst,
     derives: &[&str],
 ) -> Result<(), CodegenError> {
-    let mut scope = Scope::new();
-    scope.import("super::prelude", "*");
+    let mut items = Vec::new();
+
+    let derives = derives.iter().map(|i| format_ident!("{}", i)).collect_vec();
 
     for rule in &syntax.sorts {
         if rule.constructors.len() == 1 {
-            let structt = scope.new_struct(&sanitize_identifier(&rule.name));
-            structt.vis("pub");
-            if let Some(ref doc) = rule.documentation {
-                structt.doc(doc);
-            }
+            let name = format_ident!("{}", sanitize_identifier(&rule.name));
 
-            for i in derives {
-                structt.derive(i);
-            }
-
-            structt.generic("M : AstInfo");
+            let doc = convert_docs(rule.documentation.as_ref());
             let constr = &rule.constructors[0];
-            structt.tuple_field("pub M");
 
-            let typ = if constr.annotations.contains(&SingleString) {
-                "pub String".to_string()
+            if constr.annotations.contains(&SingleString) {
+                items.push(quote!(
+                    #(#doc)*
+                    #[derive(#(#derives),*)]
+                    pub struct #name<M: AstInfo>(pub M, pub String);
+                ));
             } else {
-                match generate_constructor_type(&constr.expression) {
-                    Tree::Leaf(s) => format!("pub {}", s),
-                    Tree::Node(trees) => {
-                        let mut buf = String::new();
-                        for t in trees {
-                            buf.push_str(&format!("pub {}, ", t));
-                        }
-                        buf
-                    }
-                    Tree::Empty => "()".to_string(),
-                }
-            };
+                let c = generate_constructor_type(&constr.expression);
+                let fields = c.flatten().map(|i| quote!(pub #i)).collect_vec();
 
-            let typ = if typ.starts_with('(') {
-                &typ[1..typ.len() - 1]
-            } else {
-                &typ
-            };
-            structt.tuple_field(typ);
+                items.push(quote!(
+                    #(#doc)*
+                    #[derive(#(#derives),*)]
+                    pub struct #name<M: AstInfo>(pub M, #(#fields),*);
+                ));
+            }
         } else {
-            let enumm = scope.new_enum(&sanitize_identifier(&rule.name));
-            enumm.vis("pub");
-            if let Some(ref doc) = rule.documentation {
-                enumm.doc(doc);
-            }
+            let name = format_ident!("{}", sanitize_identifier(&rule.name));
+            let doc = convert_docs(rule.documentation.as_ref());
 
-            for i in derives {
-                enumm.derive(i);
-            }
+            let mut variants = Vec::new();
 
-            enumm.generic("M : AstInfo");
             for constr in &rule.constructors {
-                // TODO: fix cursedness
-                let variant = if let Some(ref doc) = constr.documentation {
-                    let doc = doc
-                        .lines()
-                        .map(|i| format!("/// {i}"))
-                        .collect_vec()
-                        .join("\n");
+                let name = format_ident!("{}", sanitize_identifier(&constr.name));
+                let doc = convert_docs(constr.documentation.as_ref());
 
-                    enumm.new_variant(&format!("{doc}\n{}", sanitize_identifier(&constr.name),))
+                if constr.annotations.contains(&SingleString) {
+                    variants.push(quote!(
+                        #(#doc)*
+                        #name(M, String)
+                    ));
                 } else {
-                    enumm.new_variant(&sanitize_identifier(&constr.name))
-                };
-                variant.tuple("M");
+                    let c = generate_constructor_type(&constr.expression);
+                    let fields = c.flatten();
 
-                let typ = if constr.annotations.contains(&SingleString) {
-                    "String".to_string()
-                } else {
-                    generate_constructor_type(&constr.expression).to_string()
+                    variants.push(quote!(
+                        #(#doc)*
+                        #name(M, #(#fields),*)
+                    ))
                 };
-
-                let typ = if typ.starts_with('(') {
-                    &typ[1..typ.len() - 1]
-                } else {
-                    &typ
-                };
-                variant.tuple(typ);
             }
+
+            items.push(quote!(
+                #(#doc)*
+                #[derive(#(#derives),*)]
+                pub enum #name<M: AstInfo> {
+                    #(#variants),*
+                }
+            ));
         }
     }
 
-    scope.raw(&format!(
-        "pub type AST_ROOT<M> = {}<M>;",
-        sanitize_identifier(&syntax.starting_sort)
-    ));
+    let start_sort_identifier = format_ident!("{}", sanitize_identifier(&syntax.starting_sort));
 
-    write!(file, "{}", scope.to_string())?;
+    write!(
+        file,
+        "{}",
+        quote!(
+            use super::prelude::*;
+
+            #(
+                #items
+            )*
+
+            pub type AST_ROOT<M> = #start_sort_identifier<M>;
+        )
+    )?;
 
     Ok(())
 }
@@ -114,26 +109,43 @@ enum Tree<T> {
     Empty,
 }
 
-impl Display for Tree<String> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Tree::Leaf(s) => write!(f, "{}", s),
-            Tree::Node(trees) => {
-                for t in trees {
-                    write!(f, "{}, ", t)?;
+impl<T> Tree<T> {
+    pub fn flatten(&self) -> TreeIterator<T> {
+        TreeIterator { todo: vec![self] }
+    }
+}
+
+struct TreeIterator<'a, T> {
+    todo: Vec<&'a Tree<T>>,
+}
+
+impl<'a, T> Iterator for TreeIterator<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.todo.pop() {
+                None => return None,
+                Some(Tree::Empty) => {}
+                Some(Tree::Leaf(t)) => return Some(t),
+                Some(Tree::Node(n)) => {
+                    self.todo.extend(n.iter().rev());
                 }
-                Ok(())
             }
-            Tree::Empty => write!(f, "()"),
         }
     }
 }
 
-fn generate_constructor_type(constructor: &Expression) -> Tree<String> {
+fn generate_constructor_type(constructor: &Expression) -> Tree<TokenStream> {
     match constructor {
-        Expression::Sort(sort) => Tree::Leaf(format!("Box<{}<M>>", sanitize_identifier(sort))),
+        Expression::Sort(sort) => {
+            let name = format_ident!("{}", sanitize_identifier(sort));
+            Tree::Leaf(quote!(
+                Box<#name<M>>
+            ))
+        }
         Expression::Sequence(cons) => {
-            let mut parts: Vec<Tree<String>> = cons
+            let mut parts: Vec<Tree<_>> = cons
                 .iter()
                 .filter_map(|con| match generate_constructor_type(con) {
                     Tree::Empty => None,
@@ -151,18 +163,59 @@ fn generate_constructor_type(constructor: &Expression) -> Tree<String> {
         }
         Expression::Repeat { e, min, max } | Expression::Delimited { e, min, max, .. } => {
             let subtype = generate_constructor_type(e.as_ref());
+            let flattened_subtype = subtype.flatten().collect_vec();
 
             match (min, max) {
-                (0, Some(1)) if subtype == Tree::Empty => Tree::Leaf("bool".to_string()),
-                (0, Some(1)) => Tree::Leaf(format!("Option<{}>", subtype)),
-                _ if subtype == Tree::Empty => Tree::Leaf("usize".to_string()),
-                _ => Tree::Leaf(format!("Vec<{}>", subtype)),
+                (0, Some(1)) if matches!(subtype, Tree::Empty) => Tree::Leaf(quote!(bool)),
+                (0, Some(1)) if flattened_subtype.len() == 1 => {
+                    let elem = flattened_subtype[0];
+
+                    Tree::Leaf(quote!(Option<#elem>))
+                }
+                (0, Some(1)) => Tree::Leaf(quote!(Option<
+                    (#(#flattened_subtype),*)
+                >)),
+                _ if matches!(subtype, Tree::Empty) => Tree::Leaf(quote!(usize)),
+                _ if flattened_subtype.len() == 1 => {
+                    let elem = flattened_subtype[0];
+
+                    Tree::Leaf(quote!(Vec<#elem>))
+                }
+                _ => Tree::Leaf(quote!(Vec<(
+                    #(#flattened_subtype>)*,
+                )>)),
             }
         }
         Expression::Choice(_) => panic!(), //TODO how to represent choice?
-        Expression::CharacterClass(_) => Tree::Leaf("String".to_string()),
+        Expression::CharacterClass(_) => Tree::Leaf(quote!(String)),
         Expression::Negative(_) => Tree::Empty,
         Expression::Positive(_) => Tree::Empty,
         Expression::Literal(_) => Tree::Empty,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_flatten_tree() {
+        use crate::codegen::generate_ast::Tree::*;
+
+        let t = Node(vec![Empty, Leaf(3), Leaf(4)]);
+        let mut ti = t.flatten();
+
+        assert_eq!(ti.next(), Some(&3));
+        assert_eq!(ti.next(), Some(&4));
+    }
+
+    #[test]
+    fn test_flatten_tree_nested() {
+        use crate::codegen::generate_ast::Tree::*;
+
+        let t = Node(vec![Empty, Node(vec![Leaf(3), Leaf(4)]), Leaf(5)]);
+        let mut ti = t.flatten();
+
+        assert_eq!(ti.next(), Some(&3));
+        assert_eq!(ti.next(), Some(&4));
+        assert_eq!(ti.next(), Some(&5));
     }
 }

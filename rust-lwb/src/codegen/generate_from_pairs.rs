@@ -1,88 +1,66 @@
 use crate::codegen::error::CodegenError;
-use crate::codegen::generate_trait_impls::{build_function, build_trait_impl};
-use crate::codegen::sanitize_identifier;
+use crate::codegen::{sanitize_identifier, FormattingFile};
 use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
 use crate::parser::peg::parser_sugar_ast::{Expression, SyntaxFileAst};
-use codegen::{Function, Scope};
-use std::fs::File;
+use itertools::Itertools;
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
 use std::io::Write;
 
-fn generate_unpack_expression(expression: &Expression, sort: &str, src: &str) -> String {
-    match expression {
-        Expression::Sort(name) => format!(
-            r#"
-if let ParsePairExpression::Sort(_, ref s) = {src} {{
-    Box::new({}::from_pairs(s, generator))
-}} else {{
-    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
-}}
-            "#,
-            sanitize_identifier(name)
-        ),
-        Expression::CharacterClass(_) => format!(
-            r#"
-if let ParsePairExpression::Empty(ref span) = {src} {{
-    span.as_str().to_string()
-}} else {{
-    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
-}}
-        "#
-        ),
-        Expression::Repeat { min, max, e } | Expression::Delimited { min, max, e, .. } => {
-            let ue = generate_unpack_expression(e, sort, "x");
+fn generate_unpack_expression(
+    expression: &Expression,
+    sort: &str,
+    src: TokenStream,
+) -> Option<TokenStream> {
+    let unreachable_exp = quote!(unreachable!("expected different parse pair expression in pair to ast conversion of {}", #sort););
 
-            match (min, max) {
-                (0, Some(1)) if ue == "()" => {
-                    format!(
-                        r#"
-if let ParsePairExpression::List(_, ref l) = {src} {{
-    l.first().is_some()
-}} else {{
-    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
-}}
-                    "#,
-                    )
+    Some(match expression {
+        Expression::Sort(name) => {
+            let name = format_ident!("{}", sanitize_identifier(name));
+
+            quote!(
+                if let ParsePairExpression::Sort(_, ref s) = #src {
+                    Box::new(#name::from_pairs(s, generator))
+                } else { #unreachable_exp }
+            )
+        }
+        Expression::CharacterClass(_) => {
+            quote!(
+                if let ParsePairExpression::Empty(ref span) = #src {
+                    span.as_str().to_string()
+                } else { #unreachable_exp }
+            )
+        }
+        Expression::Repeat { min, max, e } | Expression::Delimited { min, max, e, .. } => {
+            if let Some(ue) = generate_unpack_expression(e, sort, quote!(x)) {
+                match (min, max) {
+                    (0, Some(1)) => quote!(
+                        if let ParsePairExpression::List(_, ref l) = #src {
+                            l.first().map(|x| #ue)
+                        } else { #unreachable_exp }
+                    ),
+                    _ => quote!(
+                        if let ParsePairExpression::List(_, ref l) = #src {
+                            l.iter().map(|x| #ue).collect()
+                        } else { #unreachable_exp }
+                    ),
                 }
-                (0, Some(1)) => {
-                    // option
-                    format!(
-                        r#"
-if let ParsePairExpression::List(_, ref l) = {src} {{
-    l.first().map(|x| {{ {} }})
-}} else {{
-    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
-}}
-                    "#,
-                        ue
-                    )
-                }
-                _ if ue == "()" => {
-                    format!(
-                        r#"
-if let ParsePairExpression::List(_, ref l) = {src} {{
-    l.iter().len()
-}} else {{
-    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
-}}
-                    "#,
-                    )
-                }
-                _ => {
-                    // vec
-                    format!(
-                        r#"
-if let ParsePairExpression::List(_, ref l) = {src} {{
-    l.iter().map(|x| {{ {} }}).collect()
-}} else {{
-    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
-}}
-                    "#,
-                        ue
-                    )
+            } else {
+                match (min, max) {
+                    (0, Some(1)) => quote!(
+                        if let ParsePairExpression::List(_, ref l) = #src {
+                            l.first().is_some()
+                        } else { #unreachable_exp }
+                    ),
+                    _ => quote!(
+                        if let ParsePairExpression::List(_, ref l) = #src {
+                            l.iter().len()
+                        } else { #unreachable_exp }
+                    ),
                 }
             }
         }
-        Expression::Literal(_) => "()".to_string(),
+        Expression::Literal(_) => return None,
         Expression::Sequence(c) => {
             let mut expressions = Vec::new();
             for (index, i) in c.iter().enumerate() {
@@ -95,63 +73,55 @@ if let ParsePairExpression::List(_, ref l) = {src} {{
                     _ => {}
                 }
 
-                let line = generate_unpack_expression(i, sort, &format!("p[{index}]"));
-                expressions.push(line)
+                if let Some(line) = generate_unpack_expression(i, sort, quote!(p[#index])) {
+                    expressions.push(line)
+                }
             }
 
             if expressions.is_empty() {
-                "()".to_string()
-            } else if expressions.len() == 1 {
-                let line = format!(
-                    r#"
-if let ParsePairExpression::List(_, ref p) = {src} {{
-    {}
-}} else {{
-    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
-}}
-                    "#,
-                    expressions.pop().unwrap()
-                );
-
-                line
+                return None;
+            } else if let [ref expression] = expressions.as_slice() {
+                quote!(
+                    if let ParsePairExpression::List(_, ref l) = #src {
+                        #expression
+                    } else { #unreachable_exp }
+                )
             } else {
-                let line = format!(
-                    r#"if let ParsePairExpression::List(_, ref p) = {src} {{
-    ({})
-}} else {{
-    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
-}}"#,
-                    expressions.join(",")
-                );
-
-                line
+                quote!(
+                    if let ParsePairExpression::List(_, ref l) = #src {
+                        (#(#expressions),*)
+                    } else { #unreachable_exp }
+                )
             }
         }
-        a => unreachable!("{:?}", a),
-    }
+        a => unreachable!(
+            "this expression should never be given to generate_unpack_expression: {:?}",
+            a
+        ),
+    })
 }
 
 fn generate_unpack(
-    f: &mut Function,
     sort: &str,
-    constructor: &str,
+    constructor: TokenStream,
     expression: &Expression,
     no_layout: bool,
-) {
-    // if its a no-layout constructor then just return the contents as a string
+) -> TokenStream {
     if no_layout {
-        f.line(format!(
-            "{constructor}(info, pair.constructor_value.span().as_str().to_string())"
-        ));
-        return;
+        return quote!(
+            return #constructor(info, pair.constructor_value.span().as_str().to_string());
+        );
     }
+
+    let unreachable_exp = quote!(unreachable!("expected different parse pair expression in pair to ast conversion of {}", #sort););
 
     match expression {
         a @ Expression::Sort(_) => {
-            f.line(format!(
-                "{constructor}(info, {})",
-                generate_unpack_expression(a, sort, "pair.constructor_value")
-            ));
+            let nested = generate_unpack_expression(a, sort, quote!(pair.constructor_value));
+
+            quote!(
+                #constructor(info, #nested)
+            )
         }
         Expression::Sequence(c) => {
             let mut expressions = Vec::new();
@@ -165,96 +135,168 @@ fn generate_unpack(
                     _ => {}
                 }
 
-                let line = generate_unpack_expression(i, sort, &format!("p[{index}]"));
-                expressions.push(line)
+                if let Some(line) = generate_unpack_expression(i, sort, quote!(l[#index])) {
+                    expressions.push(line)
+                }
             }
 
-            f.line(format!(
-                r#"
-if let ParsePairExpression::List(_, ref p) = pair.constructor_value {{
-    {constructor}(info, {})
-}} else {{
-    panic!("expected empty parse pair expression in pair to ast conversion of {sort}")
-}}
-            "#,
-                expressions.join(",")
-            ));
+            if expressions.is_empty() {
+                quote!(
+                    #constructor(info)
+                )
+            } else {
+                quote!(
+                    if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
+                        #constructor(info, #(#expressions),*)
+                    } else { #unreachable_exp }
+                )
+            }
         }
-        a @ Expression::Repeat { .. } | a @ Expression::Delimited { .. } => {
-            f.line(format!(
-                "{constructor}(info, {})",
-                generate_unpack_expression(a, sort, "pair.constructor_value")
-            ));
+        a @ Expression::Repeat { .. }
+        | a @ Expression::Delimited { .. }
+        | a @ Expression::CharacterClass(_) => {
+            if let Some(expression) =
+                generate_unpack_expression(a, sort, quote!(pair.constructor_value))
+            {
+                quote!(#constructor(info, #expression))
+            } else {
+                quote!(#constructor(info))
+            }
         }
-        a @ Expression::CharacterClass(_) => {
-            f.line(format!(
-                "{constructor}(info, {})",
-                generate_unpack_expression(a, sort, "pair.constructor_value")
-            ));
-        }
-
         Expression::Choice(_) => todo!(),
-
         Expression::Literal(_) => {
-            f.line(format!("{constructor}(info)"));
+            quote!(#constructor(info))
         }
         Expression::Negative(_) => todo!(),
         Expression::Positive(_) => todo!(),
     }
 }
 
-pub fn write_from_pairs(file: &mut File, syntax: &SyntaxFileAst) -> Result<(), CodegenError> {
-    let mut scope = Scope::new();
-    scope.import("super::prelude", "*");
+pub fn flatten_sequences(syntax: Expression) -> Expression {
+    match syntax {
+        Expression::Sequence(s) => Expression::Sequence(
+            s.into_iter()
+                .flat_map(|i| match flatten_sequences(i) {
+                    Expression::Sequence(s) => s,
+                    a => vec![a],
+                })
+                .collect(),
+        ),
+        a => a,
+    }
+}
+
+pub fn write_from_pairs(
+    file: &mut FormattingFile,
+    syntax: &SyntaxFileAst,
+) -> Result<(), CodegenError> {
+    let mut impls = Vec::new();
 
     for sort in &syntax.sorts {
-        let sortname = sanitize_identifier(&sort.name);
-        build_trait_impl(
-            &mut scope,
-            "FromPairs<M>",
-            format!("{sortname}<M>"),
-            vec![build_function("from_pairs", |f| {
-                f.generic("G: GenerateAstInfo<Result = M>");
-                f.arg("pair", "&ParsePairSort");
-                f.arg("generator", "&mut G");
-                f.ret("Self");
+        let sortname = format_ident!("{}", sanitize_identifier(&sort.name));
+        let sortname_str = &sort.name;
 
-                f.line(format!(r#"assert_eq!(pair.sort, "{}");"#, sort.name));
-                f.line("let info = generator.generate(&pair);");
+        let unpack_body = if sort.constructors.len() == 1 {
+            let constr = &sort.constructors[0];
 
-                if sort.constructors.len() == 1 {
-                    let constructor = &sort.constructors[0];
+            generate_unpack(
+                &sort.name,
+                quote!(Self),
+                &flatten_sequences(constr.expression.clone()),
+                constr.annotations.contains(&SingleString),
+            )
+        } else {
+            let constructor_names_str = sort
+                .constructors
+                .iter()
+                .map(|i| i.name.as_str())
+                .collect_vec();
+
+            let unpacks = sort
+                .constructors
+                .iter()
+                .map(|constr| {
+                    let name = format_ident!("{}", sanitize_identifier(&constr.name));
+
                     generate_unpack(
-                        f,
                         &sort.name,
-                        "Self",
-                        &constructor.expression,
-                        constructor.annotations.contains(&SingleString),
-                    );
-                } else {
-                    f.line("match pair.constructor_name {");
+                        quote!(
+                            Self::#name
+                        ),
+                        &flatten_sequences(constr.expression.clone()),
+                        constr.annotations.contains(&SingleString),
+                    )
+                })
+                .collect_vec();
 
-                    for constructor in &sort.constructors {
-                        f.line(format!(r#""{}" => {{"#, constructor.name));
-                        generate_unpack(
-                            f,
-                            &sort.name,
-                            &format!("Self::{}", sanitize_identifier(&constructor.name)),
-                            &constructor.expression,
-                            constructor.annotations.contains(&SingleString),
-                        );
-                        f.line("}");
-                    }
-
-                    f.line(r#"a => unreachable!("{}", a)"#);
-                    f.line("}");
+            quote!(
+                match pair.constructor_name {
+                    #(
+                        #constructor_names_str => #unpacks
+                    ),*,
+                    a => unreachable!("{}", a),
                 }
-            })],
-        )
-        .generic("M: AstInfo");
+            )
+        };
+
+        impls.push(quote!(
+            impl<M: AstInfo> FromPairs<M> for #sortname<M> {
+                fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
+                    assert_eq!(pair.sort, #sortname_str);
+                    let info = generator.generate(&pair);
+
+                    #unpack_body
+                }
+            }
+        ));
     }
 
-    write!(file, "{}", scope.to_string())?;
+    write!(
+        file,
+        "{}",
+        quote!(
+            use super::prelude::*;
+
+            #(#impls)*
+        )
+    )?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::codegen::generate_from_pairs::flatten_sequences;
+    use crate::parser::peg::parser_sugar_ast::Expression::{Literal, Sequence};
+
+    #[test]
+    fn test_flatten_sequences() {
+        assert_eq!(
+            flatten_sequences(Sequence(vec![Literal("a".to_string())])),
+            Sequence(vec![Literal("a".to_string())])
+        );
+        assert_eq!(
+            flatten_sequences(Sequence(vec![
+                Literal("a".to_string()),
+                Literal("b".to_string()),
+            ])),
+            Sequence(vec![Literal("a".to_string()), Literal("b".to_string()),])
+        );
+        assert_eq!(
+            flatten_sequences(Sequence(vec![
+                Sequence(vec![Literal("a".to_string()), Literal("b".to_string()),]),
+                Sequence(vec![
+                    Literal("c".to_string()),
+                    Sequence(vec![Literal("d".to_string()), Literal("e".to_string()),])
+                ])
+            ])),
+            Sequence(vec![
+                Literal("a".to_string()),
+                Literal("b".to_string()),
+                Literal("c".to_string()),
+                Literal("d".to_string()),
+                Literal("e".to_string()),
+            ])
+        );
+    }
 }

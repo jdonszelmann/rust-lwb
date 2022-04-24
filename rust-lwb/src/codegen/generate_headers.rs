@@ -1,9 +1,9 @@
 use crate::codegen::error::CodegenError;
+use crate::codegen::FormattingFile;
 use chrono::{DateTime, Local, Utc};
-use std::fs::File;
 use std::io::Write;
 
-fn write_header(file: &mut File, _codegen_stamp: &str) -> Result<(), CodegenError> {
+fn write_header(file: &mut FormattingFile, _codegen_stamp: &str) -> Result<(), CodegenError> {
     write!(
         file,
         "\
@@ -23,8 +23,8 @@ fn write_header(file: &mut File, _codegen_stamp: &str) -> Result<(), CodegenErro
 }
 
 pub fn write_headers(
-    modrs: &mut File,
-    files: &mut [(&mut File, &str)],
+    modrs: &mut FormattingFile,
+    files: &mut [(&mut FormattingFile, &str)],
     prelude_import_location: &str,
 ) -> Result<(), CodegenError> {
     let now: DateTime<Local> = Local::now();
