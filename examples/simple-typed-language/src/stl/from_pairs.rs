@@ -29,6 +29,7 @@ impl<M: AstInfo> FromPairs<M> for Int<M> {
                     "int"
                 );
             },
+            NonExhaustive,
         )
     }
 }
@@ -37,8 +38,8 @@ impl<M: AstInfo> FromPairs<M> for Bool<M> {
         assert_eq!(pair.sort, "bool");
         let info = generator.generate(&pair);
         match pair.constructor_name {
-            "true" => Self::True(info),
-            "false" => Self::False(info),
+            "true" => Self::True(info, NonExhaustive),
+            "false" => Self::False(info, NonExhaustive),
             a => unreachable!("{}", a),
         }
     }
@@ -62,6 +63,7 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
                         },
+                        NonExhaustive,
                     )
                 } else {
                     unreachable!(
@@ -84,6 +86,7 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
                         },
+                        NonExhaustive,
                     )
                 } else {
                     unreachable!(
@@ -106,6 +109,7 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
                         },
+                        NonExhaustive,
                     )
                 } else {
                     unreachable!(
@@ -128,6 +132,7 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
                         },
+                        NonExhaustive,
                     )
                 } else {
                     unreachable!(
@@ -195,6 +200,7 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
                         },
+                        NonExhaustive,
                     )
                 } else {
                     unreachable!(
@@ -212,6 +218,7 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
                         },
+                        NonExhaustive,
                     )
                 } else {
                     unreachable!(
@@ -228,6 +235,7 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                     } else {
                         unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
                     },
+                    NonExhaustive,
                 )
             }
             "int" => {
@@ -238,6 +246,7 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                     } else {
                         unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
                     },
+                    NonExhaustive,
                 )
             }
             "identifier" => {
@@ -248,6 +257,7 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                     } else {
                         unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
                     },
+                    NonExhaustive,
                 )
             }
             "paren" => {
@@ -259,6 +269,7 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
                         },
+                        NonExhaustive,
                     )
                 } else {
                     unreachable!(
@@ -290,6 +301,7 @@ impl<M: AstInfo> FromPairs<M> for Statement<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "statement");
                         },
+                        NonExhaustive,
                     )
                 } else {
                     unreachable!(
@@ -307,6 +319,7 @@ impl<M: AstInfo> FromPairs<M> for Statement<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "statement");
                         },
+                        NonExhaustive,
                     )
                 } else {
                     unreachable!(
@@ -329,6 +342,7 @@ impl<M: AstInfo> FromPairs<M> for Statement<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "statement");
                         },
+                        NonExhaustive,
                     )
                 } else {
                     unreachable!(
@@ -355,6 +369,7 @@ impl<M: AstInfo> FromPairs<M> for Program<M> {
                     "program"
                 );
             },
+            NonExhaustive,
         )
     }
 }
@@ -372,6 +387,7 @@ impl<M: AstInfo> FromPairs<M> for Layout<M> {
                     "layout"
                 );
             },
+            NonExhaustive,
         )
     }
 }

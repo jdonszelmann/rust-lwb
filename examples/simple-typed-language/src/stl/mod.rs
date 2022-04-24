@@ -23,9 +23,4 @@ pub use ast_impls::*;
 #[rustfmt::skip]
 mod parser;
 pub use parser::*;
-
-#[rustfmt::skip]
-mod prelude {
-    pub use rust_lwb::codegen_prelude::*;
-    pub use super::*;
-}
+# [rustfmt :: skip] mod prelude { pub use rust_lwb :: codegen_prelude :: * ; pub use super :: * ; # [doc = r" This type is public, but in a private module. That means nothing can ever construct"] # [doc = r" this value except from within this module. This ensures that AST types can only be"] # [doc = r" constructed by the parser, and that matches on types containing this must be"] # [doc = r" non-exhaustive. Rust does have the #[non_exhaustive] attribute, but it only works"] # [doc = r" between crate boundaries, not within the same crate which is what this enforces."] # [derive (Copy , Clone , PartialEq , Debug)] pub struct NonExhaustive ; }

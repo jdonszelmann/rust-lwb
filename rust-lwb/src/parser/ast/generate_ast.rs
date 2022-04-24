@@ -3,7 +3,7 @@ use crate::parser::ast::{AstNode, NodeId, SpannedAstInfo};
 use crate::sources::span::Span;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct BasicAstInfo {
     span: Span,
     node_id: NodeId,

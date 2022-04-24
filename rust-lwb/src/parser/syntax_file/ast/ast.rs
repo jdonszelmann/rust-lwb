@@ -15,23 +15,37 @@ use super::prelude::*;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Identifier<M: AstInfo>(pub M, pub String);
 #[derive(Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum EscapeClosingBracket<M: AstInfo> {
-    Escaped(M, String),
-    Unescaped(M, String),
+    Escaped(M, String, #[doc(hidden)] NonExhaustive),
+    Unescaped(M, String, #[doc(hidden)] NonExhaustive),
+    #[doc(hidden)]
+    __NonExhaustive(NonExhaustive),
 }
 #[derive(Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum CharacterClassItem<M: AstInfo> {
     Range(
         M,
         Box<EscapeClosingBracket<M>>,
         Box<EscapeClosingBracket<M>>,
+        #[doc(hidden)] NonExhaustive,
     ),
-    SingleChar(M, Box<EscapeClosingBracket<M>>),
+    SingleChar(
+        M,
+        Box<EscapeClosingBracket<M>>,
+        #[doc(hidden)] NonExhaustive,
+    ),
+    #[doc(hidden)]
+    __NonExhaustive(NonExhaustive),
 }
 #[derive(Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum StringChar<M: AstInfo> {
-    Escaped(M, String),
-    Normal(M, String),
+    Escaped(M, String, #[doc(hidden)] NonExhaustive),
+    Normal(M, String, #[doc(hidden)] NonExhaustive),
+    #[doc(hidden)]
+    __NonExhaustive(NonExhaustive),
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Number<M: AstInfo>(pub M, pub String);
@@ -47,20 +61,27 @@ pub struct Number<M: AstInfo>(pub M, pub String);
 #[doc = ""]
 #[doc = "`[^\\]]` means any character that isn't a square bracket."]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct CharacterClass<M: AstInfo>(pub M, pub bool, pub Vec<Box<CharacterClassItem<M>>>);
+#[non_exhaustive]
+pub struct CharacterClass<M: AstInfo>(
+    pub M,
+    pub bool,
+    pub Vec<Box<CharacterClassItem<M>>>,
+    #[doc(hidden)] pub NonExhaustive,
+);
 #[doc = "With expressions, you can give the syntax rules of a single constructor."]
 #[doc = "Expressions can be nested and combined."]
 #[derive(Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Expression<M: AstInfo> {
     #[doc = "Repeat some expression zero or more times"]
     #[doc = "Equivalent to `<expression> {0,}`"]
-    Star(M, Box<Expression<M>>),
+    Star(M, Box<Expression<M>>, #[doc(hidden)] NonExhaustive),
     #[doc = "Repeat some expression one or more times"]
     #[doc = "Equivalent to `<expression> {1,}`"]
-    Plus(M, Box<Expression<M>>),
+    Plus(M, Box<Expression<M>>, #[doc(hidden)] NonExhaustive),
     #[doc = "Optionally have some expression."]
     #[doc = "Equivalent to `<expression> {0,1}`"]
-    Maybe(M, Box<Expression<M>>),
+    Maybe(M, Box<Expression<M>>, #[doc(hidden)] NonExhaustive),
     #[doc = "Exact repetition. You can give a lower bound, and optionally an upper bound"]
     #[doc = "of how many repetitions are allowed. If the upper bound is left out, an infinite"]
     #[doc = "number of repetitions is allowed."]
@@ -69,11 +90,12 @@ pub enum Expression<M: AstInfo> {
         Box<Expression<M>>,
         Box<Number<M>>,
         Option<Box<Number<M>>>,
+        #[doc(hidden)] NonExhaustive,
     ),
     #[doc = "Matches a piece of text exactly. Layout is parsed within a literal."]
-    Literal(M, Vec<Box<StringChar<M>>>),
+    Literal(M, Vec<Box<StringChar<M>>>, #[doc(hidden)] NonExhaustive),
     #[doc = "Also a literal, see [`literal`]"]
-    SingleQuoteLiteral(M, Vec<Box<StringChar<M>>>),
+    SingleQuoteLiteral(M, Vec<Box<StringChar<M>>>, #[doc(hidden)] NonExhaustive),
     #[doc = "Delimited expressions. Says that some expression should be repeatedly parsed,"]
     #[doc = "but between two parses, a delimiter should be parsed too. For example, comma seperated expressions."]
     Delimited(
@@ -82,32 +104,48 @@ pub enum Expression<M: AstInfo> {
         Box<Expression<M>>,
         Box<DelimitedBound<M>>,
         bool,
+        #[doc(hidden)] NonExhaustive,
     ),
     #[doc = "Reference another sort within this expression. That sort should be parsed in this position in the expression."]
-    Sort(M, Box<Identifier<M>>),
+    Sort(M, Box<Identifier<M>>, #[doc(hidden)] NonExhaustive),
     #[doc = "A [`character class`](character-class) (range of characters) should be parsed here."]
-    Class(M, Box<CharacterClass<M>>),
+    Class(M, Box<CharacterClass<M>>, #[doc(hidden)] NonExhaustive),
     #[doc = "You can use parentheses to group parts of expressions."]
-    Paren(M, Vec<Box<Expression<M>>>),
+    Paren(M, Vec<Box<Expression<M>>>, #[doc(hidden)] NonExhaustive),
+    #[doc(hidden)]
+    __NonExhaustive(NonExhaustive),
 }
 #[doc = "A delimited expression can be repeated just like normal repetition expressions."]
 #[doc = "To denote this, you can use a delimitation bound."]
 #[derive(Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum DelimitedBound<M: AstInfo> {
     #[doc = "Within a range or possible repetitions."]
-    NumNum(M, Box<Number<M>>, Box<Number<M>>),
+    NumNum(
+        M,
+        Box<Number<M>>,
+        Box<Number<M>>,
+        #[doc(hidden)] NonExhaustive,
+    ),
     #[doc = "At least some number of repetitions, but no upper bound."]
-    NumInf(M, Box<Number<M>>),
+    NumInf(M, Box<Number<M>>, #[doc(hidden)] NonExhaustive),
     #[doc = "Exactly this number of repetitions."]
-    Num(M, Box<Number<M>>),
-    Star(M),
+    Num(M, Box<Number<M>>, #[doc(hidden)] NonExhaustive),
+    Star(M, #[doc(hidden)] NonExhaustive),
     #[doc = "One or more repetitions."]
-    Plus(M),
+    Plus(M, #[doc(hidden)] NonExhaustive),
+    #[doc(hidden)]
+    __NonExhaustive(NonExhaustive),
 }
 #[doc = "Annotations are tags that modify a specific sort or more often constructor."]
 #[doc = "TODO: Document each"]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Annotation<M: AstInfo>(pub M, pub Vec<Box<Identifier<M>>>);
+#[non_exhaustive]
+pub struct Annotation<M: AstInfo>(
+    pub M,
+    pub Vec<Box<Identifier<M>>>,
+    #[doc(hidden)] pub NonExhaustive,
+);
 #[doc = "A [`sort`] consists of constructors. A sort will try each of the constructors"]
 #[doc = "from top to bottom, and use the first one that succesfully parses the input string."]
 #[doc = ""]
@@ -115,19 +153,31 @@ pub struct Annotation<M: AstInfo>(pub M, pub Vec<Box<Identifier<M>>>);
 #[doc = ""]
 #[doc = "Constructors can have doc-comments using triple slashes."]
 #[derive(Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Constructor<M: AstInfo> {
-    ConstructorDocumented(M, Vec<Box<DocComment<M>>>, Box<Constructor<M>>),
+    ConstructorDocumented(
+        M,
+        Vec<Box<DocComment<M>>>,
+        Box<Constructor<M>>,
+        #[doc(hidden)] NonExhaustive,
+    ),
     Constructor(
         M,
         Box<Identifier<M>>,
         Vec<Box<Expression<M>>>,
         Option<Box<Annotation<M>>>,
+        #[doc(hidden)] NonExhaustive,
     ),
+    #[doc(hidden)]
+    __NonExhaustive(NonExhaustive),
 }
 #[derive(Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Newline<M: AstInfo> {
-    Unix(M),
-    Windows(M),
+    Unix(M, #[doc(hidden)] NonExhaustive),
+    Windows(M, #[doc(hidden)] NonExhaustive),
+    #[doc(hidden)]
+    __NonExhaustive(NonExhaustive),
 }
 #[doc = "A sort is a group of constructors. See [`constructor`] for more details."]
 #[doc = ""]
@@ -138,35 +188,65 @@ pub enum Newline<M: AstInfo> {
 #[doc = ""]
 #[doc = "Sorts can have doc-comments using triple slashes."]
 #[derive(Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Sort<M: AstInfo> {
-    SortDocumented(M, Vec<Box<DocComment<M>>>, Box<Sort<M>>),
-    Sort(M, Box<Identifier<M>>, Vec<Box<Constructor<M>>>),
+    SortDocumented(
+        M,
+        Vec<Box<DocComment<M>>>,
+        Box<Sort<M>>,
+        #[doc(hidden)] NonExhaustive,
+    ),
+    Sort(
+        M,
+        Box<Identifier<M>>,
+        Vec<Box<Constructor<M>>>,
+        #[doc(hidden)] NonExhaustive,
+    ),
     #[doc = "When a sort has only one constructor, it has simpler syntax."]
     SortSingle(
         M,
         Box<Identifier<M>>,
         Vec<Box<Expression<M>>>,
         Option<Box<Annotation<M>>>,
+        #[doc(hidden)] NonExhaustive,
     ),
+    #[doc(hidden)]
+    __NonExhaustive(NonExhaustive),
 }
 #[doc = "Other top-level constructs that are not sorts"]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Meta<M: AstInfo>(pub M, pub Box<Identifier<M>>);
+#[non_exhaustive]
+pub struct Meta<M: AstInfo>(
+    pub M,
+    pub Box<Identifier<M>>,
+    #[doc(hidden)] pub NonExhaustive,
+);
 #[derive(Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SortOrMeta<M: AstInfo> {
-    Meta(M, Box<Meta<M>>),
-    Sort(M, Box<Sort<M>>),
+    Meta(M, Box<Meta<M>>, #[doc(hidden)] NonExhaustive),
+    Sort(M, Box<Sort<M>>, #[doc(hidden)] NonExhaustive),
+    #[doc(hidden)]
+    __NonExhaustive(NonExhaustive),
 }
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Program<M: AstInfo>(pub M, pub Vec<Box<SortOrMeta<M>>>);
+#[non_exhaustive]
+pub struct Program<M: AstInfo>(
+    pub M,
+    pub Vec<Box<SortOrMeta<M>>>,
+    #[doc(hidden)] pub NonExhaustive,
+);
 #[doc = "A documentation comment (doc comment) is always associated with a sort"]
 #[doc = "or constructor. It documents what it does. Doc comments will be interpreted"]
 #[doc = "and will be put on the generated types during codegen."]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DocComment<M: AstInfo>(pub M, pub String);
 #[derive(Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Layout<M: AstInfo> {
-    Simple(M, String),
-    Comment(M, Vec<String>),
+    Simple(M, String, #[doc(hidden)] NonExhaustive),
+    Comment(M, Vec<String>, #[doc(hidden)] NonExhaustive),
+    #[doc(hidden)]
+    __NonExhaustive(NonExhaustive),
 }
 pub type AST_ROOT<M> = Program<M>;

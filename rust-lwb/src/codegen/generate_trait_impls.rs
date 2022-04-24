@@ -44,14 +44,16 @@ pub fn write_trait_impls(
                     match self {
                         #(
                             Self::#constructor_names (meta, ..) => meta
-                        ),*
+                        ),*,
+                        _ => unreachable!()
                     }
                 ),
                 quote!(
                     match self {
                         #(
                             Self::#constructor_names (..) => #constructor_names_str
-                        ),*
+                        ),*,
+                        _ => unreachable!()
                     }
                 ),
             )

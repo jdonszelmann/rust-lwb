@@ -11,18 +11,43 @@ use super::prelude::*;
 #[derive(Debug)]
 pub struct Identifier<M: AstInfo>(pub M, pub String);
 #[derive(Debug)]
-pub struct Int<M: AstInfo>(pub M, pub Vec<String>);
+#[non_exhaustive]
+pub struct Int<M: AstInfo>(pub M, pub Vec<String>, #[doc(hidden)] pub NonExhaustive);
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Bool<M: AstInfo> {
-    True(M),
-    False(M),
+    True(M, #[doc(hidden)] NonExhaustive),
+    False(M, #[doc(hidden)] NonExhaustive),
+    #[doc(hidden)]
+    __NonExhaustive(NonExhaustive),
 }
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Expression<M: AstInfo> {
-    Add(M, Box<Expression<M>>, Box<Expression<M>>),
-    Sub(M, Box<Expression<M>>, Box<Expression<M>>),
-    Eq(M, Box<Expression<M>>, Box<Expression<M>>),
-    Index(M, Box<Expression<M>>, Box<Expression<M>>),
+    Add(
+        M,
+        Box<Expression<M>>,
+        Box<Expression<M>>,
+        #[doc(hidden)] NonExhaustive,
+    ),
+    Sub(
+        M,
+        Box<Expression<M>>,
+        Box<Expression<M>>,
+        #[doc(hidden)] NonExhaustive,
+    ),
+    Eq(
+        M,
+        Box<Expression<M>>,
+        Box<Expression<M>>,
+        #[doc(hidden)] NonExhaustive,
+    ),
+    Index(
+        M,
+        Box<Expression<M>>,
+        Box<Expression<M>>,
+        #[doc(hidden)] NonExhaustive,
+    ),
     Testexpr(
         M,
         Box<Int<M>>,
@@ -36,21 +61,43 @@ pub enum Expression<M: AstInfo> {
         Box<Int<M>>,
         Box<Bool<M>>,
         Box<Int<M>>,
+        #[doc(hidden)] NonExhaustive,
     ),
-    List(M, Vec<Box<Expression<M>>>),
-    Bool(M, Box<Bool<M>>),
-    Int(M, Box<Int<M>>),
-    Identifier(M, Box<Identifier<M>>),
-    Paren(M, Box<Expression<M>>),
+    List(M, Vec<Box<Expression<M>>>, #[doc(hidden)] NonExhaustive),
+    Bool(M, Box<Bool<M>>, #[doc(hidden)] NonExhaustive),
+    Int(M, Box<Int<M>>, #[doc(hidden)] NonExhaustive),
+    Identifier(M, Box<Identifier<M>>, #[doc(hidden)] NonExhaustive),
+    Paren(M, Box<Expression<M>>, #[doc(hidden)] NonExhaustive),
+    #[doc(hidden)]
+    __NonExhaustive(NonExhaustive),
 }
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Statement<M: AstInfo> {
-    If(M, Box<Expression<M>>, Vec<Box<Statement<M>>>),
-    Expression(M, Box<Expression<M>>),
-    Assignment(M, Box<Identifier<M>>, Box<Expression<M>>),
+    If(
+        M,
+        Box<Expression<M>>,
+        Vec<Box<Statement<M>>>,
+        #[doc(hidden)] NonExhaustive,
+    ),
+    Expression(M, Box<Expression<M>>, #[doc(hidden)] NonExhaustive),
+    Assignment(
+        M,
+        Box<Identifier<M>>,
+        Box<Expression<M>>,
+        #[doc(hidden)] NonExhaustive,
+    ),
+    #[doc(hidden)]
+    __NonExhaustive(NonExhaustive),
 }
 #[derive(Debug)]
-pub struct Program<M: AstInfo>(pub M, pub Vec<Box<Statement<M>>>);
+#[non_exhaustive]
+pub struct Program<M: AstInfo>(
+    pub M,
+    pub Vec<Box<Statement<M>>>,
+    #[doc(hidden)] pub NonExhaustive,
+);
 #[derive(Debug)]
-pub struct Layout<M: AstInfo>(pub M, pub String);
+#[non_exhaustive]
+pub struct Layout<M: AstInfo>(pub M, pub String, #[doc(hidden)] pub NonExhaustive);
 pub type AST_ROOT<M> = Program<M>;

@@ -25,12 +25,14 @@ impl<M: AstInfo> AstNode<M> for EscapeClosingBracket<M> {
         match self {
             Self::Escaped(meta, ..) => meta,
             Self::Unescaped(meta, ..) => meta,
+            _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
         match self {
             Self::Escaped(..) => "escaped",
             Self::Unescaped(..) => "unescaped",
+            _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {
@@ -42,12 +44,14 @@ impl<M: AstInfo> AstNode<M> for CharacterClassItem<M> {
         match self {
             Self::Range(meta, ..) => meta,
             Self::SingleChar(meta, ..) => meta,
+            _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
         match self {
             Self::Range(..) => "range",
             Self::SingleChar(..) => "single-char",
+            _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {
@@ -59,12 +63,14 @@ impl<M: AstInfo> AstNode<M> for StringChar<M> {
         match self {
             Self::Escaped(meta, ..) => meta,
             Self::Normal(meta, ..) => meta,
+            _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
         match self {
             Self::Escaped(..) => "escaped",
             Self::Normal(..) => "normal",
+            _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {
@@ -108,6 +114,7 @@ impl<M: AstInfo> AstNode<M> for Expression<M> {
             Self::Sort(meta, ..) => meta,
             Self::Class(meta, ..) => meta,
             Self::Paren(meta, ..) => meta,
+            _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
@@ -122,6 +129,7 @@ impl<M: AstInfo> AstNode<M> for Expression<M> {
             Self::Sort(..) => "sort",
             Self::Class(..) => "class",
             Self::Paren(..) => "paren",
+            _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {
@@ -136,6 +144,7 @@ impl<M: AstInfo> AstNode<M> for DelimitedBound<M> {
             Self::Num(meta, ..) => meta,
             Self::Star(meta, ..) => meta,
             Self::Plus(meta, ..) => meta,
+            _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
@@ -145,6 +154,7 @@ impl<M: AstInfo> AstNode<M> for DelimitedBound<M> {
             Self::Num(..) => "num",
             Self::Star(..) => "star",
             Self::Plus(..) => "plus",
+            _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {
@@ -168,12 +178,14 @@ impl<M: AstInfo> AstNode<M> for Constructor<M> {
         match self {
             Self::ConstructorDocumented(meta, ..) => meta,
             Self::Constructor(meta, ..) => meta,
+            _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
         match self {
             Self::ConstructorDocumented(..) => "constructor-documented",
             Self::Constructor(..) => "constructor",
+            _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {
@@ -185,12 +197,14 @@ impl<M: AstInfo> AstNode<M> for Newline<M> {
         match self {
             Self::Unix(meta, ..) => meta,
             Self::Windows(meta, ..) => meta,
+            _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
         match self {
             Self::Unix(..) => "unix",
             Self::Windows(..) => "windows",
+            _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {
@@ -203,6 +217,7 @@ impl<M: AstInfo> AstNode<M> for Sort<M> {
             Self::SortDocumented(meta, ..) => meta,
             Self::Sort(meta, ..) => meta,
             Self::SortSingle(meta, ..) => meta,
+            _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
@@ -210,6 +225,7 @@ impl<M: AstInfo> AstNode<M> for Sort<M> {
             Self::SortDocumented(..) => "sort-documented",
             Self::Sort(..) => "sort",
             Self::SortSingle(..) => "sort-single",
+            _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {
@@ -233,12 +249,14 @@ impl<M: AstInfo> AstNode<M> for SortOrMeta<M> {
         match self {
             Self::Meta(meta, ..) => meta,
             Self::Sort(meta, ..) => meta,
+            _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
         match self {
             Self::Meta(..) => "meta",
             Self::Sort(..) => "sort",
+            _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {
@@ -274,12 +292,14 @@ impl<M: AstInfo> AstNode<M> for Layout<M> {
         match self {
             Self::Simple(meta, ..) => meta,
             Self::Comment(meta, ..) => meta,
+            _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
         match self {
             Self::Simple(..) => "simple",
             Self::Comment(..) => "comment",
+            _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {

@@ -116,6 +116,11 @@ impl CodeGenJob {
 
         let legacy_ast = convert_syntax_file_ast::convert(ast)?; // TODO make peg parser use new ast
 
+        let mut derives = vec!["Debug"];
+        if self.serde {
+            derives.extend(["Serialize", "Deserialize"]);
+        }
+
         let [mut modrs, mut rest @ ..] = create_module_files(
             self.destination,
             [
@@ -130,16 +135,12 @@ impl CodeGenJob {
         write_headers(
             &mut modrs.0,
             &mut rest.iter_mut().map(refs).collect::<Vec<_>>(),
+            &derives,
             &self.import_location,
         )?;
 
         let [ref mut f_ast, ref mut f_from_pairs, ref mut f_ast_trait_impls, ref mut f_serialized_parser] =
             rest.map(|i| i.0);
-
-        let mut derives = vec!["Debug"];
-        if self.serde {
-            derives.extend(["Serialize", "Deserialize"]);
-        }
 
         write_ast(f_ast, &legacy_ast, &derives)?;
         write_from_pairs(f_from_pairs, &legacy_ast)?;

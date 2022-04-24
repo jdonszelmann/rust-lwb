@@ -37,12 +37,14 @@ impl<M: AstInfo> AstNode<M> for Bool<M> {
         match self {
             Self::True(meta, ..) => meta,
             Self::False(meta, ..) => meta,
+            _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
         match self {
             Self::True(..) => "true",
             Self::False(..) => "false",
+            _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {
@@ -62,6 +64,7 @@ impl<M: AstInfo> AstNode<M> for Expression<M> {
             Self::Int(meta, ..) => meta,
             Self::Identifier(meta, ..) => meta,
             Self::Paren(meta, ..) => meta,
+            _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
@@ -76,6 +79,7 @@ impl<M: AstInfo> AstNode<M> for Expression<M> {
             Self::Int(..) => "int",
             Self::Identifier(..) => "identifier",
             Self::Paren(..) => "paren",
+            _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {
@@ -88,6 +92,7 @@ impl<M: AstInfo> AstNode<M> for Statement<M> {
             Self::If(meta, ..) => meta,
             Self::Expression(meta, ..) => meta,
             Self::Assignment(meta, ..) => meta,
+            _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
@@ -95,6 +100,7 @@ impl<M: AstInfo> AstNode<M> for Statement<M> {
             Self::If(..) => "if",
             Self::Expression(..) => "expression",
             Self::Assignment(..) => "assignment",
+            _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {

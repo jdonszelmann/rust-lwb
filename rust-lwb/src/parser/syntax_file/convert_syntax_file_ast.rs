@@ -29,20 +29,21 @@ pub enum AstConversionError {
 pub type ConversionResult<T> = Result<T, AstConversionError>;
 
 pub fn convert<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionResult<SyntaxFileAst> {
-    let ast::Program(_, sort_or_metas) = inp;
+    let ast::Program(_, sort_or_metas, ..) = inp;
     let mut sorts = Vec::new();
     let mut start = None;
 
     for i in sort_or_metas {
         match *i {
-            SortOrMeta::Meta(_, m) => {
+            SortOrMeta::Meta(_, m, ..) => {
                 if start.is_some() {
                     return Err(DuplicateStartingRule);
                 } else {
                     start = Some(convert_identifier(*m.1))
                 }
             }
-            SortOrMeta::Sort(_, sort) => sorts.push(convert_sort(*sort)?),
+            SortOrMeta::Sort(_, sort, ..) => sorts.push(convert_sort(*sort)?),
+            a => unreachable!("{:?}", a),
         }
     }
 
@@ -64,7 +65,7 @@ fn convert_number<M: AstInfo>(inp: ast::Number<M>) -> ConversionResult<u64> {
 
 fn convert_escape_closing_bracket<M: AstInfo>(inp: ast::EscapeClosingBracket<M>) -> char {
     match inp {
-        EscapeClosingBracket::Escaped(_, c) => match c.as_str() {
+        EscapeClosingBracket::Escaped(_, c, ..) => match c.as_str() {
             "n" => '\n',
             "r" => '\r',
             "t" => '\t',
@@ -72,16 +73,17 @@ fn convert_escape_closing_bracket<M: AstInfo>(inp: ast::EscapeClosingBracket<M>)
             "]" => ']',
             a => unreachable!("grammar shouldn't allow {} here", a),
         },
-        EscapeClosingBracket::Unescaped(_, c) => {
+        EscapeClosingBracket::Unescaped(_, c, ..) => {
             let c = c.chars().next().expect("only one character");
             c
         }
+        a => unreachable!("{:?}", a),
     }
 }
 
 fn convert_string_char<M: AstInfo>(inp: ast::StringChar<M>) -> char {
     match inp {
-        StringChar::Escaped(_, c) => match c.as_str() {
+        StringChar::Escaped(_, c, ..) => match c.as_str() {
             "n" => '\n',
             "r" => '\r',
             "t" => '\t',
@@ -89,32 +91,35 @@ fn convert_string_char<M: AstInfo>(inp: ast::StringChar<M>) -> char {
             "\"" => '"',
             a => unreachable!("grammar shouldn't allow {} here", a),
         },
-        StringChar::Normal(_, c) => {
+        StringChar::Normal(_, c, ..) => {
             let c = c.chars().next().expect("only one character");
             c
         }
+        a => unreachable!("{:?}", a),
     }
 }
 
 fn convert_character_class<M: AstInfo>(
     inp: ast::CharacterClass<M>,
 ) -> ConversionResult<CharacterClass> {
-    let ast::CharacterClass(_, inverted, items) = inp;
+    let ast::CharacterClass(_, inverted, items, ..) = inp;
     let mut res = CharacterClass::Nothing;
 
     for i in items {
         match *i {
-            CharacterClassItem::Range(_, from, to_inclusive) => {
+            CharacterClassItem::Range(_, from, to_inclusive, ..) => {
                 res = res.combine(CharacterClass::RangeInclusive {
                     from: convert_escape_closing_bracket(*from),
                     to: convert_escape_closing_bracket(*to_inclusive),
                 })
             }
-            CharacterClassItem::SingleChar(_, c) => {
+            CharacterClassItem::SingleChar(_, c, ..) => {
                 let c = convert_escape_closing_bracket(*c);
 
                 res = res.combine(CharacterClass::RangeInclusive { from: c, to: c })
             }
+
+            a => unreachable!("{:?}", a),
         }
     }
 
@@ -127,7 +132,7 @@ fn convert_character_class<M: AstInfo>(
 
 fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
     Ok(match inp {
-        ast::Sort::Sort(_, name, constructors) => Sort {
+        ast::Sort::Sort(_, name, constructors, ..) => Sort {
             documentation: None,
             name: convert_identifier(*name),
             constructors: constructors
@@ -135,7 +140,7 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
                 .map(|i| convert_constructor(*i))
                 .collect::<Result<_, _>>()?,
         },
-        ast::Sort::SortSingle(_, name, expressions, annotations) => {
+        ast::Sort::SortSingle(_, name, expressions, annotations, ..) => {
             let name = convert_identifier(*name);
             Sort {
                 documentation: None,
@@ -152,10 +157,13 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
                 }],
             }
         }
-        ast::Sort::SortDocumented(_, comments, sort) => convert_sort(*sort).and_then(|mut i| {
-            i.documentation = Some(convert_comments(comments)?);
-            Ok(i)
-        })?,
+        ast::Sort::SortDocumented(_, comments, sort, ..) => {
+            convert_sort(*sort).and_then(|mut i| {
+                i.documentation = Some(convert_comments(comments)?);
+                Ok(i)
+            })?
+        }
+        a => unreachable!("{:?}", a),
     })
 }
 
@@ -175,41 +183,45 @@ fn convert_comments<M: AstInfo>(inp: Vec<Box<ast::DocComment<M>>>) -> Conversion
 
 fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<Expression> {
     Ok(match inp {
-        ast::Expression::Star(_, exp) => Expression::Repeat {
+        ast::Expression::Star(_, exp, ..) => Expression::Repeat {
             e: Box::new(convert_expression(*exp)?),
             min: 0,
             max: None,
         },
-        ast::Expression::Plus(_, exp) => Expression::Repeat {
+        ast::Expression::Plus(_, exp, ..) => Expression::Repeat {
             e: Box::new(convert_expression(*exp)?),
             min: 1,
             max: None,
         },
-        ast::Expression::Maybe(_, exp) => Expression::Repeat {
+        ast::Expression::Maybe(_, exp, ..) => Expression::Repeat {
             e: Box::new(convert_expression(*exp)?),
             min: 0,
             max: Some(1),
         },
-        ast::Expression::RepeatExact(_, exp, min, max) => Expression::Repeat {
+        ast::Expression::RepeatExact(_, exp, min, max, ..) => Expression::Repeat {
             e: Box::new(convert_expression(*exp)?),
             min: convert_number(*min)?,
             max: max.map(|i| convert_number(*i)).transpose()?,
         },
-        ast::Expression::Literal(_, l) | ast::Expression::SingleQuoteLiteral(_, l) => {
+        ast::Expression::Literal(_, l, ..) | ast::Expression::SingleQuoteLiteral(_, l, ..) => {
             Expression::Literal(l.into_iter().map(|i| convert_string_char(*i)).collect())
         }
-        ast::Expression::Sort(_, s) => Expression::Sort(convert_identifier(*s)),
-        ast::Expression::Class(_, cc) => Expression::CharacterClass(convert_character_class(*cc)?),
-        ast::Expression::Paren(_, exp) => convert_expressions(exp)?,
-        ast::Expression::Delimited(_, exp, delim, bound, trailing) => {
+        ast::Expression::Sort(_, s, ..) => Expression::Sort(convert_identifier(*s)),
+        ast::Expression::Class(_, cc, ..) => {
+            Expression::CharacterClass(convert_character_class(*cc)?)
+        }
+        ast::Expression::Paren(_, exp, ..) => convert_expressions(exp)?,
+        ast::Expression::Delimited(_, exp, delim, bound, trailing, ..) => {
             let (min, max) = match *bound {
-                DelimitedBound::NumNum(_, min, max) => {
+                DelimitedBound::NumNum(_, min, max, ..) => {
                     (convert_number(*min)?, Some(convert_number(*max)?))
                 }
-                DelimitedBound::NumInf(_, min) => (convert_number(*min)?, None),
-                DelimitedBound::Num(_, min) => (convert_number(*min)?, None),
-                DelimitedBound::Star(_) => (0, None),
-                DelimitedBound::Plus(_) => (1, None),
+                DelimitedBound::NumInf(_, min, ..) => (convert_number(*min)?, None),
+                DelimitedBound::Num(_, min, ..) => (convert_number(*min)?, None),
+                DelimitedBound::Star(..) => (0, None),
+                DelimitedBound::Plus(..) => (1, None),
+
+                a => unreachable!("{:?}", a),
             };
             Expression::Delimited {
                 e: Box::new(convert_expression(*exp)?),
@@ -219,6 +231,7 @@ fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<E
                 trailing,
             }
         }
+        a => unreachable!("{:?}", a),
     })
 }
 
@@ -238,7 +251,7 @@ fn convert_expressions<M: AstInfo>(
 }
 
 fn convert_annotations<M: AstInfo>(inp: ast::Annotation<M>) -> ConversionResult<Vec<Annotation>> {
-    let ast::Annotation(_, annotations) = inp;
+    let ast::Annotation(_, annotations, ..) = inp;
     annotations
         .into_iter()
         .map(|an| {
@@ -250,7 +263,7 @@ fn convert_annotations<M: AstInfo>(inp: ast::Annotation<M>) -> ConversionResult<
 
 fn convert_constructor<M: AstInfo>(inp: ast::Constructor<M>) -> ConversionResult<Constructor> {
     Ok(match inp {
-        ast::Constructor::Constructor(_, name, expressions, annotations) => Constructor {
+        ast::Constructor::Constructor(_, name, expressions, annotations, ..) => Constructor {
             documentation: None,
             name: convert_identifier(*name),
             expression: convert_expressions(expressions)?,
@@ -260,11 +273,13 @@ fn convert_constructor<M: AstInfo>(inp: ast::Constructor<M>) -> ConversionResult
                 Vec::new()
             },
         },
-        ast::Constructor::ConstructorDocumented(_, comments, constructor) => {
+        ast::Constructor::ConstructorDocumented(_, comments, constructor, ..) => {
             convert_constructor(*constructor).and_then(|mut i| {
                 i.documentation = Some(convert_comments(comments)?);
                 Ok(i)
             })?
         }
+
+        a => unreachable!("{:?}", a),
     })
 }

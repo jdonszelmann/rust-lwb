@@ -1,6 +1,8 @@
 use crate::codegen::error::CodegenError;
 use crate::codegen::FormattingFile;
 use chrono::{DateTime, Local, Utc};
+use itertools::Itertools;
+use quote::{format_ident, quote};
 use std::io::Write;
 
 fn write_header(file: &mut FormattingFile, _codegen_stamp: &str) -> Result<(), CodegenError> {
@@ -25,8 +27,11 @@ fn write_header(file: &mut FormattingFile, _codegen_stamp: &str) -> Result<(), C
 pub fn write_headers(
     modrs: &mut FormattingFile,
     files: &mut [(&mut FormattingFile, &str)],
+    derives: &[&str],
     prelude_import_location: &str,
 ) -> Result<(), CodegenError> {
+    let derives = derives.iter().map(|i| format_ident!("{}", i)).collect_vec();
+
     let now: DateTime<Local> = Local::now();
     let now_utc: DateTime<Utc> = Utc::now();
     let codegen_stamp = format!(
@@ -52,14 +57,25 @@ pub use {name}::*;
         )?;
     }
 
+    let prelude_import_location = format_ident!("{}", prelude_import_location);
+
     write!(
         modrs,
-        "
-#[rustfmt::skip]
-mod prelude {{
-    pub use {prelude_import_location}::codegen_prelude::*;
-    pub use super::*;
-}}"
+        "{}",
+        quote!(
+        #[rustfmt::skip]
+        mod prelude {
+            pub use #prelude_import_location::codegen_prelude::*;
+            pub use super::*;
+
+            /// This type is public, but in a private module. That means nothing can ever construct
+            /// this value except from within this module. This ensures that AST types can only be
+            /// constructed by the parser, and that matches on types containing this must be
+            /// non-exhaustive. Rust does have the #[non_exhaustive] attribute, but it only works
+            /// between crate boundaries, not within the same crate which is what this enforces.
+            #[derive(Copy, Clone, PartialEq, #(#derives),*)]
+            pub struct NonExhaustive;
+        })
     )?;
 
     Ok(())
