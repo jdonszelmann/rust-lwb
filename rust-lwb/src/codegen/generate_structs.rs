@@ -1,11 +1,10 @@
 use crate::codegen::error::CodegenError;
-use crate::codegen::{sanitize_identifier, FormattingFile};
+use crate::codegen::sanitize_identifier;
 use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
 use crate::parser::peg::parser_sugar_ast::{Expression, SyntaxFileAst};
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use std::io::Write;
 
 pub fn convert_docs(docs: Option<&String>) -> Vec<TokenStream> {
     docs.cloned()
@@ -15,11 +14,10 @@ pub fn convert_docs(docs: Option<&String>) -> Vec<TokenStream> {
         .collect_vec()
 }
 
-pub fn write_ast(
-    file: &mut FormattingFile,
+pub fn generate_structs(
     syntax: &SyntaxFileAst,
     derives: &[&str],
-) -> Result<(), CodegenError> {
+) -> Result<TokenStream, CodegenError> {
     let mut items = Vec::new();
 
     let derives = derives.iter().map(|i| format_ident!("{}", i)).collect_vec();
@@ -85,21 +83,15 @@ pub fn write_ast(
 
     let start_sort_identifier = format_ident!("{}", sanitize_identifier(&syntax.starting_sort));
 
-    write!(
-        file,
-        "{}",
-        quote!(
-            use super::prelude::*;
+    Ok(quote!(
+        use super::prelude::*;
 
-            #(
-                #items
-            )*
+        #(
+            #items
+        )*
 
-            pub type AST_ROOT<M> = #start_sort_identifier<M>;
-        )
-    )?;
-
-    Ok(())
+        pub type AST_ROOT<M> = #start_sort_identifier<M>;
+    ))
 }
 
 #[derive(Eq, PartialEq)]
@@ -198,7 +190,7 @@ fn generate_constructor_type(constructor: &Expression) -> Tree<TokenStream> {
 mod tests {
     #[test]
     fn test_flatten_tree() {
-        use crate::codegen::generate_ast::Tree::*;
+        use crate::codegen::generate_structs::Tree::*;
 
         let t = Node(vec![Empty, Leaf(3), Leaf(4)]);
         let mut ti = t.flatten();
@@ -209,7 +201,7 @@ mod tests {
 
     #[test]
     fn test_flatten_tree_nested() {
-        use crate::codegen::generate_ast::Tree::*;
+        use crate::codegen::generate_structs::Tree::*;
 
         let t = Node(vec![Empty, Node(vec![Leaf(3), Leaf(4)]), Leaf(5)]);
         let mut ti = t.flatten();

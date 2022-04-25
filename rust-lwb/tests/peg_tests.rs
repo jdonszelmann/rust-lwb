@@ -30,7 +30,7 @@ macro_rules! peg_test {
                     let mut s = String::new();
                     GraphicalReportHandler::new()
                         .with_links(true)
-                        .render_report(&mut s, err)
+                       .render_report(&mut s, err)
                         .unwrap();
                     print!("{}", s);
                 }

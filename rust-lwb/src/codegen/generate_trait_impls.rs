@@ -1,14 +1,13 @@
 use crate::codegen::error::CodegenError;
-use crate::codegen::{sanitize_identifier, FormattingFile};
+use crate::codegen::sanitize_identifier;
 use crate::parser::peg::parser_sugar_ast::SyntaxFileAst;
 use itertools::Itertools;
 use quote::{format_ident, quote};
-use std::io::Write;
+use proc_macro2::TokenStream;
 
-pub fn write_trait_impls(
-    file: &mut FormattingFile,
+pub fn generate_trait_impls(
     syntax: &SyntaxFileAst,
-) -> Result<(), CodegenError> {
+) -> Result<TokenStream, CodegenError> {
     let mut impls = Vec::new();
 
     for sort in &syntax.sorts {
@@ -74,15 +73,9 @@ pub fn write_trait_impls(
         ));
     }
 
-    write!(
-        file,
-        "{}",
-        quote!(
-            use super::prelude::*;
+    Ok(quote!(
+        use super::prelude::*;
 
-            #(#impls)*
-        )
-    )?;
-
-    Ok(())
+        #(#impls)*
+    ))
 }
