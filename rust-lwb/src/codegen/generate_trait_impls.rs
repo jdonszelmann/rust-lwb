@@ -2,12 +2,10 @@ use crate::codegen::error::CodegenError;
 use crate::codegen::sanitize_identifier;
 use crate::parser::peg::parser_sugar_ast::SyntaxFileAst;
 use itertools::Itertools;
-use quote::{format_ident, quote};
 use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
 
-pub fn generate_trait_impls(
-    syntax: &SyntaxFileAst,
-) -> Result<TokenStream, CodegenError> {
+pub fn generate_trait_impls(syntax: &SyntaxFileAst) -> Result<TokenStream, CodegenError> {
     let mut impls = Vec::new();
 
     for sort in &syntax.sorts {

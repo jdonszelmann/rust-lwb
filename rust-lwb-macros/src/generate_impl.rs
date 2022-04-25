@@ -1,7 +1,7 @@
-use proc_macro::{TokenStream};
+use proc_macro::TokenStream;
 use quote::quote;
-use syn::{LitStr, parse_macro_input};
 use rust_lwb::codegen::manager::CodegenManager;
+use syn::{parse_macro_input, LitStr};
 
 pub fn generate(input: TokenStream) -> TokenStream {
     let i: LitStr = parse_macro_input!(input as LitStr);
@@ -15,7 +15,8 @@ pub fn generate(input: TokenStream) -> TokenStream {
             let e = e.to_string();
             quote!(
                 compile_error!("{}", #e);
-            ).into()
+            )
+            .into()
         }
     }
 }

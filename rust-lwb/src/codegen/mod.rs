@@ -6,11 +6,11 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 mod error;
-mod generate_structs;
-mod generate_from_pairs;
 mod generate_file_headers;
-mod generate_trait_impls;
+mod generate_from_pairs;
 mod generate_misc;
+mod generate_structs;
+mod generate_trait_impls;
 pub mod manager;
 
 fn sanitize_identifier(id: &str) -> String {

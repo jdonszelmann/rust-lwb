@@ -6,4 +6,3 @@ mod generate_impl;
 pub fn generate(input: TokenStream) -> TokenStream {
     generate_impl::generate(input)
 }
-

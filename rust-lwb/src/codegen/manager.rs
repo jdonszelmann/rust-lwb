@@ -1,20 +1,20 @@
-use std::io;
 use crate::codegen::generate_file_headers::write_headers;
+use std::io;
 // use crate::codegen::generate_language;
 use crate::codegen::error::CodegenError;
 use crate::codegen::error::CodegenError::NoExtension;
-use crate::codegen::generate_structs::generate_structs;
 use crate::codegen::generate_from_pairs::generate_from_pairs;
+use crate::codegen::generate_misc::{generate_parser, generate_root};
+use crate::codegen::generate_structs::generate_structs;
 use crate::codegen::generate_trait_impls::generate_trait_impls;
 use crate::codegen::FormattingFile;
 use crate::language::Language;
 use crate::parser::syntax_file::{convert_syntax_file_ast, SyntaxFile};
 use crate::sources::source_file::SourceFile;
-use std::io::Write;
-use std::path::{Path, PathBuf};
 use proc_macro2::TokenStream;
 use quote::quote;
-use crate::codegen::generate_misc::{generate_parser, generate_root};
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 pub struct CodeGenJob {
     source: Result<SourceFile, io::Error>,
@@ -138,10 +138,17 @@ impl CodeGenJob {
 
     #[doc(hidden)]
     pub fn __codegen_tokenstream(self, debug: bool) -> Result<TokenStream, CodegenError> {
-        assert!(self.write_serialized_ast, "can only codegen tokenstream with serialized ast on");
+        assert!(
+            self.write_serialized_ast,
+            "can only codegen tokenstream with serialized ast on"
+        );
 
         let Generated {
-            impls, structs, from_pairs, root, parser
+            impls,
+            structs,
+            from_pairs,
+            root,
+            parser,
         } = self.codegen_internal(&[])?;
 
         if debug {
@@ -218,7 +225,11 @@ impl CodeGenJob {
         let write_serialized_ast = self.write_serialized_ast;
 
         let Generated {
-            impls, structs, from_pairs, root, parser
+            impls,
+            structs,
+            from_pairs,
+            root,
+            parser,
         } = self.codegen_internal(&["ast", "from_pairs", "ast_impls", "parser"])?;
 
         write!(f_modrs, "{}", root)?;
@@ -269,11 +280,13 @@ impl CodegenManager {
             .expect("must always be a last item since we just pushed something")
     }
 
-
     #[doc(hidden)]
-    pub fn __add_syntax_str(&mut self, contents: impl AsRef<str>, path: impl AsRef<Path>) -> &mut CodeGenJob {
-        self.jobs
-            .push(CodeGenJob::from_str(contents, path));
+    pub fn __add_syntax_str(
+        &mut self,
+        contents: impl AsRef<str>,
+        path: impl AsRef<Path>,
+    ) -> &mut CodeGenJob {
+        self.jobs.push(CodeGenJob::from_str(contents, path));
 
         self.jobs
             .last_mut()
@@ -289,14 +302,13 @@ impl CodegenManager {
         Ok(())
     }
 
-
     #[doc(hidden)]
     pub fn __codegen_tokenstream(self, debug: bool) -> Result<TokenStream, CodegenError> {
-        let gens = self.jobs
+        let gens = self
+            .jobs
             .into_iter()
             .map(|i| i.__codegen_tokenstream(debug))
             .collect::<Result<Vec<_>, _>>()?;
-
 
         Ok(quote!(
             #(#gens)*

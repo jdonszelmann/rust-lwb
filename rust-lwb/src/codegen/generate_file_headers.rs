@@ -22,9 +22,7 @@ fn write_header(file: &mut FormattingFile, _codegen_stamp: &str) -> Result<(), C
     Ok(())
 }
 
-pub fn write_headers(
-    files: &mut [(&mut FormattingFile, &str)],
-) -> Result<(), CodegenError> {
+pub fn write_headers(files: &mut [(&mut FormattingFile, &str)]) -> Result<(), CodegenError> {
     let now: DateTime<Local> = Local::now();
     let now_utc: DateTime<Utc> = Utc::now();
     let codegen_stamp = format!(

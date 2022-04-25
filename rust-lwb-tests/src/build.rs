@@ -8,7 +8,6 @@ fn on_nightly() {
 #[not(nightly)]
 fn on_nightly() {}
 
-
 fn main() {
     println!("cargo:rerun-if-changed=src/build.rs");
 

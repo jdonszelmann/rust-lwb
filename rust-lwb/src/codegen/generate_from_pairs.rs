@@ -185,9 +185,7 @@ pub fn flatten_sequences(syntax: Expression) -> Expression {
     }
 }
 
-pub fn generate_from_pairs(
-    syntax: &SyntaxFileAst,
-) -> Result<TokenStream, CodegenError> {
+pub fn generate_from_pairs(syntax: &SyntaxFileAst) -> Result<TokenStream, CodegenError> {
     let mut impls = Vec::new();
 
     for sort in &syntax.sorts {
