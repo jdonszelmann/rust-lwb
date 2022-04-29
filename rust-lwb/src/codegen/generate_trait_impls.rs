@@ -41,14 +41,16 @@ pub fn generate_trait_impls(syntax: &SyntaxFileAst) -> Result<TokenStream, Codeg
                     match self {
                         #(
                             Self::#constructor_names (meta, ..) => meta
-                        ),*
+                        ),*,
+                        _ => unreachable!()
                     }
                 ),
                 quote!(
                     match self {
                         #(
                             Self::#constructor_names (..) => #constructor_names_str
-                        ),*
+                        ),*,
+                        _ => unreachable!()
                     }
                 ),
             )

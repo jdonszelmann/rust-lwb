@@ -129,7 +129,7 @@ fn generate_unpack(
             let nested = generate_unpack_expression(a, sort, quote!(pair.constructor_value), ckr);
 
             quote!(
-                #constructor(info, #nested)
+                #constructor(info, #nested, NonExhaustive)
             )
         }
         Expression::Sequence(c) => {
@@ -151,12 +151,12 @@ fn generate_unpack(
 
             if expressions.is_empty() {
                 quote!(
-                    #constructor(info)
+                    #constructor(info, NonExhaustive)
                 )
             } else {
                 quote!(
                     if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
-                        #constructor(info, #(#expressions),*)
+                        #constructor(info, #(#expressions),*, NonExhaustive)
                     } else { #unreachable_exp }
                 )
             }
@@ -167,14 +167,14 @@ fn generate_unpack(
             if let Some(expression) =
                 generate_unpack_expression(a, sort, quote!(pair.constructor_value), ckr)
             {
-                quote!(#constructor(info, #expression))
+                quote!(#constructor(info, #expression, NonExhaustive))
             } else {
-                quote!(#constructor(info))
+                quote!(#constructor(info, NonExhaustive))
             }
         }
         Expression::Choice(_) => todo!(),
         Expression::Literal(_) => {
-            quote!(#constructor(info))
+            quote!(#constructor(info, NonExhaustive))
         }
         Expression::Negative(_) => todo!(),
         Expression::Positive(_) => todo!(),

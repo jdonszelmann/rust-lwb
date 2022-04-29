@@ -46,7 +46,12 @@ pub fn generate_structs(
                 items.push(quote!(
                     #(#doc)*
                     #[derive(#(#derives),*)]
-                    pub struct #name<M: AstInfo>(pub M, #(#fields),*);
+                    #[non_exhaustive]
+                    pub struct #name<M: AstInfo>(
+                        pub M,
+                        #(#fields),*,
+                        #[doc(hidden)] pub NonExhaustive
+                    );
                 ));
             }
         } else {
@@ -62,24 +67,34 @@ pub fn generate_structs(
                 if constr.annotations.contains(&SingleString) {
                     variants.push(quote!(
                         #(#doc)*
-                        #name(M, String)
+                        #name(M, String, #[doc(hidden)] NonExhaustive)
                     ));
                 } else {
                     let c = generate_constructor_type(&constr.expression, ckr);
-                    let fields = c.flatten();
+                    let fields = c.flatten().collect_vec();
 
-                    variants.push(quote!(
-                        #(#doc)*
-                        #name(M, #(#fields),*)
-                    ))
+                    if fields.is_empty() {
+                        variants.push(quote!(
+                            #(#doc)*
+                            #name(M, #[doc(hidden)] NonExhaustive)
+                        ))
+                    } else {
+                        variants.push(quote!(
+                            #(#doc)*
+                            #name(M, #(#fields),*, #[doc(hidden)] NonExhaustive)
+                        ))
+                    }
                 };
             }
 
             items.push(quote!(
                 #(#doc)*
                 #[derive(#(#derives),*)]
+                #[non_exhaustive]
                 pub enum #name<M: AstInfo> {
-                    #(#variants),*
+                    #(#variants),*,
+                    #[doc(hidden)]
+                    __NonExhaustive(NonExhaustive),
                 }
             ));
         }

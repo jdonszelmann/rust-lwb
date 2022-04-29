@@ -71,6 +71,11 @@ fn codegen_internal(
     let legacy_ast = convert_syntax_file_ast::convert(ast)?; // TODO make peg parser use new ast
 
     let mut derives = vec!["Debug"];
+        if self.serde {
+            derives.extend(["Serialize", "Deserialize"]);
+        }
+
+        let mut derives = vec!["Debug"];
     if config.syntax.serde {
         derives.extend(["Serialize", "Deserialize"]);
     }
