@@ -1,3 +1,3 @@
 [workspace]
-members = ["rust-lwb", "rust-lwb-bootstrap", "examples/simple-typed-language"]
-default-members = ["rust-lwb", "examples/simple-typed-language"]
+members = ["rust-lwb", "rust-lwb-bootstrap", "rust-lwb-macros", "rust-lwb-tests", "examples/simple-typed-language"]
+default-members = ["rust-lwb", "rust-lwb-tests", "examples/simple-typed-language"]

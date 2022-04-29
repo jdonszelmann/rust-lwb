@@ -1,19 +1,23 @@
-use crate::codegen::generate_headers::write_headers;
+use crate::codegen::generate_file_headers::write_headers;
+use std::io;
 // use crate::codegen::generate_language;
 use crate::codegen::error::CodegenError;
 use crate::codegen::error::CodegenError::NoExtension;
-use crate::codegen::generate_ast::write_ast;
-use crate::codegen::generate_from_pairs::write_from_pairs;
-use crate::codegen::generate_trait_impls::write_trait_impls;
+use crate::codegen::generate_from_pairs::generate_from_pairs;
+use crate::codegen::generate_misc::{generate_parser, generate_root};
+use crate::codegen::generate_structs::generate_structs;
+use crate::codegen::generate_trait_impls::generate_trait_impls;
 use crate::codegen::FormattingFile;
 use crate::language::Language;
 use crate::parser::syntax_file::{convert_syntax_file_ast, SyntaxFile};
 use crate::sources::source_file::SourceFile;
+use proc_macro2::TokenStream;
+use quote::quote;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
 pub struct CodeGenJob {
-    location: PathBuf,
+    source: Result<SourceFile, io::Error>,
     destination: PathBuf,
     import_location: String,
 
@@ -58,7 +62,31 @@ fn refs(inp: &mut (FormattingFile, String)) -> (&mut FormattingFile, &str) {
     (&mut inp.0, &inp.1)
 }
 
+pub(crate) struct Generated {
+    impls: TokenStream,
+    structs: TokenStream,
+    from_pairs: TokenStream,
+    root: TokenStream,
+    parser: TokenStream,
+}
+
 impl CodeGenJob {
+    pub(crate) fn from_str(contents: impl AsRef<str>, p: impl AsRef<Path>) -> CodeGenJob {
+        let mut destination = p.as_ref().to_path_buf();
+        destination.set_extension("rs");
+        let name = destination.file_name().expect("no file name in path");
+        let new_filename = name.to_string_lossy().replace('-', "_");
+        destination.set_file_name(new_filename);
+
+        Self {
+            source: Ok(SourceFile::new(contents, p.as_ref().to_string_lossy())),
+            destination,
+            import_location: "rust_lwb".to_string(),
+            serde: false,
+            write_serialized_ast: true,
+        }
+    }
+
     pub(crate) fn from_path(p: PathBuf) -> CodeGenJob {
         let mut destination = p.clone();
         destination.set_extension("rs");
@@ -67,7 +95,7 @@ impl CodeGenJob {
         destination.set_file_name(new_filename);
 
         Self {
-            location: p,
+            source: SourceFile::open(p),
             destination,
             import_location: "rust_lwb".to_string(),
             serde: false,
@@ -108,16 +136,78 @@ impl CodeGenJob {
         self
     }
 
-    pub(crate) fn codegen(self) -> Result<(), CodegenError> {
-        let sf = SourceFile::open(self.location)?;
-        let ast = SyntaxFile::parse(&sf)?;
+    #[doc(hidden)]
+    pub fn __codegen_tokenstream(self, debug: bool) -> Result<TokenStream, CodegenError> {
+        assert!(
+            self.write_serialized_ast,
+            "can only codegen tokenstream with serialized ast on"
+        );
+
+        let Generated {
+            impls,
+            structs,
+            from_pairs,
+            root,
+            parser,
+        } = self.codegen_internal(&[])?;
+
+        if debug {
+            println!("{}", structs);
+        }
+
+        Ok(quote!(
+            mod ast {
+                #structs
+            }
+            mod from_pairs {
+                #from_pairs
+            }
+            mod ast_impls {
+                #impls
+            }
+            mod parser {
+                #parser
+            }
+
+            pub use ast::*;
+            pub use from_pairs::*;
+            pub use ast_impls::*;
+            pub use parser::*;
+
+            #root
+        ))
+    }
+
+    fn codegen_internal(self, imports: &[&str]) -> Result<Generated, CodegenError> {
+        let ast = SyntaxFile::parse(&self.source?)?;
 
         let serialized_parser = bincode::serialize(&ast)?;
 
         let legacy_ast = convert_syntax_file_ast::convert(ast)?; // TODO make peg parser use new ast
 
-        let [mut modrs, mut rest @ ..] = create_module_files(
-            self.destination,
+        let mut derives = vec!["Debug"];
+        if self.serde {
+            derives.extend(["Serialize", "Deserialize"]);
+        }
+
+        let structs = generate_structs(&legacy_ast, &derives)?;
+        let from_pairs = generate_from_pairs(&legacy_ast)?;
+        let impls = generate_trait_impls(&legacy_ast)?;
+        let root = generate_root(imports, &derives, &self.import_location)?;
+        let parser = generate_parser(&serialized_parser)?;
+
+        Ok(Generated {
+            impls,
+            structs,
+            from_pairs,
+            root,
+            parser,
+        })
+    }
+
+    pub(crate) fn codegen(self) -> Result<(), CodegenError> {
+        let mut files = create_module_files(
+            &self.destination,
             [
                 "mod.rs",
                 "ast.rs",
@@ -127,29 +217,28 @@ impl CodeGenJob {
             ],
         )?;
 
-        write_headers(
-            &mut modrs.0,
-            &mut rest.iter_mut().map(refs).collect::<Vec<_>>(),
-            &self.import_location,
-        )?;
+        write_headers(&mut files.iter_mut().map(refs).collect::<Vec<_>>())?;
 
-        let [ref mut f_ast, ref mut f_from_pairs, ref mut f_ast_trait_impls, ref mut f_serialized_parser] =
-            rest.map(|i| i.0);
+        let [ref mut f_modrs, ref mut f_ast, ref mut f_from_pairs, ref mut f_ast_trait_impls, ref mut f_serialized_parser] =
+            files.map(|i| i.0);
 
-        let mut derives = vec!["Debug"];
-        if self.serde {
-            derives.extend(["Serialize", "Deserialize"]);
-        }
+        let write_serialized_ast = self.write_serialized_ast;
 
-        write_ast(f_ast, &legacy_ast, &derives)?;
-        write_from_pairs(f_from_pairs, &legacy_ast)?;
-        write_trait_impls(f_ast_trait_impls, &legacy_ast)?;
-        if self.write_serialized_ast {
-            write!(
-                f_serialized_parser,
-                r##"pub const PARSER: &[u8] = &{:?};"##,
-                serialized_parser
-            )?;
+        let Generated {
+            impls,
+            structs,
+            from_pairs,
+            root,
+            parser,
+        } = self.codegen_internal(&["ast", "from_pairs", "ast_impls", "parser"])?;
+
+        write!(f_modrs, "{}", root)?;
+        write!(f_ast, "{}", structs)?;
+        write!(f_ast_trait_impls, "{}", impls)?;
+        write!(f_from_pairs, "{}", from_pairs)?;
+
+        if write_serialized_ast {
+            write!(f_serialized_parser, "{}", parser)?;
         }
 
         Ok(())
@@ -191,6 +280,19 @@ impl CodegenManager {
             .expect("must always be a last item since we just pushed something")
     }
 
+    #[doc(hidden)]
+    pub fn __add_syntax_str(
+        &mut self,
+        contents: impl AsRef<str>,
+        path: impl AsRef<Path>,
+    ) -> &mut CodeGenJob {
+        self.jobs.push(CodeGenJob::from_str(contents, path));
+
+        self.jobs
+            .last_mut()
+            .expect("must always be a last item since we just pushed something")
+    }
+
     /// Execute all code generation jobs.
     pub fn codegen(self) -> Result<(), CodegenError> {
         for job in self.jobs {
@@ -198,6 +300,19 @@ impl CodegenManager {
         }
 
         Ok(())
+    }
+
+    #[doc(hidden)]
+    pub fn __codegen_tokenstream(self, debug: bool) -> Result<TokenStream, CodegenError> {
+        let gens = self
+            .jobs
+            .into_iter()
+            .map(|i| i.__codegen_tokenstream(debug))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(quote!(
+            #(#gens)*
+        ))
     }
 }
 

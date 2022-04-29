@@ -6,9 +6,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 mod error;
-pub mod generate_ast;
+mod generate_file_headers;
 mod generate_from_pairs;
-mod generate_headers;
+mod generate_misc;
+mod generate_structs;
 mod generate_trait_impls;
 pub mod manager;
 

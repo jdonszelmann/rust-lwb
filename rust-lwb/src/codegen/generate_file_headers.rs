@@ -22,11 +22,7 @@ fn write_header(file: &mut FormattingFile, _codegen_stamp: &str) -> Result<(), C
     Ok(())
 }
 
-pub fn write_headers(
-    modrs: &mut FormattingFile,
-    files: &mut [(&mut FormattingFile, &str)],
-    prelude_import_location: &str,
-) -> Result<(), CodegenError> {
+pub fn write_headers(files: &mut [(&mut FormattingFile, &str)]) -> Result<(), CodegenError> {
     let now: DateTime<Local> = Local::now();
     let now_utc: DateTime<Utc> = Utc::now();
     let codegen_stamp = format!(
@@ -38,29 +34,6 @@ pub fn write_headers(
     for (file, _) in files.iter_mut() {
         write_header(file, &codegen_stamp)?;
     }
-
-    write_header(modrs, &codegen_stamp)?;
-
-    for (_, name) in files.iter_mut() {
-        write!(
-            modrs,
-            "
-#[rustfmt::skip]
-mod {name};
-pub use {name}::*;
-"
-        )?;
-    }
-
-    write!(
-        modrs,
-        "
-#[rustfmt::skip]
-mod prelude {{
-    pub use {prelude_import_location}::codegen_prelude::*;
-    pub use super::*;
-}}"
-    )?;
 
     Ok(())
 }

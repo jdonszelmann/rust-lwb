@@ -1,11 +1,10 @@
 use crate::codegen::error::CodegenError;
-use crate::codegen::{sanitize_identifier, FormattingFile};
+use crate::codegen::sanitize_identifier;
 use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
 use crate::parser::peg::parser_sugar_ast::{Expression, SyntaxFileAst};
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use std::io::Write;
 
 fn generate_unpack_expression(
     expression: &Expression,
@@ -186,10 +185,7 @@ pub fn flatten_sequences(syntax: Expression) -> Expression {
     }
 }
 
-pub fn write_from_pairs(
-    file: &mut FormattingFile,
-    syntax: &SyntaxFileAst,
-) -> Result<(), CodegenError> {
+pub fn generate_from_pairs(syntax: &SyntaxFileAst) -> Result<TokenStream, CodegenError> {
     let mut impls = Vec::new();
 
     for sort in &syntax.sorts {
@@ -251,17 +247,11 @@ pub fn write_from_pairs(
         ));
     }
 
-    write!(
-        file,
-        "{}",
-        quote!(
-            use super::prelude::*;
+    Ok(quote!(
+        use super::prelude::*;
 
-            #(#impls)*
-        )
-    )?;
-
-    Ok(())
+        #(#impls)*
+    ))
 }
 
 #[cfg(test)]
