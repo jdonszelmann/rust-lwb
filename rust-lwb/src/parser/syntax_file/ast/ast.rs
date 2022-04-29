@@ -141,13 +141,13 @@ pub enum EscapeClosingBracket<M: AstInfo> {
     Unescaped(M, String),
 }
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Newline<M: AstInfo> {
-    Unix(M),
-    Windows(M),
-}
-#[derive(Debug, Serialize, Deserialize)]
 pub enum Layout<M: AstInfo> {
     Simple(M, String),
     Comment(M, Vec<String>),
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Newline<M: AstInfo> {
+    Unix(M),
+    Windows(M),
 }
 pub type AST_ROOT<M> = Program<M>;

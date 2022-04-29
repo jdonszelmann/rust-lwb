@@ -656,17 +656,6 @@ impl<M: AstInfo> FromPairs<M> for EscapeClosingBracket<M> {
         }
     }
 }
-impl<M: AstInfo> FromPairs<M> for Newline<M> {
-    fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "newline");
-        let info = generator.generate(&pair);
-        match pair.constructor_name {
-            "unix" => Self::Unix(info),
-            "windows" => Self::Windows(info),
-            a => unreachable!("{}", a),
-        }
-    }
-}
 impl<M: AstInfo> FromPairs<M> for Layout<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
         assert_eq!(pair.sort, "layout");
@@ -699,6 +688,17 @@ impl<M: AstInfo> FromPairs<M> for Layout<M> {
                     );
                 }
             }
+            a => unreachable!("{}", a),
+        }
+    }
+}
+impl<M: AstInfo> FromPairs<M> for Newline<M> {
+    fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
+        assert_eq!(pair.sort, "newline");
+        let info = generator.generate(&pair);
+        match pair.constructor_name {
+            "unix" => Self::Unix(info),
+            "windows" => Self::Windows(info),
             a => unreachable!("{}", a),
         }
     }

@@ -1,0 +1,7 @@
+[syntax]
+definition = "src/stl.syntax"
+destination = "src/stl"
+
+[language]
+name = "simple typed language"
+extensions = ["stl"]
