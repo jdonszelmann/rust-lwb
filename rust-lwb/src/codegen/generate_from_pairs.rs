@@ -1,3 +1,4 @@
+use crate::codegen::check_recursive::{BreadthFirstAstIterator, RecursionChecker};
 use crate::codegen::error::CodegenError;
 use crate::codegen::sanitize_identifier;
 use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
@@ -10,16 +11,24 @@ fn generate_unpack_expression(
     expression: &Expression,
     sort: &str,
     src: TokenStream,
+    ckr: &RecursionChecker,
 ) -> Option<TokenStream> {
     let unreachable_exp = quote!(unreachable!("expected different parse pair expression in pair to ast conversion of {}", #sort););
 
     Some(match expression {
         Expression::Sort(name) => {
-            let name = format_ident!("{}", sanitize_identifier(name));
+            let iname = format_ident!("{}", sanitize_identifier(name));
+
+            let inner = ckr.maybe_box(
+                name,
+                quote!(
+                    #iname::from_pairs(s, generator)
+                ),
+            );
 
             quote!(
                 if let ParsePairExpression::Sort(_, ref s) = #src {
-                    Box::new(#name::from_pairs(s, generator))
+                    #inner
                 } else { #unreachable_exp }
             )
         }
@@ -31,7 +40,7 @@ fn generate_unpack_expression(
             )
         }
         Expression::Repeat { min, max, e } | Expression::Delimited { min, max, e, .. } => {
-            if let Some(ue) = generate_unpack_expression(e, sort, quote!(x)) {
+            if let Some(ue) = generate_unpack_expression(e, sort, quote!(x), ckr) {
                 match (min, max) {
                     (0, Some(1)) => quote!(
                         if let ParsePairExpression::List(_, ref l) = #src {
@@ -72,7 +81,7 @@ fn generate_unpack_expression(
                     _ => {}
                 }
 
-                if let Some(line) = generate_unpack_expression(i, sort, quote!(p[#index])) {
+                if let Some(line) = generate_unpack_expression(i, sort, quote!(p[#index]), ckr) {
                     expressions.push(line)
                 }
             }
@@ -105,6 +114,7 @@ fn generate_unpack(
     constructor: TokenStream,
     expression: &Expression,
     no_layout: bool,
+    ckr: &RecursionChecker,
 ) -> TokenStream {
     if no_layout {
         return quote!(
@@ -116,7 +126,7 @@ fn generate_unpack(
 
     match expression {
         a @ Expression::Sort(_) => {
-            let nested = generate_unpack_expression(a, sort, quote!(pair.constructor_value));
+            let nested = generate_unpack_expression(a, sort, quote!(pair.constructor_value), ckr);
 
             quote!(
                 #constructor(info, #nested)
@@ -134,7 +144,7 @@ fn generate_unpack(
                     _ => {}
                 }
 
-                if let Some(line) = generate_unpack_expression(i, sort, quote!(l[#index])) {
+                if let Some(line) = generate_unpack_expression(i, sort, quote!(l[#index]), ckr) {
                     expressions.push(line)
                 }
             }
@@ -155,7 +165,7 @@ fn generate_unpack(
         | a @ Expression::Delimited { .. }
         | a @ Expression::CharacterClass(_) => {
             if let Some(expression) =
-                generate_unpack_expression(a, sort, quote!(pair.constructor_value))
+                generate_unpack_expression(a, sort, quote!(pair.constructor_value), ckr)
             {
                 quote!(#constructor(info, #expression))
             } else {
@@ -188,7 +198,10 @@ pub fn flatten_sequences(syntax: Expression) -> Expression {
 pub fn generate_from_pairs(syntax: &SyntaxFileAst) -> Result<TokenStream, CodegenError> {
     let mut impls = Vec::new();
 
-    for sort in &syntax.sorts {
+    let arena = Default::default();
+    let sorts_iterator = BreadthFirstAstIterator::new(syntax, &arena);
+
+    for (sort, ckr) in sorts_iterator {
         let sortname = format_ident!("{}", sanitize_identifier(&sort.name));
         let sortname_str = &sort.name;
 
@@ -200,6 +213,7 @@ pub fn generate_from_pairs(syntax: &SyntaxFileAst) -> Result<TokenStream, Codege
                 quote!(Self),
                 &flatten_sequences(constr.expression.clone()),
                 constr.annotations.contains(&SingleString),
+                ckr,
             )
         } else {
             let constructor_names_str = sort
@@ -221,6 +235,7 @@ pub fn generate_from_pairs(syntax: &SyntaxFileAst) -> Result<TokenStream, Codege
                         ),
                         &flatten_sequences(constr.expression.clone()),
                         constr.annotations.contains(&SingleString),
+                        ckr,
                     )
                 })
                 .collect_vec();

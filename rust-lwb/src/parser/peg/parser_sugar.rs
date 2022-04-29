@@ -23,18 +23,14 @@ pub fn parse_file<'src>(
     let (res, errs) = parser_core_file::parse_file(&core_ast, file);
 
     //Resugar
-    let starting_sort = ast
-        .sorts
-        .iter()
-        .find(|s| s.name == ast.starting_sort)
-        .unwrap();
+    let starting_sort = ast.sorts.get(&ast.starting_sort).unwrap();
     (resugar_sort(ast, starting_sort, res), errs)
 }
 
 fn desugar_ast(ast: &SyntaxFileAst) -> CoreAst {
     let mut sorts = HashMap::new();
     //Insert all sorts
-    ast.sorts.iter().for_each(|s| {
+    ast.sorts.values().for_each(|s| {
         sorts.insert(&s.name[..], desugar_sort(s));
     });
     //If there is no layout sort, insert one
@@ -174,11 +170,7 @@ fn resugar_expr<'src>(
     match (sort, pair) {
         (Expression::Sort(name), ParsePairRaw::Name(span, val)) => ParsePairExpression::Sort(
             span,
-            Box::new(resugar_sort(
-                ast,
-                ast.sorts.iter().find(|s| s.name == *name).unwrap(),
-                *val,
-            )),
+            Box::new(resugar_sort(ast, ast.sorts.get(name).unwrap(), *val)),
         ),
         (Expression::Sequence(exprs), ParsePairRaw::List(span, vals)) => ParsePairExpression::List(
             span,

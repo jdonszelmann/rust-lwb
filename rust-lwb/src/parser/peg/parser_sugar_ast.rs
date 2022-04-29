@@ -2,6 +2,7 @@ use crate::sources::character_class::CharacterClass;
 use derive_more::Display;
 use enum_iterator::IntoEnumIterator;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -75,6 +76,6 @@ pub struct Sort {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SyntaxFileAst {
-    pub sorts: Vec<Sort>,
+    pub sorts: HashMap<String, Sort>,
     pub starting_sort: String,
 }

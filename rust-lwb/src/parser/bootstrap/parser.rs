@@ -6,6 +6,7 @@ use crate::sources::character_class::CharacterClass;
 use crate::sources::source_file::{SourceFile, SourceFileIterator};
 use enum_iterator::IntoEnumIterator;
 use lazy_static::lazy_static;
+use std::collections::HashMap;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -55,13 +56,15 @@ pub enum SortOrMeta {
 }
 
 fn parse_file(i: &mut SourceFileIterator) -> ParseResult<SyntaxFileAst> {
-    let mut sorts = Vec::new();
+    let mut sorts = HashMap::new();
     let mut layout = CharacterClass::Nothing;
     let mut starting_rule = None;
 
     while i.peek().is_some() {
         match parse_sort_or_meta(i)? {
-            Some(SortOrMeta::Sort(c)) => sorts.push(c),
+            Some(SortOrMeta::Sort(c)) => {
+                sorts.insert(c.name.clone(), c);
+            }
             Some(SortOrMeta::StartRule(_)) if starting_rule.is_some() => {
                 return Err(DuplicateStartingRule);
             }
