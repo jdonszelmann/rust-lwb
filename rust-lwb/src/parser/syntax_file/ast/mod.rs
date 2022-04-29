@@ -7,25 +7,5 @@
 // |      CHANGES TO IT WILL BE DELETED WHEN REGENERATED.     |
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
-
-#[rustfmt::skip]
-mod ast;
-pub use ast::*;
-
-#[rustfmt::skip]
-mod from_pairs;
-pub use from_pairs::*;
-
-#[rustfmt::skip]
-mod ast_impls;
-pub use ast_impls::*;
-
-#[rustfmt::skip]
-mod parser;
-pub use parser::*;
-
-#[rustfmt::skip]
-mod prelude {
-    pub use crate::codegen_prelude::*;
-    pub use super::*;
-}
+# [rustfmt :: skip] mod ast ;pub use ast::*;# [rustfmt :: skip] mod from_pairs ;pub use from_pairs::*;# [rustfmt :: skip] mod ast_impls ;pub use ast_impls::*;# [rustfmt :: skip] mod parser ;pub use parser::*;
+# [rustfmt :: skip] mod prelude { pub use crate :: codegen_prelude :: * ; pub use super :: * ; # [doc = r" This type is public, but in a private module. That means nothing can ever construct"] # [doc = r" this value except from within this module. This ensures that AST types can only be"] # [doc = r" constructed by the parser, and that matches on types containing this must be"] # [doc = r" non-exhaustive. Rust does have the #[non_exhaustive] attribute, but it only works"] # [doc = r" between crate boundaries, not within the same crate which is what this enforces."] # [derive (Copy , Clone , PartialEq , Debug , Serialize , Deserialize)] pub struct NonExhaustive ; }
