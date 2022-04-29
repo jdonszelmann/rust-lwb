@@ -5,6 +5,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+mod check_recursive;
 mod error;
 mod generate_file_headers;
 mod generate_from_pairs;

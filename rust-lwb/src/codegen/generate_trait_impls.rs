@@ -8,7 +8,7 @@ use quote::{format_ident, quote};
 pub fn generate_trait_impls(syntax: &SyntaxFileAst) -> Result<TokenStream, CodegenError> {
     let mut impls = Vec::new();
 
-    for sort in &syntax.sorts {
+    for sort in syntax.sorts.values() {
         let sortname = format_ident!("{}", sanitize_identifier(&sort.name));
         let sortname_str = &sort.name;
 

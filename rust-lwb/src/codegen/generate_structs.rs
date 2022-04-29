@@ -1,3 +1,4 @@
+use crate::codegen::check_recursive::{BreadthFirstAstIterator, RecursionChecker};
 use crate::codegen::error::CodegenError;
 use crate::codegen::sanitize_identifier;
 use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
@@ -22,7 +23,10 @@ pub fn generate_structs(
 
     let derives = derives.iter().map(|i| format_ident!("{}", i)).collect_vec();
 
-    for rule in &syntax.sorts {
+    let arena = Default::default();
+    let sorts_iterator = BreadthFirstAstIterator::new(syntax, &arena);
+
+    for (rule, ckr) in sorts_iterator {
         if rule.constructors.len() == 1 {
             let name = format_ident!("{}", sanitize_identifier(&rule.name));
 
@@ -36,7 +40,7 @@ pub fn generate_structs(
                     pub struct #name<M: AstInfo>(pub M, pub String);
                 ));
             } else {
-                let c = generate_constructor_type(&constr.expression);
+                let c = generate_constructor_type(&constr.expression, ckr);
                 let fields = c.flatten().map(|i| quote!(pub #i)).collect_vec();
 
                 items.push(quote!(
@@ -61,7 +65,7 @@ pub fn generate_structs(
                         #name(M, String)
                     ));
                 } else {
-                    let c = generate_constructor_type(&constr.expression);
+                    let c = generate_constructor_type(&constr.expression, ckr);
                     let fields = c.flatten();
 
                     variants.push(quote!(
@@ -128,18 +132,24 @@ impl<'a, T> Iterator for TreeIterator<'a, T> {
     }
 }
 
-fn generate_constructor_type(constructor: &Expression) -> Tree<TokenStream> {
+fn generate_constructor_type(
+    constructor: &Expression,
+    ckr: &RecursionChecker,
+) -> Tree<TokenStream> {
     match constructor {
         Expression::Sort(sort) => {
             let name = format_ident!("{}", sanitize_identifier(sort));
-            Tree::Leaf(quote!(
-                Box<#name<M>>
+            Tree::Leaf(ckr.maybe_box_type(
+                sort,
+                quote!(
+                    #name<M>
+                ),
             ))
         }
         Expression::Sequence(cons) => {
             let mut parts: Vec<Tree<_>> = cons
                 .iter()
-                .filter_map(|con| match generate_constructor_type(con) {
+                .filter_map(|con| match generate_constructor_type(con, ckr) {
                     Tree::Empty => None,
                     x => Some(x),
                 })
@@ -154,7 +164,7 @@ fn generate_constructor_type(constructor: &Expression) -> Tree<TokenStream> {
             }
         }
         Expression::Repeat { e, min, max } | Expression::Delimited { e, min, max, .. } => {
-            let subtype = generate_constructor_type(e.as_ref());
+            let subtype = generate_constructor_type(e.as_ref(), ckr);
             let flattened_subtype = subtype.flatten().collect_vec();
 
             match (min, max) {

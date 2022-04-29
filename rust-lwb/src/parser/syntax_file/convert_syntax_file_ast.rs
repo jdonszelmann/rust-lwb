@@ -7,6 +7,7 @@ use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError::{
 };
 use crate::parser::syntax_file::AST::{DelimitedBound, StringChar};
 use crate::sources::character_class::CharacterClass;
+use std::collections::HashMap;
 use std::num::ParseIntError;
 use std::str::FromStr;
 use thiserror::Error;
@@ -30,7 +31,7 @@ pub type ConversionResult<T> = Result<T, AstConversionError>;
 
 pub fn convert<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionResult<SyntaxFileAst> {
     let ast::Program(_, sort_or_metas) = inp;
-    let mut sorts = Vec::new();
+    let mut sorts = HashMap::new();
     let mut start = None;
 
     for i in sort_or_metas {
@@ -42,7 +43,10 @@ pub fn convert<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionResult<SyntaxFile
                     start = Some(convert_identifier(*m.1))
                 }
             }
-            SortOrMeta::Sort(_, sort) => sorts.push(convert_sort(*sort)?),
+            SortOrMeta::Sort(_, sort) => {
+                let converted = convert_sort(*sort)?;
+                sorts.insert(converted.name.clone(), converted);
+            }
         }
     }
 
