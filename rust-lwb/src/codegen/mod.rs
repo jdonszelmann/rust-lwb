@@ -32,6 +32,7 @@ impl FormattingFile {
 }
 
 fn try_fmt(p: impl AsRef<Path>) -> io::Result<()> {
+    println!("Formatting {:?}", p.as_ref());
     Command::new("rustfmt").arg(p.as_ref()).spawn()?.wait()?;
 
     Ok(())

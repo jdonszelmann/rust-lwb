@@ -46,12 +46,10 @@ pub fn generate_root(
 
     Ok(quote!(
         #(
-            #[rustfmt::skip]
             mod #names;
             pub use #names::*;
         )*
 
-        #[rustfmt::skip]
         mod prelude {
             pub use #prelude_import_location::codegen_prelude::*;
             pub use super::*;
