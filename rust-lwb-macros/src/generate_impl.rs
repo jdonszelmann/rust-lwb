@@ -9,6 +9,7 @@ use syn::{parse_macro_input, LitBool, LitStr, Token};
 struct MacroInput {
     grammar: LitStr,
     non_exhaustive: LitBool,
+    serde: LitBool,
 }
 
 impl Parse for MacroInput {
@@ -16,10 +17,13 @@ impl Parse for MacroInput {
         let grammar = input.parse()?;
         input.parse::<Token![,]>()?;
         let non_exhaustive = input.parse()?;
+        input.parse::<Token![,]>()?;
+        let serde = input.parse()?;
 
         Ok(Self {
             grammar,
             non_exhaustive,
+            serde,
         })
     }
 }
@@ -33,7 +37,7 @@ pub fn generate(input: TokenStream) -> TokenStream {
             destination: "".to_string(),
             definition: "".to_string(),
             non_exhaustive: i.non_exhaustive.value,
-            serde: false,
+            serde: i.serde.value,
             import_location: "rust_lwb".to_string(),
             write_serialized_ast: true,
         },

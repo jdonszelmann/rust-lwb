@@ -1,5 +1,6 @@
 use crate::codegen::check_recursive::{BreadthFirstAstIterator, RecursionChecker};
 use crate::codegen::error::CodegenError;
+use crate::codegen::generate_misc::generate_serde_attrs;
 use crate::codegen::sanitize_identifier;
 use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
 use crate::parser::peg::parser_sugar_ast::{Expression, SyntaxFileAst};
@@ -21,6 +22,8 @@ pub fn generate_structs(
     non_exhaustive: bool,
 ) -> Result<TokenStream, CodegenError> {
     let mut items = Vec::new();
+
+    let serde_attrs = generate_serde_attrs(derives);
 
     let (
         non_exhaustive_struct_field,
@@ -62,6 +65,7 @@ pub fn generate_structs(
                 items.push(quote!(
                     #(#doc)*
                     #[derive(#(#derives),*)]
+                    #serde_attrs
                     pub struct #name<M: AstInfo>(pub M, pub String);
                 ));
             } else {
@@ -72,6 +76,7 @@ pub fn generate_structs(
                     #(#doc)*
                     #[derive(#(#derives),*)]
                     #non_exhaustive_attr
+                    #serde_attrs
                     pub struct #name<M: AstInfo>(
                         pub M,
                         #(#fields),*
@@ -116,6 +121,7 @@ pub fn generate_structs(
                 #(#doc)*
                 #[derive(#(#derives),*)]
                 #non_exhaustive_attr
+                #serde_attrs
                 pub enum #name<M: AstInfo> {
                     #(#variants),*
                     #non_exhaustive_enum_variant

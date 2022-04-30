@@ -49,6 +49,7 @@ mod tests {
         (
             name: $name: ident $(,)?
             non_exhaustive: $non_exhaustive: literal $(,)?
+            serde: $serde: literal $(,)?
             grammar: $grammar: literal $(,)?
             $(should parse: [$($should_parse: tt)*])? $(,)?
             $(should not parse: [$($should_not_parse: tt)*])? $(,)?
@@ -62,7 +63,7 @@ mod tests {
                 mod lang {
                     use rust_lwb_macros::generate;
 
-                    generate!($grammar, $non_exhaustive);
+                    generate!($grammar, $non_exhaustive, $serde);
                 }
 
                 pub use lang::*;
@@ -86,6 +87,7 @@ mod tests {
     test!(
         name: simple_grammar,
         non_exhaustive: false,
+        serde: false,
         grammar: r#"
 As:
     More = "a" As;
@@ -104,8 +106,51 @@ start at As;
     );
 
     test!(
+        name: serde,
+        non_exhaustive: false,
+        serde: true,
+        grammar: r#"
+As:
+    More = "a" As;
+    NoMore = "";
+start at As;
+        "#,
+        should parse: [
+            "aaa",
+            "" to As::NoMore(_),
+            "a" to As::More(_, box As::NoMore(..)),
+        ]
+        should not parse: [
+            "b",
+            "bb",
+        ]
+    );
+
+    test!(
         name: non_exhaustive,
         non_exhaustive: true,
+        serde: false,
+        grammar: r#"
+As:
+    More = "a" As;
+    NoMore = "";
+start at As;
+        "#,
+        should parse: [
+            "aaa",
+            "" to As::NoMore(..),
+            "a" to As::More(_, box As::NoMore(..), ..),
+        ]
+        should not parse: [
+            "b",
+            "bb",
+        ]
+    );
+
+    test!(
+        name: non_exhaustive_serde,
+        non_exhaustive: true,
+        serde: true,
         grammar: r#"
 As:
     More = "a" As;
