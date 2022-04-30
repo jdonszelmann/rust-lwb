@@ -2,6 +2,7 @@ use crate::codegen_prelude::{GenerateAstInfo, ParsePairSort};
 use crate::parser::ast::from_pairs::FromPairs;
 use crate::sources::span::Span;
 use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 
 pub mod from_pairs;
 pub mod generate_ast;
@@ -19,7 +20,7 @@ impl NodeId {
     }
 }
 
-pub trait AstInfo {
+pub trait AstInfo: Debug {
     fn node_id(&self) -> NodeId;
 }
 

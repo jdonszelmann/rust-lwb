@@ -49,10 +49,14 @@ expression:
     /// Equivalent to `<expression> {0,1}`
     maybe = expression "?";
 
-    /// Exact repetition. You can give a lower bound, and optionally an upper bound
-    /// of how many repetitions are allowed. If the upper bound is left out, an infinite
-    /// number of repetitions is allowed.
-    repeat-exact = expression "{" number "," number? "}";
+    /// Exact repetition. The expression is repeated an exact number of times. Equivalent
+    /// to ranged repetition with an equal lower and upper bound.
+    repeat-exact = expression "{" number "}";
+    /// Ranged repetition. The expression may be repeated any number of times, within the range.
+    /// Both bounds are inclusive.
+    repeat-range = expression "{" number "," number "}";
+    /// Ranged repetition, without upper bound (or an infinite maximum)
+    repeat-lower = expression "{" number "," "inf" "}";
 
     /// Matches a piece of text exactly. Layout is parsed within a literal.
     literal = "\"" string-char* "\""; {no-layout}

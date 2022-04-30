@@ -1,5 +1,6 @@
 use crate::codegen::check_recursive::{BreadthFirstAstIterator, RecursionChecker};
 use crate::codegen::error::CodegenError;
+use crate::codegen::generate_misc::generate_serde_attrs;
 use crate::codegen::sanitize_identifier;
 use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
 use crate::parser::peg::parser_sugar_ast::{Expression, SyntaxFileAst};
@@ -18,8 +19,35 @@ pub fn convert_docs(docs: Option<&String>) -> Vec<TokenStream> {
 pub fn generate_structs(
     syntax: &SyntaxFileAst,
     derives: &[&str],
+    non_exhaustive: bool,
 ) -> Result<TokenStream, CodegenError> {
     let mut items = Vec::new();
+
+    let serde_attrs = generate_serde_attrs(derives);
+
+    let (
+        non_exhaustive_struct_field,
+        non_exhaustive_enum_field,
+        non_exhaustive_attr,
+        non_exhaustive_enum_variant,
+    ) = if non_exhaustive {
+        (
+            quote!(, #[doc(hidden)] pub NonExhaustive),
+            quote!(, #[doc(hidden)] NonExhaustive),
+            quote!(#[non_exhaustive]),
+            quote!(,
+                #[doc(hidden)]
+                __NonExhaustive(NonExhaustive),
+            ),
+        )
+    } else {
+        (
+            TokenStream::new(),
+            TokenStream::new(),
+            TokenStream::new(),
+            TokenStream::new(),
+        )
+    };
 
     let derives = derives.iter().map(|i| format_ident!("{}", i)).collect_vec();
 
@@ -37,6 +65,7 @@ pub fn generate_structs(
                 items.push(quote!(
                     #(#doc)*
                     #[derive(#(#derives),*)]
+                    #serde_attrs
                     pub struct #name<M: AstInfo>(pub M, pub String);
                 ));
             } else {
@@ -46,7 +75,13 @@ pub fn generate_structs(
                 items.push(quote!(
                     #(#doc)*
                     #[derive(#(#derives),*)]
-                    pub struct #name<M: AstInfo>(pub M, #(#fields),*);
+                    #non_exhaustive_attr
+                    #serde_attrs
+                    pub struct #name<M: AstInfo>(
+                        pub M,
+                        #(#fields),*
+                        #non_exhaustive_struct_field
+                    );
                 ));
             }
         } else {
@@ -62,24 +97,34 @@ pub fn generate_structs(
                 if constr.annotations.contains(&SingleString) {
                     variants.push(quote!(
                         #(#doc)*
-                        #name(M, String)
+                        #name(M, String #non_exhaustive_enum_field)
                     ));
                 } else {
                     let c = generate_constructor_type(&constr.expression, ckr);
-                    let fields = c.flatten();
+                    let fields = c.flatten().collect_vec();
 
-                    variants.push(quote!(
-                        #(#doc)*
-                        #name(M, #(#fields),*)
-                    ))
+                    if fields.is_empty() {
+                        variants.push(quote!(
+                            #(#doc)*
+                            #name(M #non_exhaustive_enum_field)
+                        ))
+                    } else {
+                        variants.push(quote!(
+                            #(#doc)*
+                            #name(M, #(#fields),* #non_exhaustive_enum_field)
+                        ))
+                    }
                 };
             }
 
             items.push(quote!(
                 #(#doc)*
                 #[derive(#(#derives),*)]
+                #non_exhaustive_attr
+                #serde_attrs
                 pub enum #name<M: AstInfo> {
                     #(#variants),*
+                    #non_exhaustive_enum_variant
                 }
             ));
         }

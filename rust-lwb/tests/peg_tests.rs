@@ -251,3 +251,54 @@ passing tests:
 failing tests:
     "{x/*comment*/;x;}"
 }
+
+peg_test! {
+name: exact_repetition,
+syntax: r#"
+S = "a"{3};
+start at S;
+"#,
+passing tests:
+    "aaa"
+failing tests:
+    "aa"
+    "aaaa"
+    ""
+}
+
+peg_test! {
+name: ranged_repetition,
+syntax: r#"
+S = "a"{3, 5};
+start at S;
+"#,
+passing tests:
+    "aaa"
+    "aaaa"
+    "aaaaa"
+failing tests:
+    "aa"
+    "aaaaaa"
+    ""
+}
+
+peg_test! {
+name: unbounded_repetition,
+syntax: r#"
+S = "a"{3, inf};
+start at S;
+"#,
+passing tests:
+    "aaa"
+    "aaaa"
+    "aaaaa"
+    "aaaaaa"
+    "aaaaaaa"
+    "aaaaaaaa"
+    "aaaaaaaaa"
+    "aaaaaaaaaa"
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+failing tests:
+    "aa"
+    ""
+}

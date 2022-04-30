@@ -48,10 +48,12 @@ mod tests {
     macro_rules! test {
         (
             name: $name: ident $(,)?
+            non_exhaustive: $non_exhaustive: literal $(,)?
+            serde: $serde: literal $(,)?
             grammar: $grammar: literal $(,)?
-
             $(should parse: [$($should_parse: tt)*])? $(,)?
             $(should not parse: [$($should_not_parse: tt)*])? $(,)?
+            $(attrs: $($attrs:tt)*)? $(,)?
         ) => {
             mod $name {
                 use rust_lwb::language;
@@ -61,7 +63,7 @@ mod tests {
                 mod lang {
                     use rust_lwb_macros::generate;
 
-                    generate!($grammar);
+                    generate!($grammar, $non_exhaustive, $serde);
                 }
 
                 pub use lang::*;
@@ -69,6 +71,7 @@ mod tests {
                 language!(LangImpl at mod lang);
 
                 #[test]
+                $($attrs)*
                 fn $name() {
                     $(
                         should_parse_tests!($($should_parse)*);
@@ -83,6 +86,8 @@ mod tests {
 
     test!(
         name: simple_grammar,
+        non_exhaustive: false,
+        serde: false,
         grammar: r#"
 As:
     More = "a" As;
@@ -93,6 +98,69 @@ start at As;
             "aaa",
             "" to As::NoMore(..),
             "a" to As::More(_, box As::NoMore(..)),
+        ]
+        should not parse: [
+            "b",
+            "bb",
+        ]
+    );
+
+    test!(
+        name: serde,
+        non_exhaustive: false,
+        serde: true,
+        grammar: r#"
+As:
+    More = "a" As;
+    NoMore = "";
+start at As;
+        "#,
+        should parse: [
+            "aaa",
+            "" to As::NoMore(_),
+            "a" to As::More(_, box As::NoMore(..)),
+        ]
+        should not parse: [
+            "b",
+            "bb",
+        ]
+    );
+
+    test!(
+        name: non_exhaustive,
+        non_exhaustive: true,
+        serde: false,
+        grammar: r#"
+As:
+    More = "a" As;
+    NoMore = "";
+start at As;
+        "#,
+        should parse: [
+            "aaa",
+            "" to As::NoMore(..),
+            "a" to As::More(_, box As::NoMore(..), ..),
+        ]
+        should not parse: [
+            "b",
+            "bb",
+        ]
+    );
+
+    test!(
+        name: non_exhaustive_serde,
+        non_exhaustive: true,
+        serde: true,
+        grammar: r#"
+As:
+    More = "a" As;
+    NoMore = "";
+start at As;
+        "#,
+        should parse: [
+            "aaa",
+            "" to As::NoMore(..),
+            "a" to As::More(_, box As::NoMore(..), ..),
         ]
         should not parse: [
             "b",

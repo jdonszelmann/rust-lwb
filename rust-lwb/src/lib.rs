@@ -34,4 +34,7 @@ pub mod codegen_prelude;
 /// Utilities to typecheck an abstract syntax tree.
 pub mod typechecker;
 
+/// Code related to configuring rust-lwb
+pub mod config;
+
 mod error;
