@@ -300,8 +300,52 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
                         },
-                        if let ParsePairExpression::List(_, ref l) = l[4usize] {
-                            l . first () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { Number :: from_pairs (s , generator) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression") ; })
+                    )
+                } else {
+                    unreachable!(
+                        "expected different parse pair expression in pair to ast conversion of {}",
+                        "expression"
+                    );
+                }
+            }
+            "repeat-range" => {
+                if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
+                    Self::RepeatRange(
+                        info,
+                        if let ParsePairExpression::Sort(_, ref s) = l[0usize] {
+                            Box::new(Expression::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[2usize] {
+                            Number::from_pairs(s, generator)
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[4usize] {
+                            Number::from_pairs(s, generator)
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                    )
+                } else {
+                    unreachable!(
+                        "expected different parse pair expression in pair to ast conversion of {}",
+                        "expression"
+                    );
+                }
+            }
+            "repeat-lower" => {
+                if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
+                    Self::RepeatLower(
+                        info,
+                        if let ParsePairExpression::Sort(_, ref s) = l[0usize] {
+                            Box::new(Expression::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[2usize] {
+                            Number::from_pairs(s, generator)
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
                         },

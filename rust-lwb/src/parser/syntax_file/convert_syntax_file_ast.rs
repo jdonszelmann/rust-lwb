@@ -188,10 +188,23 @@ fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<E
             min: 0,
             max: Some(1),
         },
-        ast::Expression::RepeatExact(_, exp, min, max) => Expression::Repeat {
+        ast::Expression::RepeatExact(_, exp, num) => {
+            let converted_num = convert_number(num)?;
+            Expression::Repeat {
+                e: Box::new(convert_expression(*exp)?),
+                min: converted_num,
+                max: Some(converted_num),
+            }
+        }
+        ast::Expression::RepeatRange(_, exp, min, max) => Expression::Repeat {
             e: Box::new(convert_expression(*exp)?),
             min: convert_number(min)?,
-            max: max.map(|i| convert_number(i)).transpose()?,
+            max: Some(convert_number(max)?),
+        },
+        ast::Expression::RepeatLower(_, exp, num) => Expression::Repeat {
+            e: Box::new(convert_expression(*exp)?),
+            min: convert_number(num)?,
+            max: None,
         },
         ast::Expression::Literal(_, l) | ast::Expression::SingleQuoteLiteral(_, l) => {
             Expression::Literal(l.into_iter().map(|i| convert_string_char(i)).collect())
