@@ -3,17 +3,36 @@ use quote::quote;
 use rust_lwb::codegen::manager::__codegen_tokenstream;
 use rust_lwb::config::{Config, LanguageConfig, SyntaxConfig};
 use rust_lwb::sources::source_file::SourceFile;
-use syn::{parse_macro_input, LitStr};
+use syn::parse::{Parse, ParseStream};
+use syn::{parse_macro_input, LitBool, LitStr, Token};
+
+struct MacroInput {
+    grammar: LitStr,
+    non_exhaustive: LitBool,
+}
+
+impl Parse for MacroInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let grammar = input.parse()?;
+        input.parse::<Token![,]>()?;
+        let non_exhaustive = input.parse()?;
+
+        Ok(Self {
+            grammar,
+            non_exhaustive,
+        })
+    }
+}
 
 pub fn generate(input: TokenStream) -> TokenStream {
-    let i: LitStr = parse_macro_input!(input as LitStr);
+    let i = parse_macro_input!(input as MacroInput);
 
-    let sf = SourceFile::new(i.value(), "test.syntax");
+    let sf = SourceFile::new(i.grammar.value(), "test.syntax");
     let cfg = Config {
         syntax: SyntaxConfig {
             destination: "".to_string(),
             definition: "".to_string(),
-            non_exhaustive: false,
+            non_exhaustive: i.non_exhaustive.value,
             serde: false,
             import_location: "rust_lwb".to_string(),
             write_serialized_ast: true,

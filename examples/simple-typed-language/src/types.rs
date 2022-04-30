@@ -73,7 +73,6 @@ impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Statement<M> {
                 // something with scopes: TODO
                 s.type_ok(e)
             }
-            _ => unreachable!(),
         }
     }
 }
@@ -132,7 +131,6 @@ impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Expression<M> {
                 s.type_of_self(self).equiv(tp).add_to(s);
             }
             Expression::Testexpr(..) => {}
-            _ => unreachable!(),
         }
     }
 }

@@ -48,10 +48,11 @@ mod tests {
     macro_rules! test {
         (
             name: $name: ident $(,)?
+            non_exhaustive: $non_exhaustive: literal $(,)?
             grammar: $grammar: literal $(,)?
-
             $(should parse: [$($should_parse: tt)*])? $(,)?
             $(should not parse: [$($should_not_parse: tt)*])? $(,)?
+            $(attrs: $($attrs:tt)*)? $(,)?
         ) => {
             mod $name {
                 use rust_lwb::language;
@@ -61,7 +62,7 @@ mod tests {
                 mod lang {
                     use rust_lwb_macros::generate;
 
-                    generate!($grammar);
+                    generate!($grammar, $non_exhaustive);
                 }
 
                 pub use lang::*;
@@ -69,6 +70,7 @@ mod tests {
                 language!(LangImpl at mod lang);
 
                 #[test]
+                $($attrs)*
                 fn $name() {
                     $(
                         should_parse_tests!($($should_parse)*);
@@ -83,6 +85,7 @@ mod tests {
 
     test!(
         name: simple_grammar,
+        non_exhaustive: false,
         grammar: r#"
 As:
     More = "a" As;
@@ -93,6 +96,26 @@ start at As;
             "aaa",
             "" to As::NoMore(..),
             "a" to As::More(_, box As::NoMore(..)),
+        ]
+        should not parse: [
+            "b",
+            "bb",
+        ]
+    );
+
+    test!(
+        name: non_exhaustive,
+        non_exhaustive: true,
+        grammar: r#"
+As:
+    More = "a" As;
+    NoMore = "";
+start at As;
+        "#,
+        should parse: [
+            "aaa",
+            "" to As::NoMore(..),
+            "a" to As::More(_, box As::NoMore(..), ..),
         ]
         should not parse: [
             "b",

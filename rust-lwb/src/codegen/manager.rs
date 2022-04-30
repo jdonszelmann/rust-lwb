@@ -71,19 +71,20 @@ fn codegen_internal(
     let legacy_ast = convert_syntax_file_ast::convert(ast)?; // TODO make peg parser use new ast
 
     let mut derives = vec!["Debug"];
-        if self.serde {
-            derives.extend(["Serialize", "Deserialize"]);
-        }
 
-        let mut derives = vec!["Debug"];
     if config.syntax.serde {
         derives.extend(["Serialize", "Deserialize"]);
     }
 
-    let structs = generate_structs(&legacy_ast, &derives)?;
-    let from_pairs = generate_from_pairs(&legacy_ast)?;
+    let structs = generate_structs(&legacy_ast, &derives, config.syntax.non_exhaustive)?;
+    let from_pairs = generate_from_pairs(&legacy_ast, config.syntax.non_exhaustive)?;
     let impls = generate_trait_impls(&legacy_ast)?;
-    let root = generate_root(imports, &derives, &config.syntax.import_location)?;
+    let root = generate_root(
+        imports,
+        &derives,
+        &config.syntax.import_location,
+        config.syntax.non_exhaustive,
+    )?;
     let parser = generate_parser(&serialized_parser)?;
 
     Ok(Generated {

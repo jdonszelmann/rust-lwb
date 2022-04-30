@@ -12,6 +12,7 @@ fn generate_unpack_expression(
     sort: &str,
     src: TokenStream,
     ckr: &RecursionChecker,
+    non_exhaustive: TokenStream,
 ) -> Option<TokenStream> {
     let unreachable_exp = quote!(unreachable!("expected different parse pair expression in pair to ast conversion of {}", #sort););
 
@@ -40,7 +41,7 @@ fn generate_unpack_expression(
             )
         }
         Expression::Repeat { min, max, e } | Expression::Delimited { min, max, e, .. } => {
-            if let Some(ue) = generate_unpack_expression(e, sort, quote!(x), ckr) {
+            if let Some(ue) = generate_unpack_expression(e, sort, quote!(x), ckr, non_exhaustive) {
                 match (min, max) {
                     (0, Some(1)) => quote!(
                         if let ParsePairExpression::List(_, ref l) = #src {
@@ -81,7 +82,13 @@ fn generate_unpack_expression(
                     _ => {}
                 }
 
-                if let Some(line) = generate_unpack_expression(i, sort, quote!(p[#index]), ckr) {
+                if let Some(line) = generate_unpack_expression(
+                    i,
+                    sort,
+                    quote!(p[#index]),
+                    ckr,
+                    non_exhaustive.clone(),
+                ) {
                     expressions.push(line)
                 }
             }
@@ -115,6 +122,7 @@ fn generate_unpack(
     expression: &Expression,
     no_layout: bool,
     ckr: &RecursionChecker,
+    non_exhaustive: TokenStream,
 ) -> TokenStream {
     if no_layout {
         return quote!(
@@ -126,10 +134,16 @@ fn generate_unpack(
 
     match expression {
         a @ Expression::Sort(_) => {
-            let nested = generate_unpack_expression(a, sort, quote!(pair.constructor_value), ckr);
+            let nested = generate_unpack_expression(
+                a,
+                sort,
+                quote!(pair.constructor_value),
+                ckr,
+                non_exhaustive.clone(),
+            );
 
             quote!(
-                #constructor(info, #nested, NonExhaustive)
+                #constructor(info, #nested #non_exhaustive)
             )
         }
         Expression::Sequence(c) => {
@@ -144,19 +158,25 @@ fn generate_unpack(
                     _ => {}
                 }
 
-                if let Some(line) = generate_unpack_expression(i, sort, quote!(l[#index]), ckr) {
+                if let Some(line) = generate_unpack_expression(
+                    i,
+                    sort,
+                    quote!(l[#index]),
+                    ckr,
+                    non_exhaustive.clone(),
+                ) {
                     expressions.push(line)
                 }
             }
 
             if expressions.is_empty() {
                 quote!(
-                    #constructor(info, NonExhaustive)
+                    #constructor(info #non_exhaustive)
                 )
             } else {
                 quote!(
                     if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
-                        #constructor(info, #(#expressions),*, NonExhaustive)
+                        #constructor(info, #(#expressions),* #non_exhaustive)
                     } else { #unreachable_exp }
                 )
             }
@@ -164,17 +184,21 @@ fn generate_unpack(
         a @ Expression::Repeat { .. }
         | a @ Expression::Delimited { .. }
         | a @ Expression::CharacterClass(_) => {
-            if let Some(expression) =
-                generate_unpack_expression(a, sort, quote!(pair.constructor_value), ckr)
-            {
-                quote!(#constructor(info, #expression, NonExhaustive))
+            if let Some(expression) = generate_unpack_expression(
+                a,
+                sort,
+                quote!(pair.constructor_value),
+                ckr,
+                non_exhaustive.clone(),
+            ) {
+                quote!(#constructor(info, #expression #non_exhaustive))
             } else {
-                quote!(#constructor(info, NonExhaustive))
+                quote!(#constructor(info #non_exhaustive))
             }
         }
         Expression::Choice(_) => todo!(),
         Expression::Literal(_) => {
-            quote!(#constructor(info, NonExhaustive))
+            quote!(#constructor(info #non_exhaustive))
         }
         Expression::Negative(_) => todo!(),
         Expression::Positive(_) => todo!(),
@@ -195,8 +219,17 @@ pub fn flatten_sequences(syntax: Expression) -> Expression {
     }
 }
 
-pub fn generate_from_pairs(syntax: &SyntaxFileAst) -> Result<TokenStream, CodegenError> {
+pub fn generate_from_pairs(
+    syntax: &SyntaxFileAst,
+    non_exhaustive: bool,
+) -> Result<TokenStream, CodegenError> {
     let mut impls = Vec::new();
+
+    let non_exhaustive = if non_exhaustive {
+        quote!(, NonExhaustive)
+    } else {
+        TokenStream::new()
+    };
 
     let arena = Default::default();
     let sorts_iterator = BreadthFirstAstIterator::new(syntax, &arena);
@@ -214,6 +247,7 @@ pub fn generate_from_pairs(syntax: &SyntaxFileAst) -> Result<TokenStream, Codege
                 &flatten_sequences(constr.expression.clone()),
                 constr.annotations.contains(&SingleString),
                 ckr,
+                non_exhaustive.clone(),
             )
         } else {
             let constructor_names_str = sort
@@ -236,6 +270,7 @@ pub fn generate_from_pairs(syntax: &SyntaxFileAst) -> Result<TokenStream, Codege
                         &flatten_sequences(constr.expression.clone()),
                         constr.annotations.contains(&SingleString),
                         ckr,
+                        non_exhaustive.clone(),
                     )
                 })
                 .collect_vec();
