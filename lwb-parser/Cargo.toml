@@ -2,6 +2,9 @@
 name = "lwb-parser"
 version = "0.1.0"
 edition = "2021"
+authors = ["Jonathan Brouwer", "Jonathan Dönszelmann <jonabent@gmail.com>"]
+license = "MIT"
+description = "parser framwork with automatically generated ASTs for the LWB project"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
