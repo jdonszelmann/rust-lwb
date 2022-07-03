@@ -77,13 +77,10 @@ impl<'ast, 'arena> BreadthFirstAstIterator<'ast, 'arena> {
 
     /// Find a sort in the ast, that we haven't yet traversed
     pub fn find_not_had(&self) -> Option<&'ast Sort> {
-        for s in self.ast.sorts.values() {
-            if !self.had.contains(&ByAddress(s)) {
-                return Some(s);
-            }
-        }
-
-        None
+        self.ast
+            .sorts
+            .values()
+            .find(|&s| !self.had.contains(&ByAddress(s)))
     }
 }
 

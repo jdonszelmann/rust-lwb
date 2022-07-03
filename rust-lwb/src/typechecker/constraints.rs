@@ -190,10 +190,12 @@ impl<TYPE: Type> IntoVariable<TYPE> for &Variable<TYPE> {
 
 pub type ComputerConstraintResult<TYPE> = Result<TYPE, TypeError<TYPE>>;
 
+pub type ComputeFunction<TYPE> = Box<dyn Fn(&[TYPE]) -> ComputerConstraintResult<TYPE>>;
+
 pub struct ComputedConstraint<TYPE: Type> {
     depends_on: Vec<Variable<TYPE>>,
     #[allow(dead_code)]
-    compute: Box<dyn Fn(&[TYPE]) -> ComputerConstraintResult<TYPE>>,
+    compute: ComputeFunction<TYPE>,
 }
 
 pub enum Constraint<TYPE: Type> {
