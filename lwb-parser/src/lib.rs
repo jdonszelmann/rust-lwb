@@ -1,3 +1,5 @@
+///! Docs at [https://jonay2000.github.io/rust-lwb/](https://jonay2000.github.io/rust-lwb/)
+
 /// Code describing languages created with rust-lwb
 #[macro_use]
 pub mod language;

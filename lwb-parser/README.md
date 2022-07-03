@@ -11,7 +11,7 @@ This is a project inspired by the TU Delft programming languages group's project
 The parser will read a definition of your syntax, and generate an AST
 plus the code to fill the AST from strings for you.
 
-You can find documentation for it [here]
+You can find documentation for it [here](https://jonay2000.github.io/rust-lwb/)
 
 ## License
 
