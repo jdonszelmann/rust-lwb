@@ -127,7 +127,7 @@ impl<'a> SourceFileIterator<'a> {
     /// the iterator and return true. Otherwise, return false.
     ///
     /// ```
-    /// # use rust_lwb::sources::source_file::SourceFile;
+    /// # use lwb_parser::sources::source_file::SourceFile;
     /// let sf = SourceFile::new_for_test("test");
     /// let mut sfi = sf.iter();
     ///
@@ -160,7 +160,7 @@ impl<'a> SourceFileIterator<'a> {
     /// if the whole string could be accepted.
     ///
     /// ```
-    /// # use rust_lwb::sources::source_file::SourceFile;
+    /// # use lwb_parser::sources::source_file::SourceFile;
     /// let sf = SourceFile::new_for_test("test");
     /// let mut sfi = sf.iter();
     ///
@@ -193,7 +193,7 @@ impl<'a> SourceFileIterator<'a> {
     /// Skips any layout (defined by the layout character class passed in)
     ///
     /// ```
-    /// # use rust_lwb::sources::source_file::SourceFile;
+    /// # use lwb_parser::sources::source_file::SourceFile;
     /// let sf = SourceFile::new_for_test("   test");
     /// let mut sfi = sf.iter();
     ///
@@ -208,7 +208,7 @@ impl<'a> SourceFileIterator<'a> {
     /// First skip any layout that can be found, then accept like [`accept`]
     ///
     /// ```
-    /// # use rust_lwb::sources::source_file::SourceFile;
+    /// # use lwb_parser::sources::source_file::SourceFile;
     /// let sf = SourceFile::new_for_test("   t");
     /// let mut sfi = sf.iter();
     ///
@@ -229,7 +229,7 @@ impl<'a> SourceFileIterator<'a> {
     /// First skip any layout that can be found, then accept the string like [`accept_str`].
     ///
     /// ```
-    /// # use rust_lwb::sources::source_file::SourceFile;
+    /// # use lwb_parser::sources::source_file::SourceFile;
     /// let sf = SourceFile::new_for_test("   test");
     /// let mut sfi = sf.iter();
     ///
@@ -250,7 +250,7 @@ impl<'a> SourceFileIterator<'a> {
     /// accepts until a certain character is found in the input.
     ///
     /// ```
-    /// # use rust_lwb::sources::source_file::SourceFile;
+    /// # use lwb_parser::sources::source_file::SourceFile;
     /// let sf = SourceFile::new_for_test("test   ");
     /// let mut sfi = sf.iter();
     ///
@@ -273,7 +273,7 @@ impl<'a> SourceFileIterator<'a> {
 
     /// Returns true if this iter won't return more
     /// ```
-    /// # use rust_lwb::sources::source_file::SourceFile;
+    /// # use lwb_parser::sources::source_file::SourceFile;
     /// let sf = SourceFile::new_for_test("test");
     /// let mut sfi = sf.iter();
     ///
@@ -285,7 +285,7 @@ impl<'a> SourceFileIterator<'a> {
 
     /// Returns the position of the character that is next.
     /// ```
-    /// # use rust_lwb::sources::source_file::SourceFile;
+    /// # use lwb_parser::sources::source_file::SourceFile;
     /// let sf = SourceFile::new_for_test("test");
     /// let mut sfi = sf.iter();
     ///
