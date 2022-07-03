@@ -1,4 +1,3 @@
-// extern crate paste;
 
 // Mostly used in bootstrapper
 pub use lwb_parser::bincode;
@@ -33,5 +32,8 @@ pub use lwb_parser::codegen_prelude as codegen_prelude;
 
 /// Utilities to typecheck an abstract syntax tree.
 pub mod typechecker;
+
+/// Code related to configuring rust-lwb
+pub mod config;
 
 pub use lwb_parser::error as error;

@@ -9,14 +9,17 @@
 // |==========================================================|
 use super::prelude::*;
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub struct Program<M: AstInfo>(pub M, pub Vec<SortOrMeta<M>>);
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub enum SortOrMeta<M: AstInfo> {
     Meta(M, Meta<M>),
     Sort(M, Sort<M>),
 }
 #[doc = "Other top-level constructs that are not sorts"]
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub struct Meta<M: AstInfo>(pub M, pub Identifier<M>);
 #[doc = "A sort is a group of constructors. See [`constructor`] for more details."]
 #[doc = ""]
@@ -27,6 +30,7 @@ pub struct Meta<M: AstInfo>(pub M, pub Identifier<M>);
 #[doc = ""]
 #[doc = "Sorts can have doc-comments using triple slashes."]
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub enum Sort<M: AstInfo> {
     SortDocumented(M, Vec<DocComment<M>>, Box<Sort<M>>),
     Sort(M, Identifier<M>, Vec<Constructor<M>>),
@@ -38,11 +42,13 @@ pub enum Sort<M: AstInfo> {
 #[doc = "followed by letters or numbers. This is very similar to how variables in most major"]
 #[doc = "programming languages work."]
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub struct Identifier<M: AstInfo>(pub M, pub String);
 #[doc = "A documentation comment (doc comment) is always associated with a sort"]
 #[doc = "or constructor. It documents what it does. Doc comments will be interpreted"]
 #[doc = "and will be put on the generated types during codegen."]
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub struct DocComment<M: AstInfo>(pub M, pub String);
 #[doc = "A [`sort`] consists of constructors. A sort will try each of the constructors"]
 #[doc = "from top to bottom, and use the first one that succesfully parses the input string."]
@@ -51,6 +57,7 @@ pub struct DocComment<M: AstInfo>(pub M, pub String);
 #[doc = ""]
 #[doc = "Constructors can have doc-comments using triple slashes."]
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub enum Constructor<M: AstInfo> {
     ConstructorDocumented(M, Vec<DocComment<M>>, Box<Constructor<M>>),
     Constructor(M, Identifier<M>, Vec<Expression<M>>, Option<Annotation<M>>),
@@ -58,6 +65,7 @@ pub enum Constructor<M: AstInfo> {
 #[doc = "With expressions, you can give the syntax rules of a single constructor."]
 #[doc = "Expressions can be nested and combined."]
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub enum Expression<M: AstInfo> {
     #[doc = "Repeat some expression zero or more times"]
     #[doc = "Equivalent to `<expression> {0,}`"]
@@ -68,10 +76,14 @@ pub enum Expression<M: AstInfo> {
     #[doc = "Optionally have some expression."]
     #[doc = "Equivalent to `<expression> {0,1}`"]
     Maybe(M, Box<Expression<M>>),
-    #[doc = "Exact repetition. You can give a lower bound, and optionally an upper bound"]
-    #[doc = "of how many repetitions are allowed. If the upper bound is left out, an infinite"]
-    #[doc = "number of repetitions is allowed."]
-    RepeatExact(M, Box<Expression<M>>, Number<M>, Option<Number<M>>),
+    #[doc = "Exact repetition. The expression is repeated an exact number of times. Equivalent"]
+    #[doc = "to ranged repetition with an equal lower and upper bound."]
+    RepeatExact(M, Box<Expression<M>>, Number<M>),
+    #[doc = "Ranged repetition. The expression may be repeated any number of times, within the range."]
+    #[doc = "Both bounds are inclusive."]
+    RepeatRange(M, Box<Expression<M>>, Number<M>, Number<M>),
+    #[doc = "Ranged repetition, without upper bound (or an infinite maximum)"]
+    RepeatLower(M, Box<Expression<M>>, Number<M>),
     #[doc = "Matches a piece of text exactly. Layout is parsed within a literal."]
     Literal(M, Vec<StringChar<M>>),
     #[doc = "Also a literal, see [`literal`]"]
@@ -95,10 +107,13 @@ pub enum Expression<M: AstInfo> {
 #[doc = "Annotations are tags that modify a specific sort or more often constructor."]
 #[doc = "TODO: Document each"]
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub struct Annotation<M: AstInfo>(pub M, pub Vec<Identifier<M>>);
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub struct Number<M: AstInfo>(pub M, pub String);
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub enum StringChar<M: AstInfo> {
     Escaped(M, String),
     Normal(M, String),
@@ -106,6 +121,7 @@ pub enum StringChar<M: AstInfo> {
 #[doc = "A delimited expression can be repeated just like normal repetition expressions."]
 #[doc = "To denote this, you can use a delimitation bound."]
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub enum DelimitedBound<M: AstInfo> {
     #[doc = "Within a range or possible repetitions."]
     NumNum(M, Number<M>, Number<M>),
@@ -129,25 +145,30 @@ pub enum DelimitedBound<M: AstInfo> {
 #[doc = ""]
 #[doc = "`[^\\]]` means any character that isn't a square bracket."]
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub struct CharacterClass<M: AstInfo>(pub M, pub bool, pub Vec<CharacterClassItem<M>>);
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub enum CharacterClassItem<M: AstInfo> {
     Range(M, EscapeClosingBracket<M>, EscapeClosingBracket<M>),
     SingleChar(M, EscapeClosingBracket<M>),
 }
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub enum EscapeClosingBracket<M: AstInfo> {
     Escaped(M, String),
     Unescaped(M, String),
 }
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Newline<M: AstInfo> {
-    Unix(M),
-    Windows(M),
-}
-#[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub enum Layout<M: AstInfo> {
     Simple(M, String),
     Comment(M, Vec<String>),
+}
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
+pub enum Newline<M: AstInfo> {
+    Unix(M),
+    Windows(M),
 }
 pub type AST_ROOT<M> = Program<M>;

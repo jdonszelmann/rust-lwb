@@ -9,7 +9,7 @@ thiserror = "1.0.30"
 miette = { version = "3.3.0", features = ["fancy"] }
 itertools = "0.10.3"
 lwb-parser = {version="0.1.0", path="../lwb-parser"}
-
+toml = "0.5.9"
 
 [dev-dependencies]
 bnf = "0.3.4" # for bootstrap parser only

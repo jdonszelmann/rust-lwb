@@ -60,7 +60,7 @@ impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Program<M> {
 impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Statement<M> {
     fn create_constraints<'ast>(&'ast self, s: &mut State<'ast, M, (), StlType>, _: &()) {
         match self {
-            Statement::If(_, e, block) => {
+            Statement::If(_, e, block, ..) => {
                 let te = s.get_type(e);
                 s.add_constraint(te.equiv(StlType::Bool));
 
@@ -68,8 +68,8 @@ impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Statement<M> {
                     s.type_ok(i);
                 }
             }
-            Statement::Expression(_, e) => s.type_ok(e),
-            Statement::Assignment(_, _, e) => {
+            Statement::Expression(_, e, ..) => s.type_ok(e),
+            Statement::Assignment(_, _, e, ..) => {
                 // something with scopes: TODO
                 s.type_ok(e)
             }
@@ -80,40 +80,40 @@ impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Statement<M> {
 impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Expression<M> {
     fn create_constraints<'ast>(&'ast self, s: &mut State<'ast, M, (), StlType>, _: &()) {
         match self {
-            Expression::Add(_, a, b) => {
+            Expression::Add(_, a, b, ..) => {
                 let ta = s.get_type(a);
                 let tb = s.get_type(b);
 
                 s.add_constraint(ta.equiv(tb));
                 s.type_of_self(self).equiv(ta).add_to(s);
             }
-            Expression::Sub(_, a, b) => {
+            Expression::Sub(_, a, b, ..) => {
                 let ta = s.get_type(a);
                 let tb = s.get_type(b);
 
                 s.add_constraint(ta.equiv(tb));
                 s.type_of_self(self).equiv(ta).add_to(s);
             }
-            Expression::Int(_, _a) => {
+            Expression::Int(_, _a, ..) => {
                 s.type_of_self(self).equiv(StlType::Int).add_to(s);
             }
-            Expression::Identifier(_, _s) => {
+            Expression::Identifier(_, _s, ..) => {
                 // something with scopes: TODO
             }
-            Expression::Eq(_, a, b) => {
+            Expression::Eq(_, a, b, ..) => {
                 let ta = s.get_type(a);
                 let tb = s.get_type(b);
 
                 s.add_constraint(ta.equiv(tb));
                 s.type_of_self(self).equiv(StlType::Bool).add_to(s);
             }
-            Expression::Index(_, a, b) => s
+            Expression::Index(_, a, b, ..) => s
                 .get_type(a)
                 .depends_on(&[s.get_type(b)], |types| {
                     Ok(StlType::List(Box::new(types[0].clone())))
                 })
                 .add_to(s),
-            Expression::List(_, exprs) => {
+            Expression::List(_, exprs, ..) => {
                 if !exprs.is_empty() {
                     let tvs: Vec<_> = exprs.iter().map(|i| s.get_type(i)).collect();
                     s.type_of_self(self)
@@ -123,14 +123,14 @@ impl<M: SpannedAstInfo> TypeCheckable<M, (), StlType> for Expression<M> {
                     s.type_of_self(self).equiv(StlType::EmptyList).add_to(s);
                 }
             }
-            Expression::Bool(_, _) => {
+            Expression::Bool(..) => {
                 s.type_of_self(self).equiv(StlType::Bool).add_to(s);
             }
-            Expression::Paren(_, e) => {
+            Expression::Paren(_, e, ..) => {
                 let tp = s.get_type(&*e);
                 s.type_of_self(self).equiv(tp).add_to(s);
             }
-            Expression::Testexpr(_, _, _, _, _, _, _, _, _, _, _, _) => {}
+            Expression::Testexpr(..) => {}
         }
     }
 }
