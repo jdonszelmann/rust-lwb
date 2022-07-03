@@ -1,0 +1,6 @@
+[book]
+authors = ["jonay2000"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Rust LWB"
