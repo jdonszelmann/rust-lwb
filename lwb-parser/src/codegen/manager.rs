@@ -9,6 +9,7 @@ use crate::codegen::generate_trait_impls::generate_trait_impls;
 use crate::codegen::FormattingFile;
 use crate::config::toml::{find_config_path, read_config, ReadConfigError};
 use crate::config::Config;
+use crate::error::display_miette_error;
 use crate::language::Language;
 use crate::parser::syntax_file::{convert_syntax_file_ast, ParseError, SyntaxFile};
 use crate::sources::source_file::SourceFile;
@@ -16,7 +17,6 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use crate::error::display_miette_error;
 
 pub fn create_module_files<const N: usize>(
     location: impl AsRef<Path>,
@@ -83,7 +83,7 @@ fn codegen_internal(
     let root = generate_root(
         imports,
         &derives,
-        &config.syntax.import_location,
+        config.syntax.mode.import_location(),
         config.syntax.non_exhaustive,
     )?;
     let parser = generate_parser(&serialized_parser)?;
@@ -151,6 +151,12 @@ pub struct Codegen {
     config: Config,
 }
 
+impl Default for Codegen {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Codegen {
     pub fn try_new() -> Result<Self, ReadConfigError> {
         Self::try_with_config(find_config_path())
@@ -177,12 +183,12 @@ impl Codegen {
         if let Err(e) = self.try_codegen() {
             match e {
                 CodegenError::ParseError(ParseError::PEG(errs)) => {
-                    for e in errs {
-                        eprintln!("{}", display_miette_error(&e));
+                    for e in errs.iter().rev() {
+                        eprintln!("{}", display_miette_error(e));
                     }
                     panic!("failed to generate ast")
                 }
-                e => panic!("failed to generate ast: {e}")
+                e => panic!("failed to generate ast: {e}"),
             }
         }
     }

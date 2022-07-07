@@ -38,7 +38,7 @@ pub fn load(path_from_root: impl AsRef<Path>) -> BootstrapConfig {
 
 pub fn unwrap<T, E: Error + Display>(e: Result<T, E>) -> T {
     if let Err(e) = e {
-        panic!("{}", e);
+        panic!("codegen panic: {}", e);
     } else {
         e.unwrap()
     }

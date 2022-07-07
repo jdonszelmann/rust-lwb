@@ -1,0 +1,8 @@
+[syntax]
+definition = "src/json.syntax"
+destination = "src/ast"
+serde = true
+
+[language]
+name = "json"
+extensions = ["json"]

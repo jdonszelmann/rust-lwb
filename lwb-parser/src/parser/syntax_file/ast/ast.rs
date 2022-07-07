@@ -43,13 +43,13 @@ pub enum Sort<M: AstInfo> {
 #[doc = "programming languages work."]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub struct Identifier<M: AstInfo>(pub M, pub String);
+pub struct Identifier<M: AstInfo>(pub M, pub std::string::String);
 #[doc = "A documentation comment (doc comment) is always associated with a sort"]
 #[doc = "or constructor. It documents what it does. Doc comments will be interpreted"]
 #[doc = "and will be put on the generated types during codegen."]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub struct DocComment<M: AstInfo>(pub M, pub String);
+pub struct DocComment<M: AstInfo>(pub M, pub std::string::String);
 #[doc = "A [`sort`] consists of constructors. A sort will try each of the constructors"]
 #[doc = "from top to bottom, and use the first one that succesfully parses the input string."]
 #[doc = ""]
@@ -90,6 +90,8 @@ pub enum Expression<M: AstInfo> {
     SingleQuoteLiteral(M, Vec<StringChar<M>>),
     #[doc = "Delimited expressions. Says that some expression should be repeatedly parsed,"]
     #[doc = "but between two parses, a delimiter should be parsed too. For example, comma seperated expressions."]
+    #[doc = "The final trailing keyword enables a trailing separator after the sequence. If not present, no trailing"]
+    #[doc = "separator is allowed."]
     Delimited(
         M,
         Box<Expression<M>>,
@@ -111,12 +113,12 @@ pub enum Expression<M: AstInfo> {
 pub struct Annotation<M: AstInfo>(pub M, pub Vec<Identifier<M>>);
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub struct Number<M: AstInfo>(pub M, pub String);
+pub struct Number<M: AstInfo>(pub M, pub std::string::String);
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub enum StringChar<M: AstInfo> {
-    Escaped(M, String),
-    Normal(M, String),
+    Escaped(M, std::string::String),
+    Normal(M, std::string::String),
 }
 #[doc = "A delimited expression can be repeated just like normal repetition expressions."]
 #[doc = "To denote this, you can use a delimitation bound."]
@@ -156,14 +158,14 @@ pub enum CharacterClassItem<M: AstInfo> {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub enum EscapeClosingBracket<M: AstInfo> {
-    Escaped(M, String),
-    Unescaped(M, String),
+    Escaped(M, std::string::String),
+    Unescaped(M, std::string::String),
 }
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub enum Layout<M: AstInfo> {
-    Simple(M, String),
-    Comment(M, Vec<String>),
+    Simple(M, std::string::String),
+    Comment(M, Vec<std::string::String>),
 }
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]

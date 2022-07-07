@@ -65,6 +65,8 @@ expression:
 
     /// Delimited expressions. Says that some expression should be repeatedly parsed,
     /// but between two parses, a delimiter should be parsed too. For example, comma seperated expressions.
+    /// The final trailing keyword enables a trailing separator after the sequence. If not present, no trailing
+    /// separator is allowed.
     delimited = "delimited" "(" expression "," expression "," delimited-bound ("," "trailing")? ")";
 
     /// Reference another sort within this expression. That sort should be parsed in this position in the expression.

@@ -1,0 +1,38 @@
+
+identifier = [A-Za-z_][A-Za-z0-9-_]*; {single-string, no-layout}
+
+int = [0-9]+; {no-layout}
+hex-digit = [0-9a-f];
+
+string-char:
+    escaped = "\\" [bfnrt\\/"];
+    unicode = "\\u" hex-digit{4};
+    normal = [^"\\];
+
+bool:
+    true = "true";
+    false = "false";
+
+string = "\"" string-char* "\""; {no-layout}
+
+no-leading-zeroes:
+    zero = "0";
+    nonzero = [1-9] [0-9]*;
+
+fractional = "." [0-9]*;
+exponential = [eE] [-+]? [0-9]*;
+
+number = "-"? no-leading-zeroes fractional? exponential?; {single-string}
+kv-pair = string ":" value;
+
+value:
+    bool = bool;
+    string = string;
+    null = "null";
+    number = number;
+    object = "{" delimited(kv-pair, ",", *) "}";
+    array = "[" delimited(value, ",", *) "]";
+
+
+start at value;
+layout = [\n\r\t ];

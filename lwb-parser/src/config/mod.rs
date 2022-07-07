@@ -2,12 +2,34 @@ use serde::Deserialize;
 
 pub mod toml;
 
-fn default_import_location() -> String {
-    "rust_lwb".to_string()
-}
-
 fn default_true() -> bool {
     true
+}
+
+#[derive(Deserialize)]
+pub enum Mode {
+    #[serde(rename = "lwb")]
+    Lwb,
+    #[serde(rename = "parser")]
+    Parser,
+    #[serde(rename = "parser")]
+    Custom(String),
+}
+
+impl Mode {
+    pub fn import_location(&self) -> &str {
+        match self {
+            Mode::Lwb => "rust_lwb",
+            Mode::Parser => "lwb_parser",
+            Mode::Custom(a) => a,
+        }
+    }
+}
+
+impl Default for Mode {
+    fn default() -> Self {
+        Self::Parser
+    }
 }
 
 #[derive(Deserialize)]
@@ -34,9 +56,10 @@ pub struct SyntaxConfig {
     #[serde(default)]
     pub serde: bool,
 
-    /// The location to import rust_lwb from. Defaults to "rust_lwb"
-    #[serde(default = "default_import_location")]
-    pub import_location: String,
+    /// The mode to work in. Defaults to parser since rust_lwb is far from done.
+    /// This also sets import_location to lwb_parser
+    #[serde(default)]
+    pub mode: Mode,
 
     #[doc(hidden)]
     #[serde(default = "default_true")]

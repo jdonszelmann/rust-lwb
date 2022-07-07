@@ -66,7 +66,7 @@ pub fn generate_structs(
                     #(#doc)*
                     #[derive(#(#derives),*)]
                     #serde_attrs
-                    pub struct #name<M: AstInfo>(pub M, pub String);
+                    pub struct #name<M: AstInfo>(pub M, pub std::string::String);
                 ));
             } else {
                 let c = generate_constructor_type(&constr.expression, ckr);
@@ -97,7 +97,7 @@ pub fn generate_structs(
                 if constr.annotations.contains(&SingleString) {
                     variants.push(quote!(
                         #(#doc)*
-                        #name(M, String #non_exhaustive_enum_field)
+                        #name(M, std::string::String #non_exhaustive_enum_field)
                     ));
                 } else {
                     let c = generate_constructor_type(&constr.expression, ckr);
@@ -234,7 +234,7 @@ fn generate_constructor_type(
             }
         }
         Expression::Choice(_) => panic!(), //TODO how to represent choice?
-        Expression::CharacterClass(_) => Tree::Leaf(quote!(String)),
+        Expression::CharacterClass(_) => Tree::Leaf(quote!(std::string::String)),
         Expression::Negative(_) => Tree::Empty,
         Expression::Positive(_) => Tree::Empty,
         Expression::Literal(_) => Tree::Empty,
