@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // parse the syntax definition again with the old parse
     println!("parsing {}", config.input_location);
     let sf = SourceFile::open(from_root(&config.input_location))?;
-    let ast = unwrap(SyntaxFile::parse(&sf));
+    let ast = unwrap(SyntaxFile::try_parse(&sf));
     let legacy_ast = unwrap(convert(ast));
 
     println!(
