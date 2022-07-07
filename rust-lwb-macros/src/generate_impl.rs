@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use rust_lwb::codegen::manager::__codegen_tokenstream;
-use rust_lwb::config::{Config, LanguageConfig, SyntaxConfig};
+use rust_lwb::config::{Config, LanguageConfig, Mode, SyntaxConfig};
 use rust_lwb::sources::source_file::SourceFile;
 use syn::parse::{Parse, ParseStream};
 use syn::{parse_macro_input, LitBool, LitStr, Token};
@@ -38,7 +38,7 @@ pub fn generate(input: TokenStream) -> TokenStream {
             definition: "".to_string(),
             non_exhaustive: i.non_exhaustive.value,
             serde: i.serde.value,
-            import_location: "rust_lwb".to_string(),
+            mode: Mode::Lwb,
             write_serialized_ast: true,
         },
         language: LanguageConfig {

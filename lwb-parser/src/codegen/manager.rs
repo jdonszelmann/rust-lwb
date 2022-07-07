@@ -9,8 +9,9 @@ use crate::codegen::generate_trait_impls::generate_trait_impls;
 use crate::codegen::FormattingFile;
 use crate::config::toml::{find_config_path, read_config, ReadConfigError};
 use crate::config::Config;
+use crate::error::display_miette_error;
 use crate::language::Language;
-use crate::parser::syntax_file::{convert_syntax_file_ast, SyntaxFile};
+use crate::parser::syntax_file::{convert_syntax_file_ast, ParseError, SyntaxFile};
 use crate::sources::source_file::SourceFile;
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -64,7 +65,7 @@ fn codegen_internal(
     config: Config,
     imports: &[&str],
 ) -> Result<Generated, CodegenError> {
-    let ast = SyntaxFile::parse(&source)?;
+    let ast = SyntaxFile::try_parse(&source)?;
 
     let serialized_parser = bincode::serialize(&ast)?;
 
@@ -82,7 +83,7 @@ fn codegen_internal(
     let root = generate_root(
         imports,
         &derives,
-        &config.syntax.import_location,
+        config.syntax.mode.import_location(),
         config.syntax.non_exhaustive,
     )?;
     let parser = generate_parser(&serialized_parser)?;
@@ -137,16 +138,31 @@ pub fn __codegen_tokenstream(
     ))
 }
 
+fn unwrap<T>(r: Result<T, ReadConfigError>) -> T {
+    match r {
+        Ok(i) => i,
+        Err(e) => {
+            panic!("failed to read config: {e}")
+        }
+    }
+}
+
 pub struct Codegen {
     config: Config,
 }
 
+impl Default for Codegen {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Codegen {
-    pub fn new() -> Result<Self, ReadConfigError> {
-        Self::with_config(find_config_path())
+    pub fn try_new() -> Result<Self, ReadConfigError> {
+        Self::try_with_config(find_config_path())
     }
 
-    pub fn with_config(path: PathBuf) -> Result<Self, ReadConfigError> {
+    pub fn try_with_config(path: PathBuf) -> Result<Self, ReadConfigError> {
         println!("cargo:rerun-if-changed={:?}", path);
         Ok(Self::with_config_struct(read_config(path)?))
     }
@@ -155,7 +171,29 @@ impl Codegen {
         Self { config }
     }
 
-    pub fn codegen(self) -> Result<(), CodegenError> {
+    pub fn new() -> Self {
+        unwrap(Self::try_new())
+    }
+
+    pub fn with_config(path: PathBuf) -> Self {
+        unwrap(Self::try_with_config(path))
+    }
+
+    pub fn codegen(self) {
+        if let Err(e) = self.try_codegen() {
+            match e {
+                CodegenError::ParseError(ParseError::PEG(errs)) => {
+                    for e in errs.iter().rev() {
+                        eprintln!("{}", display_miette_error(e));
+                    }
+                    panic!("failed to generate ast")
+                }
+                e => panic!("failed to generate ast: {e}"),
+            }
+        }
+    }
+
+    pub fn try_codegen(self) -> Result<(), CodegenError> {
         let mut files = create_module_files(
             &self.config.syntax.destination,
             [

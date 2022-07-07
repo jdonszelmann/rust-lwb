@@ -10,13 +10,7 @@ macro_rules! peg_test {
         #[test]
         fn $name() {
             let sf = SourceFile::new($syntax.to_string(), "test.syntax".to_string());
-            let ast = match SyntaxFile::parse(&sf) {
-                Ok(ok) => ok,
-                Err(err) => {
-                    println!("{}", err);
-                    panic!();
-                }
-            };
+            let ast = SyntaxFile::parse(&sf);
             let ast = convert(ast).unwrap();
 
             $(

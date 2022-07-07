@@ -2,6 +2,7 @@
 definition = "src/stl.syntax"
 destination = "src/stl"
 serde = true
+mode = "lwb"
 
 [language]
 name = "simple typed language"

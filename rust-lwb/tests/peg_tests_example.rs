@@ -16,7 +16,7 @@ start at x;
     let input = "hello pussy";
 
     let sf = SourceFile::new(syntax.to_string(), "test.syntax".to_string());
-    let ast = match SyntaxFile::parse(&sf) {
+    let ast = match SyntaxFile::try_parse(&sf) {
         Ok(ok) => ok,
         Err(err) => {
             println!("{}", err);

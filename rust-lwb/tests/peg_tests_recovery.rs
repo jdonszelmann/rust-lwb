@@ -10,7 +10,7 @@ macro_rules! peg_test_recover {
         #[test]
         fn $name() {
             let sf = SourceFile::new($syntax.to_string(), "test.syntax".to_string());
-            let ast = convert(SyntaxFile::parse(&sf).unwrap()).unwrap();
+            let ast = convert(SyntaxFile::parse(&sf)).unwrap();
 
             $(
             let sf2 = SourceFile::new($input.to_string(), "input.language".to_string());

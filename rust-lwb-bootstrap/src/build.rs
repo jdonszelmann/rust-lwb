@@ -4,7 +4,7 @@ mod bootstrap_config;
 
 use crate::bootstrap_config::{from_root, temporary_location, unwrap};
 use rust_lwb::codegen::manager::Codegen;
-use rust_lwb::config::{Config, LanguageConfig, SyntaxConfig};
+use rust_lwb::config::{Config, LanguageConfig, Mode, SyntaxConfig};
 
 fn main() {
     let config = bootstrap_config::load("bootstrap.toml");
@@ -20,7 +20,7 @@ fn main() {
                     .into_owned(),
                 non_exhaustive: false,
                 serde: true,
-                import_location: "crate".to_string(),
+                mode: Mode::Custom("crate".to_string()),
                 write_serialized_ast: false,
             },
             language: LanguageConfig {
@@ -28,6 +28,6 @@ fn main() {
                 extensions: vec![],
             },
         })
-        .codegen(),
+        .try_codegen(),
     );
 }
