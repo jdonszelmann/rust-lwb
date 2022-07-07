@@ -15,12 +15,11 @@ mod tests {
 
     macro_rules! json_test {
         (err: $src: literal) => {
-            let r = JSON::parse(&SourceFile::new($src, "test.json"));
+            let r = JSON::try_parse(&SourceFile::new($src, "test.json"));
             assert!(r.is_err(), "{:?}", r.unwrap());
         };
         ($src: literal) => {
-            let r = JSON::parse(&SourceFile::new($src, "test.json"));
-            assert!(r.is_ok(), "{}", r.unwrap_err());
+            let _ = JSON::parse(&SourceFile::new($src, "test.json"));
         };
     }
 

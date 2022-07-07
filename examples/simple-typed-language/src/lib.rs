@@ -25,25 +25,13 @@ mod tests {
                         assert!(res.is_err(), "{:?}", res.unwrap());
                     };
                     (should typecheck) => {
-                        let ast = match STL::parse(&file) {
-                            Ok(ok) => ok,
-                            Err(e) => {
-                                println!("{}", e);
-                                panic!();
-                            }
-                        };
+                        let ast = STL::parse(&file);
                         let tc = TypeChecker::new();
                         let tres = tc.check_types(ast, &());
                         assert!(tres.is_ok(), "{}", tres.unwrap_err());
                     };
                     (should not typecheck) => {
-                        let ast = match STL::parse(&file) {
-                            Ok(ok) => ok,
-                            Err(e) => {
-                                println!("{}", e);
-                                panic!();
-                            }
-                        };
+                        let ast = STL::parse(&file);
                         let tc = TypeChecker::new();
                         let tres = tc.check_types(ast, &());
                         assert!(tres.is_err());

@@ -65,7 +65,7 @@ fn codegen_internal(
     config: Config,
     imports: &[&str],
 ) -> Result<Generated, CodegenError> {
-    let ast = SyntaxFile::parse(&source)?;
+    let ast = SyntaxFile::try_parse(&source)?;
 
     let serialized_parser = bincode::serialize(&ast)?;
 

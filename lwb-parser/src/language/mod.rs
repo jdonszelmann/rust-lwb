@@ -4,7 +4,19 @@ use crate::sources::source_file::SourceFile;
 pub trait Language {
     type Ast;
 
-    fn parse(source: &SourceFile) -> Result<Self::Ast, ParseError>;
+    /// parses a source file into an AST. Panics (and nicely displays an error)
+    /// when the parse failed.
+    fn parse(source: &SourceFile) -> Self::Ast {
+        match Self::try_parse(source) {
+            Ok(i) => i,
+            Err(e) => {
+                panic!("failed to parse: {e}");
+            }
+        }
+    }
+
+    /// Tries to parse a source file. Returns an error if parsing failed.
+    fn try_parse(source: &SourceFile) -> Result<Self::Ast, ParseError>;
 }
 
 #[macro_export]
@@ -17,7 +29,7 @@ macro_rules! language {
         impl $crate::language::Language for $name {
             type Ast = AST::AST_ROOT<$crate::parser::ast::generate_ast::BasicAstInfo>;
 
-            fn parse(
+            fn try_parse(
                 source: &$crate::sources::source_file::SourceFile,
             ) -> Result<Self::Ast, $crate::parser::syntax_file::ParseError> {
                 $crate::parser::syntax_file::parse_language(source, AST::PARSER)

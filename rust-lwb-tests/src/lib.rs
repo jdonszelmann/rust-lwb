@@ -17,7 +17,7 @@ mod tests {
     macro_rules! should_parse_tests {
         ($case: literal to $expr: pat, $($rest: tt)*) => {
             let file = SourceFile::new($case, "main.lang");
-            let res = LangImpl::parse(&file);
+            let res = LangImpl::try_parse(&file);
             assert!(res.is_ok(), "{}", res.unwrap_err());
             let val_str = format!("{:?}", res.as_ref().unwrap());
             assert!(matches!(res.unwrap(), $expr), "{:?} did not match {}", val_str, stringify!($expr));
@@ -26,7 +26,7 @@ mod tests {
         };
         ($case: literal, $($rest: tt)*) => {
             let file = SourceFile::new($case, "main.lang");
-            let res = LangImpl::parse(&file);
+            let res = LangImpl::try_parse(&file);
             assert!(res.is_ok(), "{}", res.unwrap_err());
 
             should_parse_tests!($($rest)*);
@@ -37,7 +37,7 @@ mod tests {
     macro_rules! should_not_parse_tests {
         ($case: literal, $($rest: tt)*) => {
             let file = SourceFile::new($case, "main.lang");
-            let res = LangImpl::parse(&file);
+            let res = LangImpl::try_parse(&file);
             assert!(res.is_err(), "expected error, but got Ok: {:?}", res.unwrap());
 
             should_not_parse_tests!($($rest)*);

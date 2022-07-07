@@ -32,7 +32,6 @@ pub use lwb_parser::codegen_prelude;
 pub mod typechecker;
 
 /// Code related to configuring rust-lwb
-// pub mod config;
 pub use lwb_parser::config;
 
 pub use lwb_parser::error;

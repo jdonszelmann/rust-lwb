@@ -24,13 +24,7 @@ layout = [\n\r\t ];
     let input = "  true ++ ( 13 - 5 ) ;  ";
 
     let sf = SourceFile::new(syntax.to_string(), "test.syntax".to_string());
-    let ast = match SyntaxFile::parse(&sf) {
-        Ok(ok) => ok,
-        Err(err) => {
-            println!("{}", err);
-            panic!();
-        }
-    };
+    let ast = SyntaxFile::parse(&sf);
     let ast = convert(ast).unwrap();
 
     let sf2 = SourceFile::new(input.to_string(), "input.language".to_string());
