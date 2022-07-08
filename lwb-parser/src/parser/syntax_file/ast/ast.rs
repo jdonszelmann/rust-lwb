@@ -163,14 +163,14 @@ pub enum EscapeClosingBracket<M: AstInfo> {
 }
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub enum Layout<M: AstInfo> {
-    Simple(M, std::string::String),
-    Comment(M, Vec<std::string::String>),
-}
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(crate = "self::serde")]
 pub enum Newline<M: AstInfo> {
     Unix(M),
     Windows(M),
+}
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
+pub enum Layout<M: AstInfo> {
+    Simple(M, std::string::String),
+    Comment(M, Vec<std::string::String>),
 }
 pub type AST_ROOT<M> = Program<M>;
