@@ -96,18 +96,43 @@ delimited-bound:
     plus = "+";
 
 /// Annotations are tags that modify a specific sort or more often constructor.
-/// TODO: Document each
-annotation = "{" delimited(identifier, ",", +, trailing) "}";
+annotation-list = "{" delimited(annotation, ",", +, trailing) "}";
+annotation:
+    /// Mark a constructor as being a mapping from sort x to sort x.
+    /// An example is a parenthesis rule:
+    /// ```
+    /// expr:
+    ///     paren = "(" expr ")"
+    /// ```
+    ///
+    /// In that case you don't want a variant in the expr rule that's called "paren".
+    /// Instead, by adding the `injection` annotation you tell the parser that this rule is purely to create a new priority level,
+    /// but to use the inner expr as the result of the parse. Thus there will be no rule called "paren".
+    injection = "injection";
+
+    /// disable pretty printing. Doesn't work well anyway so don't bother with this annotation
+    no-pretty-print = "no-pretty-print";
+
+    /// mark a rule to appear as just a string in the AST. Whatever structure is found within, throw it away and just store
+    /// whatever was parsed.
+    ///
+    /// Note that any AST node has the .as_str() method to request this string representation of the node. For
+    /// single-string rules this is simply the default.
+    single-string = "single-string";
+
+    /// don't accept any layout characters while parsing this rule
+    no-layout = "no-layout";
+
 
 /// A [`sort`] consists of constructors. A sort will try each of the constructors
-/// from top to bottom, and use the first one that succesfully parses the input string.
+/// from top to bottom, and use the first one that successfully parses the input string.
 ///
 /// A constructor consists of a name, followed by an [`expression`]
 ///
 /// Constructors can have doc-comments using triple slashes.
 constructor:
     constructor-documented = doc-comment+ constructor;
-    constructor = "    " identifier "=" expression+ ";" annotation? "\n";
+    constructor = "    " identifier "=" expression+ ";" annotation-list? "\n";
 
 newline:
     unix = "\n";
@@ -126,7 +151,7 @@ sort:
     sort = identifier ":" constructor*;
 
     /// When a sort has only one constructor, it has simpler syntax.
-    sort-single = identifier "=" expression+ ";" annotation?;
+    sort-single = identifier "=" expression+ ";" annotation-list?;
 
 /// Other top-level constructs that are not sorts
 meta:

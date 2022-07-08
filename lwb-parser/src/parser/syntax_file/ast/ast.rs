@@ -35,7 +35,12 @@ pub enum Sort<M> {
     SortDocumented(M, Vec<DocComment<M>>, Box<Sort<M>>),
     Sort(M, Identifier<M>, Vec<Constructor<M>>),
     #[doc = "When a sort has only one constructor, it has simpler syntax."]
-    SortSingle(M, Identifier<M>, Vec<Expression<M>>, Option<Annotation<M>>),
+    SortSingle(
+        M,
+        Identifier<M>,
+        Vec<Expression<M>>,
+        Option<AnnotationList<M>>,
+    ),
 }
 #[doc = "An identifier is any name of a constructor or sort, and is used in various places."]
 #[doc = "Identifiers always start with a letter (capital or not) or an underscore, and can be"]
@@ -51,7 +56,7 @@ pub struct Identifier<M>(pub M, pub std::string::String);
 #[serde(crate = "self::serde")]
 pub struct DocComment<M>(pub M, pub std::string::String);
 #[doc = "A [`sort`] consists of constructors. A sort will try each of the constructors"]
-#[doc = "from top to bottom, and use the first one that succesfully parses the input string."]
+#[doc = "from top to bottom, and use the first one that successfully parses the input string."]
 #[doc = ""]
 #[doc = "A constructor consists of a name, followed by an [`expression`]"]
 #[doc = ""]
@@ -60,7 +65,12 @@ pub struct DocComment<M>(pub M, pub std::string::String);
 #[serde(crate = "self::serde")]
 pub enum Constructor<M> {
     ConstructorDocumented(M, Vec<DocComment<M>>, Box<Constructor<M>>),
-    Constructor(M, Identifier<M>, Vec<Expression<M>>, Option<Annotation<M>>),
+    Constructor(
+        M,
+        Identifier<M>,
+        Vec<Expression<M>>,
+        Option<AnnotationList<M>>,
+    ),
 }
 #[doc = "With expressions, you can give the syntax rules of a single constructor."]
 #[doc = "Expressions can be nested and combined."]
@@ -107,10 +117,9 @@ pub enum Expression<M> {
     Paren(M, Vec<Box<Expression<M>>>),
 }
 #[doc = "Annotations are tags that modify a specific sort or more often constructor."]
-#[doc = "TODO: Document each"]
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub struct Annotation<M>(pub M, pub Vec<Identifier<M>>);
+pub struct AnnotationList<M>(pub M, pub Vec<Annotation<M>>);
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub struct Number<M>(pub M, pub std::string::String);
@@ -151,6 +160,31 @@ pub enum DelimitedBound<M> {
 pub struct CharacterClass<M>(pub M, pub bool, pub Vec<CharacterClassItem<M>>);
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
+pub enum Annotation<M> {
+    #[doc = "Mark a constructor as being a mapping from sort x to sort x."]
+    #[doc = "An example is a parenthesis rule:"]
+    #[doc = "```"]
+    #[doc = "expr:"]
+    #[doc = "paren = \"(\" expr \")\""]
+    #[doc = "```"]
+    #[doc = ""]
+    #[doc = "In that case you don't want a variant in the expr rule that's called \"paren\"."]
+    #[doc = "Instead, by adding the `injection` annotation you tell the parser that this rule is purely to create a new priority level,"]
+    #[doc = "but to use the inner expr as the result of the parse. Thus there will be no rule called \"paren\"."]
+    Injection(M),
+    #[doc = "disable pretty printing. Doesn't work well anyway so don't bother with this annotation"]
+    NoPrettyPrint(M),
+    #[doc = "mark a rule to appear as just a string in the AST. Whatever structure is found within, throw it away and just store"]
+    #[doc = "whatever was parsed."]
+    #[doc = ""]
+    #[doc = "Note that any AST node has the .as_str() method to request this string representation of the node. For"]
+    #[doc = "single-string rules this is simply the default."]
+    SingleString(M),
+    #[doc = "don't accept any layout characters while parsing this rule"]
+    NoLayout(M),
+}
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
 pub enum CharacterClassItem<M> {
     Range(M, EscapeClosingBracket<M>, EscapeClosingBracket<M>),
     SingleChar(M, EscapeClosingBracket<M>),
@@ -163,14 +197,14 @@ pub enum EscapeClosingBracket<M> {
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub enum Newline<M> {
-    Unix(M),
-    Windows(M),
-}
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(crate = "self::serde")]
 pub enum Layout<M> {
     Simple(M, std::string::String),
     Comment(M, Vec<std::string::String>),
+}
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
+pub enum Newline<M> {
+    Unix(M),
+    Windows(M),
 }
 pub type AST_ROOT<M> = Program<M>;
