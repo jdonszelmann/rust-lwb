@@ -66,7 +66,7 @@ pub fn generate_structs(
                     #(#doc)*
                     #[derive(#(#derives),*)]
                     #serde_attrs
-                    pub struct #name<M: AstInfo>(pub M, pub std::string::String);
+                    pub struct #name<M>(pub M, pub std::string::String);
                 ));
             } else {
                 let c = generate_constructor_type(&constr.expression, ckr);
@@ -77,7 +77,7 @@ pub fn generate_structs(
                     #[derive(#(#derives),*)]
                     #non_exhaustive_attr
                     #serde_attrs
-                    pub struct #name<M: AstInfo>(
+                    pub struct #name<M>(
                         pub M,
                         #(#fields),*
                         #non_exhaustive_struct_field
@@ -122,7 +122,7 @@ pub fn generate_structs(
                 #[derive(#(#derives),*)]
                 #non_exhaustive_attr
                 #serde_attrs
-                pub enum #name<M: AstInfo> {
+                pub enum #name<M> {
                     #(#variants),*
                     #non_exhaustive_enum_variant
                 }
