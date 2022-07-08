@@ -114,7 +114,12 @@ impl<M: AstInfo> FromPairs<M> for Sort<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "sort");
                         },
-                        if let ParsePairExpression::List(_, ref l) = l[2usize] {
+                        if let ParsePairExpression::Sort(_, ref s) = l[2usize] {
+                            Newline::from_pairs(s, generator)
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "sort");
+                        },
+                        if let ParsePairExpression::List(_, ref l) = l[3usize] {
                             l . iter () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { Constructor :: from_pairs (s , generator) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "sort") ; }) . collect ()
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "sort");
@@ -146,6 +151,11 @@ impl<M: AstInfo> FromPairs<M> for Sort<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "sort");
                         },
+                        if let ParsePairExpression::Sort(_, ref s) = l[5usize] {
+                            Newline::from_pairs(s, generator)
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "sort");
+                        },
                     )
                 } else {
                     unreachable!(
@@ -170,6 +180,17 @@ impl<M: AstInfo> FromPairs<M> for DocComment<M> {
         assert_eq!(pair.sort, "doc-comment");
         let info = generator.generate(&pair);
         return Self(info, pair.constructor_value.span().as_str().to_string());
+    }
+}
+impl<M: AstInfo> FromPairs<M> for Newline<M> {
+    fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
+        assert_eq!(pair.sort, "newline");
+        let info = generator.generate(&pair);
+        match pair.constructor_name {
+            "unix" => Self::Unix(info),
+            "windows" => Self::Windows(info),
+            a => unreachable!("{}", a),
+        }
     }
 }
 impl<M: AstInfo> FromPairs<M> for Constructor<M> {
@@ -215,6 +236,11 @@ impl<M: AstInfo> FromPairs<M> for Constructor<M> {
                         },
                         if let ParsePairExpression::List(_, ref l) = l[5usize] {
                             l . first () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { Annotation :: from_pairs (s , generator) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor") ; })
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[6usize] {
+                            Newline::from_pairs(s, generator)
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor");
                         },
@@ -696,17 +722,6 @@ impl<M: AstInfo> FromPairs<M> for EscapeClosingBracket<M> {
                     },
                 )
             }
-            a => unreachable!("{}", a),
-        }
-    }
-}
-impl<M: AstInfo> FromPairs<M> for Newline<M> {
-    fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "newline");
-        let info = generator.generate(&pair);
-        match pair.constructor_name {
-            "unix" => Self::Unix(info),
-            "windows" => Self::Windows(info),
             a => unreachable!("{}", a),
         }
     }

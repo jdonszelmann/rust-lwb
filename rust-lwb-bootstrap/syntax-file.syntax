@@ -107,7 +107,7 @@ annotation = "{" delimited(identifier, ",", +, trailing) "}";
 /// Constructors can have doc-comments using triple slashes.
 constructor:
     constructor-documented = doc-comment+ constructor;
-    constructor = "    " identifier "=" expression+ ";" annotation? "\n";
+    constructor = "    " identifier "=" expression+ ";" annotation? newline;
 
 newline:
     unix = "\n";
@@ -123,10 +123,10 @@ newline:
 /// Sorts can have doc-comments using triple slashes.
 sort:
     sort-documented = doc-comment+ sort;
-    sort = identifier ":" constructor*;
+    sort = identifier ":" newline constructor*;
 
     /// When a sort has only one constructor, it has simpler syntax.
-    sort-single = identifier "=" expression+ ";" annotation?;
+    sort-single = identifier "=" expression+ ";" annotation? newline;
 
 /// Other top-level constructs that are not sorts
 meta:
