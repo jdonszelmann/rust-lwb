@@ -258,6 +258,7 @@ fn convert_annotations<M: AstInfo>(inp: ast::AnnotationList<M>) -> ConversionRes
             ast::Annotation::NoPrettyPrint(_) => Annotation::NoPrettyPrint,
             ast::Annotation::SingleString(_) => Annotation::SingleString,
             ast::Annotation::NoLayout(_) => Annotation::NoLayout,
+            ast::Annotation::Hidden(_) => Annotation::Hidden,
         }))
         .collect::<Result<_, _>>()
 }

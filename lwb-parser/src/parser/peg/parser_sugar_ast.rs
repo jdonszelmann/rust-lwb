@@ -52,6 +52,10 @@ pub enum Annotation {
     /// represent this constructor as a single string in the final ast
     #[display(fmt = "single-string")]
     SingleString,
+
+    /// this rule does not appear in the ast anywhere its used.
+    #[display(fmt = "hidden")]
+    Hidden,
 }
 
 impl FromStr for Annotation {

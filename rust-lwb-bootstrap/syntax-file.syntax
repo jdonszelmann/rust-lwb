@@ -123,6 +123,10 @@ annotation:
     /// don't accept any layout characters while parsing this rule
     no-layout = "no-layout";
 
+    /// Annotation for sorts. This sort will not appear in any of the constructors it's used in.
+    /// useful for for example the [`newline`] rule in this file.
+    hidden = "hidden";
+
 
 /// A [`sort`] consists of constructors. A sort will try each of the constructors
 /// from top to bottom, and use the first one that successfully parses the input string.

@@ -182,6 +182,9 @@ pub enum Annotation<M> {
     SingleString(M),
     #[doc = "don't accept any layout characters while parsing this rule"]
     NoLayout(M),
+    #[doc = "Annotation for sorts. This sort will not appear in any of the constructors it's used in."]
+    #[doc = "useful for for example the [`newline`] rule in this file."]
+    Hidden(M),
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
@@ -197,14 +200,14 @@ pub enum EscapeClosingBracket<M> {
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub enum Layout<M> {
-    Simple(M, std::string::String),
-    Comment(M, Vec<std::string::String>),
-}
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(crate = "self::serde")]
 pub enum Newline<M> {
     Unix(M),
     Windows(M),
+}
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
+pub enum Layout<M> {
+    Simple(M, std::string::String),
+    Comment(M, Vec<std::string::String>),
 }
 pub type AST_ROOT<M> = Program<M>;
