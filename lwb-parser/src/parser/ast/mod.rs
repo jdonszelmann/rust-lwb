@@ -9,6 +9,10 @@ pub mod generate_ast;
 
 pub trait SpannedAstInfo: AstInfo {
     fn span(&self) -> &Span;
+
+    fn as_str(&self) -> &str {
+        self.span().as_str()
+    }
 }
 
 #[derive(Hash, Eq, PartialEq, Copy, Clone, Serialize, Deserialize, Debug)]
@@ -25,6 +29,13 @@ pub trait AstInfo: Debug + PartialEq {
 }
 
 pub trait AstNode<M: AstInfo>: FromPairs<M> {
+    fn as_str<'a>(&'a self) -> &'a str
+    where
+        M: SpannedAstInfo + 'a,
+    {
+        self.ast_info().as_str()
+    }
+
     fn ast_info(&self) -> &M;
     fn sort(&self) -> &'static str;
     fn constructor(&self) -> &'static str;
