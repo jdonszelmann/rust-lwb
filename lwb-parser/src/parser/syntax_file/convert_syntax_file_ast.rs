@@ -131,7 +131,7 @@ fn convert_character_class<M: AstInfo>(
 
 fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
     Ok(match inp {
-        ast::Sort::Sort(_, name, constructors) => Sort {
+        ast::Sort::Sort(_, name, _, constructors) => Sort {
             documentation: None,
             name: convert_identifier(name),
             constructors: constructors
@@ -139,7 +139,7 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
                 .map(|i| convert_constructor(i))
                 .collect::<Result<_, _>>()?,
         },
-        ast::Sort::SortSingle(_, name, expressions, annotations) => {
+        ast::Sort::SortSingle(_, name, expressions, annotations, _) => {
             let name = convert_identifier(name);
             Sort {
                 documentation: None,
@@ -262,7 +262,7 @@ fn convert_annotations<M: AstInfo>(inp: ast::Annotation<M>) -> ConversionResult<
 
 fn convert_constructor<M: AstInfo>(inp: ast::Constructor<M>) -> ConversionResult<Constructor> {
     Ok(match inp {
-        ast::Constructor::Constructor(_, name, expressions, annotations) => Constructor {
+        ast::Constructor::Constructor(_, name, expressions, annotations, _) => Constructor {
             documentation: None,
             name: convert_identifier(name),
             expression: convert_expressions(expressions)?,

@@ -33,9 +33,15 @@ pub struct Meta<M>(pub M, pub Identifier<M>);
 #[serde(crate = "self::serde")]
 pub enum Sort<M> {
     SortDocumented(M, Vec<DocComment<M>>, Box<Sort<M>>),
-    Sort(M, Identifier<M>, Vec<Constructor<M>>),
+    Sort(M, Identifier<M>, Newline<M>, Vec<Constructor<M>>),
     #[doc = "When a sort has only one constructor, it has simpler syntax."]
-    SortSingle(M, Identifier<M>, Vec<Expression<M>>, Option<Annotation<M>>),
+    SortSingle(
+        M,
+        Identifier<M>,
+        Vec<Expression<M>>,
+        Option<Annotation<M>>,
+        Newline<M>,
+    ),
 }
 #[doc = "An identifier is any name of a constructor or sort, and is used in various places."]
 #[doc = "Identifiers always start with a letter (capital or not) or an underscore, and can be"]
@@ -50,6 +56,12 @@ pub struct Identifier<M>(pub M, pub std::string::String);
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub struct DocComment<M>(pub M, pub std::string::String);
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
+pub enum Newline<M> {
+    Unix(M),
+    Windows(M),
+}
 #[doc = "A [`sort`] consists of constructors. A sort will try each of the constructors"]
 #[doc = "from top to bottom, and use the first one that succesfully parses the input string."]
 #[doc = ""]
@@ -60,7 +72,13 @@ pub struct DocComment<M>(pub M, pub std::string::String);
 #[serde(crate = "self::serde")]
 pub enum Constructor<M> {
     ConstructorDocumented(M, Vec<DocComment<M>>, Box<Constructor<M>>),
-    Constructor(M, Identifier<M>, Vec<Expression<M>>, Option<Annotation<M>>),
+    Constructor(
+        M,
+        Identifier<M>,
+        Vec<Expression<M>>,
+        Option<Annotation<M>>,
+        Newline<M>,
+    ),
 }
 #[doc = "With expressions, you can give the syntax rules of a single constructor."]
 #[doc = "Expressions can be nested and combined."]
@@ -160,12 +178,6 @@ pub enum CharacterClassItem<M> {
 pub enum EscapeClosingBracket<M> {
     Escaped(M, std::string::String),
     Unescaped(M, std::string::String),
-}
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(crate = "self::serde")]
-pub enum Newline<M> {
-    Unix(M),
-    Windows(M),
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
