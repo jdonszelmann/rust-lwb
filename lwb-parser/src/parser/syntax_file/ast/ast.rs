@@ -8,19 +8,19 @@
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
 use super::prelude::*;
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub struct Program<M: AstInfo>(pub M, pub Vec<SortOrMeta<M>>);
-#[derive(Debug, Serialize, Deserialize)]
+pub struct Program<M>(pub M, pub Vec<SortOrMeta<M>>);
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub enum SortOrMeta<M: AstInfo> {
+pub enum SortOrMeta<M> {
     Meta(M, Meta<M>),
     Sort(M, Sort<M>),
 }
 #[doc = "Other top-level constructs that are not sorts"]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub struct Meta<M: AstInfo>(pub M, pub Identifier<M>);
+pub struct Meta<M>(pub M, pub Identifier<M>);
 #[doc = "A sort is a group of constructors. See [`constructor`] for more details."]
 #[doc = ""]
 #[doc = "There is one special sort, called `layout`. It can be used to denote"]
@@ -29,9 +29,9 @@ pub struct Meta<M: AstInfo>(pub M, pub Identifier<M>);
 #[doc = "layout sort 0 or more times, and throw away whatever it parses."]
 #[doc = ""]
 #[doc = "Sorts can have doc-comments using triple slashes."]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub enum Sort<M: AstInfo> {
+pub enum Sort<M> {
     SortDocumented(M, Vec<DocComment<M>>, Box<Sort<M>>),
     Sort(M, Identifier<M>, Vec<Constructor<M>>),
     #[doc = "When a sort has only one constructor, it has simpler syntax."]
@@ -41,32 +41,32 @@ pub enum Sort<M: AstInfo> {
 #[doc = "Identifiers always start with a letter (capital or not) or an underscore, and can be"]
 #[doc = "followed by letters or numbers. This is very similar to how variables in most major"]
 #[doc = "programming languages work."]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub struct Identifier<M: AstInfo>(pub M, pub std::string::String);
+pub struct Identifier<M>(pub M, pub std::string::String);
 #[doc = "A documentation comment (doc comment) is always associated with a sort"]
 #[doc = "or constructor. It documents what it does. Doc comments will be interpreted"]
 #[doc = "and will be put on the generated types during codegen."]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub struct DocComment<M: AstInfo>(pub M, pub std::string::String);
+pub struct DocComment<M>(pub M, pub std::string::String);
 #[doc = "A [`sort`] consists of constructors. A sort will try each of the constructors"]
 #[doc = "from top to bottom, and use the first one that succesfully parses the input string."]
 #[doc = ""]
 #[doc = "A constructor consists of a name, followed by an [`expression`]"]
 #[doc = ""]
 #[doc = "Constructors can have doc-comments using triple slashes."]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub enum Constructor<M: AstInfo> {
+pub enum Constructor<M> {
     ConstructorDocumented(M, Vec<DocComment<M>>, Box<Constructor<M>>),
     Constructor(M, Identifier<M>, Vec<Expression<M>>, Option<Annotation<M>>),
 }
 #[doc = "With expressions, you can give the syntax rules of a single constructor."]
 #[doc = "Expressions can be nested and combined."]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub enum Expression<M: AstInfo> {
+pub enum Expression<M> {
     #[doc = "Repeat some expression zero or more times"]
     #[doc = "Equivalent to `<expression> {0,}`"]
     Star(M, Box<Expression<M>>),
@@ -108,23 +108,23 @@ pub enum Expression<M: AstInfo> {
 }
 #[doc = "Annotations are tags that modify a specific sort or more often constructor."]
 #[doc = "TODO: Document each"]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub struct Annotation<M: AstInfo>(pub M, pub Vec<Identifier<M>>);
-#[derive(Debug, Serialize, Deserialize)]
+pub struct Annotation<M>(pub M, pub Vec<Identifier<M>>);
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub struct Number<M: AstInfo>(pub M, pub std::string::String);
-#[derive(Debug, Serialize, Deserialize)]
+pub struct Number<M>(pub M, pub std::string::String);
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub enum StringChar<M: AstInfo> {
+pub enum StringChar<M> {
     Escaped(M, std::string::String),
     Normal(M, std::string::String),
 }
 #[doc = "A delimited expression can be repeated just like normal repetition expressions."]
 #[doc = "To denote this, you can use a delimitation bound."]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub enum DelimitedBound<M: AstInfo> {
+pub enum DelimitedBound<M> {
     #[doc = "Within a range or possible repetitions."]
     NumNum(M, Number<M>, Number<M>),
     #[doc = "At least some number of repetitions, but no upper bound."]
@@ -146,31 +146,31 @@ pub enum DelimitedBound<M: AstInfo> {
 #[doc = "Note that to use a closing square bracket within a character class, you need to escape it."]
 #[doc = ""]
 #[doc = "`[^\\]]` means any character that isn't a square bracket."]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub struct CharacterClass<M: AstInfo>(pub M, pub bool, pub Vec<CharacterClassItem<M>>);
-#[derive(Debug, Serialize, Deserialize)]
+pub struct CharacterClass<M>(pub M, pub bool, pub Vec<CharacterClassItem<M>>);
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub enum CharacterClassItem<M: AstInfo> {
+pub enum CharacterClassItem<M> {
     Range(M, EscapeClosingBracket<M>, EscapeClosingBracket<M>),
     SingleChar(M, EscapeClosingBracket<M>),
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub enum EscapeClosingBracket<M: AstInfo> {
+pub enum EscapeClosingBracket<M> {
     Escaped(M, std::string::String),
     Unescaped(M, std::string::String),
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub enum Newline<M: AstInfo> {
-    Unix(M),
-    Windows(M),
-}
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(crate = "self::serde")]
-pub enum Layout<M: AstInfo> {
+pub enum Layout<M> {
     Simple(M, std::string::String),
     Comment(M, Vec<std::string::String>),
+}
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
+pub enum Newline<M> {
+    Unix(M),
+    Windows(M),
 }
 pub type AST_ROOT<M> = Program<M>;
