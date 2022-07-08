@@ -1,6 +1,6 @@
 [package]
 name = "lwb-parser"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 authors = ["Jonathan Brouwer", "Jonathan Dönszelmann <jonabent@gmail.com>"]
 license = "MIT"
