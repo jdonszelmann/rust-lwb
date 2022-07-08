@@ -15,6 +15,12 @@ impl AstInfo for BasicAstInfo {
     }
 }
 
+impl PartialEq for BasicAstInfo {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
 impl SpannedAstInfo for BasicAstInfo {
     fn span(&self) -> &Span {
         &self.span

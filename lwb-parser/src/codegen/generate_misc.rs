@@ -36,7 +36,7 @@ pub fn generate_root(
             /// constructed by the parser, and that matches on types containing this must be
             /// non-exhaustive. Rust does have the #[non_exhaustive] attribute, but it only works
             /// between crate boundaries, not within the same crate which is what this enforces.
-            #[derive(Copy, Clone, PartialEq, #(#derives),*)]
+            #[derive(Copy, Clone, #(#derives),*)]
             #serde_attrs
             pub struct NonExhaustive;
         )

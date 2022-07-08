@@ -20,7 +20,7 @@ impl NodeId {
     }
 }
 
-pub trait AstInfo: Debug {
+pub trait AstInfo: Debug + PartialEq {
     fn node_id(&self) -> NodeId;
 }
 

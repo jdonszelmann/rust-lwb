@@ -13,6 +13,16 @@ mod tests {
     use rust_lwb::sources::source_file::SourceFile;
     use rust_lwb::typechecker::TypeChecker;
 
+    // #[test]
+    // fn test_precedence() {
+    //     let p1 = STL::parse(&SourceFile::new("3 + 5 - 6;", "main.stl"));
+    //     let p2 = STL::parse(&SourceFile::new("5 - 6 + 3;", "main.stl"));
+    //     dbg!(&p1);
+    //     dbg!(&p2);
+    //
+    //     assert_eq!(p1, p2);
+    // }
+
     macro_rules! test_stl {
         ($name: ident: $input: literal $($tt: tt)*) => {
             #[test]
