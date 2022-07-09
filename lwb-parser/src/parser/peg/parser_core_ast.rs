@@ -1,6 +1,7 @@
 use crate::sources::character_class::CharacterClass;
 use crate::sources::span::Span;
 use std::collections::HashMap;
+use crate::parser::peg::parser_sugar_ast::Annotation;
 
 #[derive(Debug, Clone)]
 pub enum CoreExpression<'src> {
@@ -18,8 +19,15 @@ pub enum CoreExpression<'src> {
 }
 
 #[derive(Debug, Clone)]
+pub struct CoreSort<'src> {
+    pub name: &'src str,
+    pub expr: CoreExpression<'src>,
+    pub annotations: Vec<Annotation>,
+}
+
+#[derive(Debug, Clone)]
 pub struct CoreAst<'src> {
-    pub sorts: HashMap<&'src str, CoreExpression<'src>>,
+    pub sorts: HashMap<&'src str, CoreSort<'src>>,
     pub starting_sort: &'src str,
 }
 

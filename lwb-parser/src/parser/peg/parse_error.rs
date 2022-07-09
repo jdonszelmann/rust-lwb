@@ -5,6 +5,7 @@ use miette::{Diagnostic, LabeledSpan, Severity, SourceCode};
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
+use crate::parser::peg::parser_core_expression::SortContext;
 
 /// A parsing error represents a single error that occurred during parsing.
 /// The parsing error occurs at a certain position in a file, represented by the span.
@@ -16,9 +17,12 @@ pub struct PEGParseError {
     pub expected: Vec<Expect>,
     pub fail_left_rec: bool,
     pub fail_loop: bool,
+    /// first the name of the sort that caused the error, then the error message
+    pub msgs: Vec<(String, String)>,
 }
 
-impl Diagnostic for PEGParseError {
+// add error bound so IDEs don't complain. Error is always derived by thiserror.
+impl Diagnostic for PEGParseError where PEGParseError: std::error::Error {
     /// Diagnostic severity. This may be used by [ReportHandler]s to change the
     /// display format of this diagnostic.
     ///
@@ -62,15 +66,36 @@ impl Diagnostic for PEGParseError {
 
         Some(Box::new(labels.into_iter()))
     }
+
+    fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        let mut helps = Vec::new();
+        for (sort, msg) in &self.msgs {
+            helps.push(format!("if a {sort} would be parsed here then {msg}"));
+        }
+
+        if helps.is_empty() {
+            None
+        } else {
+            Some(Box::new(helps.join("\n")))
+        }
+
+    }
 }
 
 impl PEGParseError {
-    pub fn expect(span: Span, expect: Expect) -> Self {
+    pub fn expect(span: Span, expect: Expect, sort_context: &SortContext) -> Self {
         PEGParseError {
             span,
             expected: vec![expect],
             fail_left_rec: false,
             fail_loop: false,
+            msgs: if let Some(name) = sort_context.name {
+                sort_context.error.iter()
+                    .map(|i| (name.to_string(), i.to_string()))
+                    .collect()
+            } else {
+                vec![]
+            }
         }
     }
 
@@ -80,6 +105,7 @@ impl PEGParseError {
             expected: vec![],
             fail_left_rec: true,
             fail_loop: false,
+            msgs: vec![]
         }
     }
 
@@ -89,6 +115,7 @@ impl PEGParseError {
             expected: vec![],
             fail_left_rec: false,
             fail_loop: true,
+            msgs: vec![]
         }
     }
 }
@@ -148,6 +175,8 @@ impl PEGParseError {
                 self.expected.append(&mut other.expected);
                 //Left recursion
                 self.fail_left_rec |= other.fail_left_rec;
+
+                self.msgs.extend(other.msgs);
 
                 self
             }

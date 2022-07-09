@@ -264,6 +264,7 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
         assert_eq!(pair.sort, "expression");
         let info = generator.generate(&pair);
         match pair.constructor_name {
+            "double-eq" => Self::DoubleEq(info),
             "star" => {
                 if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
                     Self::Star(
@@ -483,7 +484,7 @@ impl<M: AstInfo> FromPairs<M> for Annotation<M> {
                 if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
                     Self::Error(
                         info,
-                        if let ParsePairExpression::Sort(_, ref s) = l[3usize] {
+                        if let ParsePairExpression::Sort(_, ref s) = l[2usize] {
                             String::from_pairs(s, generator)
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "annotation");

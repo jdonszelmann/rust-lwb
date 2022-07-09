@@ -20,6 +20,10 @@ string-char:
 
 number = [0-9]+; {single-string}
 
+string:
+    single = "'" string-char* "'"; {no-layout}
+    double = "\"" string-char* "\""; {no-layout}
+
 /// A character class represent a selection of terminal characters. This is similar to
 /// Regex character classes. Character classes can be inverted by starting them with a `^`.
 /// For example, `[^\n]` means it matches any character that is not a newline.
@@ -34,14 +38,11 @@ number = [0-9]+; {single-string}
 character-class:
     class =  "[" "^"? character-class-item* "]"; {no-layout}
 
-string:
-    single = "'" string-char* "'"; {no-layout}
-    double = "\"" string-char* "\""; {no-layout}
-
-
 /// With expressions, you can give the syntax rules of a single constructor.
 /// Expressions can be nested and combined.
 expression:
+    double-eq = "="; {error: "an `=` can only be used at the start of a constructor"}
+
     /// Repeat some expression zero or more times
     /// Equivalent to `<expression> {0,}`
     star = expression "*";
@@ -131,7 +132,12 @@ annotation:
     hidden = "hidden";
 
     /// if this rule manages to parse, display an error with the associated message
-    error = "error" ":" "'" string;
+    /// This annotation can be placed on constructors (these constructors then won't actually exist in the AST,
+    /// if the constructor is chosen an error is emitted), or on sorts. On a sort the annotation
+    /// has a slightly different effect. If none of the variants in the sort managed to parse
+    /// then alongside an "expected ...", that message will be displayed as well.
+    /// If this sort was the only possibility at a certain point, only the message will be displayed.
+    error = "error" ":" string;
 
 /// A [`sort`] consists of constructors. A sort will try each of the constructors
 /// from top to bottom, and use the first one that successfully parses the input string.
@@ -139,12 +145,12 @@ annotation:
 /// A constructor consists of a name, followed by an [`expression`]
 ///
 /// Constructors can have doc-comments using triple slashes.
-constructor:
+constructor: {error: "make sure each constructor ends with a `;` and is indented with 4 spaces."}
     constructor-documented = doc-comment+ constructor;
     constructor = "    " identifier "=" expression+ ";" annotation-list? newline;
 
 newline: {hidden}
-    unix = "\n";
+    unix = "\n"
     windows = "\r\n";
 
 /// A sort is a group of constructors. See [`constructor`] for more details.

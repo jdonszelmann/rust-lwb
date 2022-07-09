@@ -230,6 +230,7 @@ fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<E
                 trailing,
             }
         }
+        ast::Expression::DoubleEq(_) => {}
     })
 }
 

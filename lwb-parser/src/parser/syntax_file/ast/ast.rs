@@ -86,6 +86,7 @@ pub enum Constructor<M> {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub enum Expression<M> {
+    DoubleEq(M),
     #[doc = "Repeat some expression zero or more times"]
     #[doc = "Equivalent to `<expression> {0,}`"]
     Star(M, Box<Expression<M>>),
@@ -151,6 +152,11 @@ pub enum Annotation<M> {
     #[doc = "useful for for example the [`newline`] rule in this file."]
     Hidden(M),
     #[doc = "if this rule manages to parse, display an error with the associated message"]
+    #[doc = "This annotation can be placed on constructors (these constructors then won't actually exist in the AST,"]
+    #[doc = "if the constructor is chosen an error is emitted), or on sorts. On a sort the annotation"]
+    #[doc = "has a slightly different effect. If none of the variants in the sort managed to parse"]
+    #[doc = "then alongside an \"expected ...\", that message will be displayed as well."]
+    #[doc = "If this sort was the only possibility at a certain point, only the message will be displayed."]
     Error(M, String<M>),
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
