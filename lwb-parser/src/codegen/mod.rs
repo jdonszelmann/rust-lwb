@@ -1,9 +1,10 @@
 use convert_case::{Case, Casing};
+use regex::Captures;
 use std::fs::File;
-use std::io;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::{fs, io};
 
 mod check_recursive;
 mod error;
@@ -34,6 +35,15 @@ impl FormattingFile {
 fn try_fmt(p: impl AsRef<Path>) -> io::Result<()> {
     println!("Formatting {:?}", p.as_ref());
     Command::new("rustfmt").arg(p.as_ref()).spawn()?.wait()?;
+
+    let r = regex::Regex::new(r#"#\[doc *= *"(.*)"\]"#).expect("should compile");
+    let rq = regex::Regex::new(r#"\\(.)"#).expect("should compile");
+
+    let code = fs::read_to_string(&p)?;
+    let replaced = r.replace_all(&code, |caps: &Captures| {
+        format!("///{}", rq.replace_all(&caps[1], "$1"))
+    });
+    fs::write(&p, replaced.as_ref())?;
 
     Ok(())
 }

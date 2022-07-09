@@ -17,18 +17,18 @@ pub enum SortOrMeta<M> {
     Meta(M, Meta<M>),
     Sort(M, Sort<M>),
 }
-#[doc = "Other top-level constructs that are not sorts"]
+///Other top-level constructs that are not sorts
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub struct Meta<M>(pub M, pub Identifier<M>);
-#[doc = "A sort is a group of constructors. See [`constructor`] for more details."]
-#[doc = ""]
-#[doc = "There is one special sort, called `layout`. It can be used to denote"]
-#[doc = "that a grammar should for example ignore certain whitespace or comments."]
-#[doc = "Between every part of an expression, the parser will attempt to parse the"]
-#[doc = "layout sort 0 or more times, and throw away whatever it parses."]
-#[doc = ""]
-#[doc = "Sorts can have doc-comments using triple slashes."]
+///A sort is a group of constructors. See [`constructor`] for more details.
+///
+///There is one special sort, called `layout`. It can be used to denote
+///that a grammar should for example ignore certain whitespace or comments.
+///Between every part of an expression, the parser will attempt to parse the
+///layout sort 0 or more times, and throw away whatever it parses.
+///
+///Sorts can have doc-comments using triple slashes.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub enum Sort<M> {
@@ -39,7 +39,7 @@ pub enum Sort<M> {
         Option<AnnotationList<M>>,
         Vec<Constructor<M>>,
     ),
-    #[doc = "When a sort has only one constructor, it has simpler syntax."]
+    ///When a sort has only one constructor, it has simpler syntax.
     SortSingle(
         M,
         Identifier<M>,
@@ -47,29 +47,29 @@ pub enum Sort<M> {
         Option<AnnotationList<M>>,
     ),
 }
-#[doc = "An identifier is any name of a constructor or sort, and is used in various places."]
-#[doc = "Identifiers always start with a letter (capital or not) or an underscore, and can be"]
-#[doc = "followed by letters or numbers. This is very similar to how variables in most major"]
-#[doc = "programming languages work."]
+///An identifier is any name of a constructor or sort, and is used in various places.
+///Identifiers always start with a letter (capital or not) or an underscore, and can be
+///followed by letters or numbers. This is very similar to how variables in most major
+///programming languages work.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub struct Identifier<M>(pub M, pub std::string::String);
-#[doc = "A documentation comment (doc comment) is always associated with a sort"]
-#[doc = "or constructor. It documents what it does. Doc comments will be interpreted"]
-#[doc = "and will be put on the generated types during codegen."]
+///A documentation comment (doc comment) is always associated with a sort
+///or constructor. It documents what it does. Doc comments will be interpreted
+///and will be put on the generated types during codegen.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub struct DocComment<M>(pub M, pub std::string::String);
-#[doc = "Annotations are tags that modify a specific sort or more often constructor."]
+///Annotations are tags that modify a specific sort or more often constructor.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub struct AnnotationList<M>(pub M, pub Vec<Annotation<M>>);
-#[doc = "A [`sort`] consists of constructors. A sort will try each of the constructors"]
-#[doc = "from top to bottom, and use the first one that successfully parses the input string."]
-#[doc = ""]
-#[doc = "A constructor consists of a name, followed by an [`expression`]"]
-#[doc = ""]
-#[doc = "Constructors can have doc-comments using triple slashes."]
+///A [`sort`] consists of constructors. A sort will try each of the constructors
+///from top to bottom, and use the first one that successfully parses the input string.
+///
+///A constructor consists of a name, followed by an [`expression`]
+///
+///Constructors can have doc-comments using triple slashes.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub enum Constructor<M> {
@@ -81,34 +81,34 @@ pub enum Constructor<M> {
         Option<AnnotationList<M>>,
     ),
 }
-#[doc = "With expressions, you can give the syntax rules of a single constructor."]
-#[doc = "Expressions can be nested and combined."]
+///With expressions, you can give the syntax rules of a single constructor.
+///Expressions can be nested and combined.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub enum Expression<M> {
-    #[doc = "Repeat some expression zero or more times"]
-    #[doc = "Equivalent to `<expression> {0,}`"]
+    ///Repeat some expression zero or more times
+    ///Equivalent to `<expression> {0,}`
     Star(M, Box<Expression<M>>),
-    #[doc = "Repeat some expression one or more times"]
-    #[doc = "Equivalent to `<expression> {1,}`"]
+    ///Repeat some expression one or more times
+    ///Equivalent to `<expression> {1,}`
     Plus(M, Box<Expression<M>>),
-    #[doc = "Optionally have some expression."]
-    #[doc = "Equivalent to `<expression> {0,1}`"]
+    ///Optionally have some expression.
+    ///Equivalent to `<expression> {0,1}`
     Maybe(M, Box<Expression<M>>),
-    #[doc = "Exact repetition. The expression is repeated an exact number of times. Equivalent"]
-    #[doc = "to ranged repetition with an equal lower and upper bound."]
+    ///Exact repetition. The expression is repeated an exact number of times. Equivalent
+    ///to ranged repetition with an equal lower and upper bound.
     RepeatExact(M, Box<Expression<M>>, Number<M>),
-    #[doc = "Ranged repetition. The expression may be repeated any number of times, within the range."]
-    #[doc = "Both bounds are inclusive."]
+    ///Ranged repetition. The expression may be repeated any number of times, within the range.
+    ///Both bounds are inclusive.
     RepeatRange(M, Box<Expression<M>>, Number<M>, Number<M>),
-    #[doc = "Ranged repetition, without upper bound (or an infinite maximum)"]
+    ///Ranged repetition, without upper bound (or an infinite maximum)
     RepeatLower(M, Box<Expression<M>>, Number<M>),
-    #[doc = "Matches a piece of text exactly. Layout is parsed within a literal."]
+    ///Matches a piece of text exactly. Layout is parsed within a literal.
     Literal(M, String<M>),
-    #[doc = "Delimited expressions. Says that some expression should be repeatedly parsed,"]
-    #[doc = "but between two parses, a delimiter should be parsed too. For example, comma seperated expressions."]
-    #[doc = "The final trailing keyword enables a trailing separator after the sequence. If not present, no trailing"]
-    #[doc = "separator is allowed."]
+    ///Delimited expressions. Says that some expression should be repeatedly parsed,
+    ///but between two parses, a delimiter should be parsed too. For example, comma seperated expressions.
+    ///The final trailing keyword enables a trailing separator after the sequence. If not present, no trailing
+    ///separator is allowed.
     Delimited(
         M,
         Box<Expression<M>>,
@@ -116,46 +116,46 @@ pub enum Expression<M> {
         DelimitedBound<M>,
         bool,
     ),
-    #[doc = "Reference another sort within this expression. That sort should be parsed in this position in the expression."]
+    ///Reference another sort within this expression. That sort should be parsed in this position in the expression.
     Sort(M, Identifier<M>),
-    #[doc = "A [`character class`](character-class) (range of characters) should be parsed here."]
+    ///A [`character class`](character-class) (range of characters) should be parsed here.
     Class(M, CharacterClass<M>),
-    #[doc = "You can use parentheses to group parts of expressions."]
+    ///You can use parentheses to group parts of expressions.
     Paren(M, Vec<Box<Expression<M>>>),
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub enum Annotation<M> {
-    #[doc = "Mark a constructor as being a mapping from sort x to sort x."]
-    #[doc = "An example is a parenthesis rule:"]
-    #[doc = "```lwb,no_run"]
-    #[doc = "expr:"]
-    #[doc = "paren = \"(\" expr \")\""]
-    #[doc = "```"]
-    #[doc = ""]
-    #[doc = "In that case you don't want a variant in the expr rule that's called \"paren\"."]
-    #[doc = "Instead, by adding the `injection` annotation you tell the parser that this rule is purely to create a new priority level,"]
-    #[doc = "but to use the inner expr as the result of the parse. Thus there will be no rule called \"paren\"."]
+    ///Mark a constructor as being a mapping from sort x to sort x.
+    ///An example is a parenthesis rule:
+    ///```lwb,no_run
+    ///expr:
+    ///paren = "(" expr ")"
+    ///```
+    ///
+    ///In that case you don't want a variant in the expr rule that's called "paren".
+    ///Instead, by adding the `injection` annotation you tell the parser that this rule is purely to create a new priority level,
+    ///but to use the inner expr as the result of the parse. Thus there will be no rule called "paren".
     Injection(M),
-    #[doc = "disable pretty printing. Doesn't work well anyway so don't bother with this annotation"]
+    ///disable pretty printing. Doesn't work well anyway so don't bother with this annotation
     NoPrettyPrint(M),
-    #[doc = "mark a rule to appear as just a string in the AST. Whatever structure is found within, throw it away and just store"]
-    #[doc = "whatever was parsed."]
-    #[doc = ""]
-    #[doc = "Note that any AST node has the .as_str() method to request this string representation of the node. For"]
-    #[doc = "single-string rules this is simply the default."]
+    ///mark a rule to appear as just a string in the AST. Whatever structure is found within, throw it away and just store
+    ///whatever was parsed.
+    ///
+    ///Note that any AST node has the .as_str() method to request this string representation of the node. For
+    ///single-string rules this is simply the default.
     SingleString(M),
-    #[doc = "don't accept any layout characters while parsing this rule"]
+    ///don't accept any layout characters while parsing this rule
     NoLayout(M),
-    #[doc = "Annotation for sorts. This sort will not appear in any of the constructors it's used in."]
-    #[doc = "useful for for example the [`newline`] rule in this file."]
+    ///Annotation for sorts. This sort will not appear in any of the constructors it's used in.
+    ///useful for for example the [`newline`] rule in this file.
     Hidden(M),
-    #[doc = "if this rule manages to parse, display an error with the associated message"]
-    #[doc = "This annotation can be placed on constructors (these constructors then won't actually exist in the AST,"]
-    #[doc = "if the constructor is chosen an error is emitted), or on sorts. On a sort the annotation"]
-    #[doc = "has a slightly different effect. If none of the variants in the sort managed to parse"]
-    #[doc = "then alongside an \"expected ...\", that message will be displayed as well."]
-    #[doc = "If this sort was the only possibility at a certain point, only the message will be displayed."]
+    ///if this rule manages to parse, display an error with the associated message
+    ///This annotation can be placed on constructors (these constructors then won't actually exist in the AST,
+    ///if the constructor is chosen an error is emitted), or on sorts. On a sort the annotation
+    ///has a slightly different effect. If none of the variants in the sort managed to parse
+    ///then alongside an "expected ...", that message will be displayed as well.
+    ///If this sort was the only possibility at a certain point, only the message will be displayed.
     Error(M, String<M>),
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -167,32 +167,32 @@ pub enum String<M> {
     Single(M, Vec<StringChar<M>>),
     Double(M, Vec<StringChar<M>>),
 }
-#[doc = "A delimited expression can be repeated just like normal repetition expressions."]
-#[doc = "To denote this, you can use a delimitation bound."]
+///A delimited expression can be repeated just like normal repetition expressions.
+///To denote this, you can use a delimitation bound.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub enum DelimitedBound<M> {
-    #[doc = "Within a range or possible repetitions."]
+    ///Within a range or possible repetitions.
     NumNum(M, Number<M>, Number<M>),
-    #[doc = "At least some number of repetitions, but no upper bound."]
+    ///At least some number of repetitions, but no upper bound.
     NumInf(M, Number<M>),
-    #[doc = "Exactly this number of repetitions."]
+    ///Exactly this number of repetitions.
     Num(M, Number<M>),
     Star(M),
-    #[doc = "One or more repetitions."]
+    ///One or more repetitions.
     Plus(M),
 }
-#[doc = "A character class represent a selection of terminal characters. This is similar to"]
-#[doc = "Regex character classes. Character classes can be inverted by starting them with a `^`."]
-#[doc = "For example, `[^\\n]` means it matches any character that is not a newline."]
-#[doc = ""]
-#[doc = "Character classes can contain a range of characters. Either by listing each individual character, or using"]
-#[doc = "a dash (`-`). For example, `[a-z]` means any character in the range a through z (inclusive!),"]
-#[doc = "and `[abc]` means an a, b or c"]
-#[doc = ""]
-#[doc = "Note that to use a closing square bracket within a character class, you need to escape it."]
-#[doc = ""]
-#[doc = "`[^\\]]` means any character that isn't a square bracket."]
+///A character class represent a selection of terminal characters. This is similar to
+///Regex character classes. Character classes can be inverted by starting them with a `^`.
+///For example, `[^\n]` means it matches any character that is not a newline.
+///
+///Character classes can contain a range of characters. Either by listing each individual character, or using
+///a dash (`-`). For example, `[a-z]` means any character in the range a through z (inclusive!),
+///and `[abc]` means an a, b or c
+///
+///Note that to use a closing square bracket within a character class, you need to escape it.
+///
+///`[^\]]` means any character that isn't a square bracket.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub struct CharacterClass<M>(pub M, pub bool, pub Vec<CharacterClassItem<M>>);
