@@ -1,14 +1,24 @@
 use crate::sources::source_file::SourceFile;
 use miette::{MietteError, SourceCode, SourceSpan, SpanContents};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Formatter};
 
 /// Represents a certain range of a file. This is useful for marking the locations that certain tokens or errors occur.
 /// The position and length are both in BYTES. The byte offsets provided should be valid.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Span {
     pub position: usize,
     pub length: usize,
     pub source: SourceFile,
+}
+
+impl Debug for Span {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Span")
+            .field("position", &self.position)
+            .field("length", &self.length)
+            .finish()
+    }
 }
 
 impl Span {

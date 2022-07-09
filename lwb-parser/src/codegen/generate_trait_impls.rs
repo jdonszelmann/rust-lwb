@@ -1,6 +1,6 @@
 use crate::codegen::error::CodegenError;
 use crate::codegen::sanitize_identifier;
-use crate::parser::peg::parser_sugar_ast::SyntaxFileAst;
+use crate::parser::peg::parser_sugar_ast::{Annotation, SyntaxFileAst};
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -9,18 +9,32 @@ pub fn generate_trait_impls(syntax: &SyntaxFileAst) -> Result<TokenStream, Codeg
     let mut impls = Vec::new();
 
     for sort in syntax.sorts.values() {
+        if sort.annotations.contains(&Annotation::Hidden) {
+            continue;
+        }
+
         let sortname = format_ident!("{}", sanitize_identifier(&sort.name));
         let sortname_str = &sort.name;
 
         let constructor_names = sort
             .constructors
             .iter()
+            .filter(|i| {
+                !i.annotations
+                    .iter()
+                    .any(|i| matches!(i, Annotation::Error(_)))
+            })
             .map(|i| format_ident!("{}", sanitize_identifier(&i.name)))
             .collect_vec();
 
         let constructor_names_str = sort
             .constructors
             .iter()
+            .filter(|i| {
+                !i.annotations
+                    .iter()
+                    .any(|i| matches!(i, Annotation::Error(_)))
+            })
             .map(|i| i.name.as_str())
             .collect_vec();
 

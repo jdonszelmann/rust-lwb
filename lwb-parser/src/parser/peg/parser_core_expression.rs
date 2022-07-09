@@ -3,9 +3,24 @@
 use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_result::ParseResult;
 use crate::parser::peg::parser_core::{ParserContext, ParserState};
-use crate::parser::peg::parser_core_ast::{CoreExpression, ParsePairRaw};
+use crate::parser::peg::parser_core_ast::{CoreExpression, CoreSort, ParsePairRaw};
+use crate::parser::peg::parser_sugar_ast::Annotation;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
+
+pub struct ExpressionContext<'src> {
+    pub name: Option<&'src str>,
+    pub error: Option<&'src String>,
+}
+
+impl<'src> ExpressionContext<'src> {
+    pub fn empty() -> Self {
+        Self {
+            name: None,
+            error: None,
+        }
+    }
+}
 
 /// Given an expression and the current position, attempts to parse this constructor.
 pub fn parse_expression_name<'src>(
@@ -14,11 +29,24 @@ pub fn parse_expression_name<'src>(
     expr_name: &'src str,
     pos: SourceFileIterator<'src>,
 ) -> ParseResult<'src, ParsePairRaw> {
-    let expr: &'src CoreExpression = state
+    let sort: &'src CoreSort = state
         .ast
         .sorts
         .get(expr_name)
-        .expect("Name is guaranteed to exist");
+        .expect("name is guaranteed to exist");
+
+    let expr = &sort.expr;
+    let sort_context = ExpressionContext {
+        name: Some(sort.name),
+        error: sort.annotations.iter().find_map(|i| {
+            if let Annotation::Error(e) = i {
+                Some(e)
+            } else {
+                None
+            }
+        }),
+    };
+
     //Check if this result is cached
     let key = (pos.position(), expr_name);
     if let Some(cached) = cache.get_mut(&key) {
@@ -44,7 +72,7 @@ pub fn parse_expression_name<'src>(
     //- Try to parse the current (rule, position). If this fails, there is definitely no left recursion. Otherwise, we now have a seed.
     //- Put the new seed in the cache, and rerun on the current (rule, position). Make sure to revert the cache to the previous state.
     //- At some point, the above will fail. Either because no new input is parsed, or because the entire parse now failed. At this point, we have reached the maximum size.
-    let mut res = parse_expression(state, cache, expr, pos.clone());
+    let mut res = parse_expression(state, cache, expr, pos.clone(), &sort_context);
     let res = if res.ok {
         //Do we have a leftrec case?
         if !cache.is_read(&key).unwrap() {
@@ -58,7 +86,7 @@ pub fn parse_expression_name<'src>(
                 cache.insert(key, res.clone());
 
                 //Grow the seed
-                let new_res = parse_expression(state, cache, expr, pos.clone());
+                let new_res = parse_expression(state, cache, expr, pos.clone(), &sort_context);
                 if !new_res.ok {
                     break;
                 }
@@ -95,6 +123,7 @@ pub fn parse_expression<'src>(
     cache: &mut ParserState<'src>,
     expr: &'src CoreExpression,
     mut pos: SourceFileIterator<'src>,
+    sort_context: &ExpressionContext<'src>,
 ) -> ParseResult<'src, ParsePairRaw> {
     match expr {
         //To parse a sort, call parse_sort recursively.
@@ -105,7 +134,8 @@ pub fn parse_expression<'src>(
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
         CoreExpression::CharacterClass(characters) => {
             while cache.allow_layout && !pos.clone().accept(characters) {
-                let (ok, after_layout_pos) = skip_single_layout(state, cache, pos.clone());
+                let (ok, after_layout_pos) =
+                    skip_single_layout(state, cache, pos.clone(), sort_context);
                 if !ok {
                     break;
                 };
@@ -121,6 +151,7 @@ pub fn parse_expression<'src>(
                 cache.add_error(PEGParseError::expect(
                     span.clone(),
                     Expect::ExpectCharClass(characters.clone()),
+                    sort_context,
                 ));
                 ParseResult::new_err(ParsePairRaw::Error(span), pos.clone(), pos)
             }
@@ -136,7 +167,7 @@ pub fn parse_expression<'src>(
 
             //Parse all subconstructors in sequence
             for (i, subexpr) in subexprs.iter().enumerate() {
-                let res = parse_expression(state, cache, subexpr, pos);
+                let res = parse_expression(state, cache, subexpr, pos, sort_context);
                 pos = res.pos;
                 pos_err.max_pos(res.pos_err.clone());
                 results.push(res.result);
@@ -191,7 +222,8 @@ pub fn parse_expression<'src>(
 
             //Parse at most maximum times
             for i in 0..max.unwrap_or(u64::MAX) {
-                let res = parse_expression(state, cache, subexpr.as_ref(), pos.clone());
+                let res =
+                    parse_expression(state, cache, subexpr.as_ref(), pos.clone(), sort_context);
                 pos_err.max_pos(res.pos_err.clone());
                 recovered |= res.recovered;
 
@@ -273,7 +305,7 @@ pub fn parse_expression<'src>(
             let mut results = vec![];
             assert!(!subexprs.is_empty());
             for (i, subexpr) in subexprs.iter().enumerate() {
-                let res = parse_expression(state, cache, subexpr, pos.clone());
+                let res = parse_expression(state, cache, subexpr, pos.clone(), sort_context);
                 if res.ok && !res.recovered {
                     return ParseResult::new_ok(
                         ParsePairRaw::Choice(res.result.span(), i, Box::new(res.result)),
@@ -302,7 +334,7 @@ pub fn parse_expression<'src>(
         //After the block is completed, if no layout nest count is 0, re-allow layout.
         CoreExpression::FlagNoLayout(subexpr) => {
             cache.no_layout_nest_count += 1;
-            let res = parse_expression(state, cache, subexpr, pos);
+            let res = parse_expression(state, cache, subexpr, pos, sort_context);
             cache.no_layout_nest_count -= 1;
             if cache.no_layout_nest_count == 0 {
                 cache.allow_layout = true;
@@ -314,14 +346,32 @@ pub fn parse_expression<'src>(
         CoreExpression::FlagNoErrors(subexpr, name) => {
             cache.no_errors_nest_count += 1;
             let start_pos = pos.position();
-            let res = parse_expression(state, cache, subexpr, pos.clone());
+            let res = parse_expression(state, cache, subexpr, pos.clone(), sort_context);
             cache.no_errors_nest_count -= 1;
             if !res.ok {
                 let mut next_pos = res.pos.clone();
                 next_pos.skip_n(1);
                 let span = Span::from_end(state.file, start_pos, next_pos.position());
-                let err = PEGParseError::expect(span, Expect::ExpectSort(name.to_string()));
+                let err =
+                    PEGParseError::expect(span, Expect::ExpectSort(name.to_string()), sort_context);
                 cache.add_error(err);
+            }
+            res
+        }
+        CoreExpression::Error(e, msg) => {
+            let pos_backup = pos.clone();
+            let start_pos = pos.position();
+            let mut res = parse_expression(state, cache, e, pos.clone(), sort_context);
+
+            if res.ok {
+                let mut next_pos = res.pos.clone();
+                next_pos.skip_n(1);
+                let span = Span::from_end(state.file, start_pos, next_pos.position());
+                let err =
+                    PEGParseError::expect(span, Expect::Custom(msg.to_string()), sort_context);
+                cache.add_error(err);
+
+                res.pos = pos_backup;
             }
             res
         }
@@ -332,6 +382,7 @@ pub fn skip_single_layout<'src>(
     state: &ParserContext<'src>,
     cache: &mut ParserState<'src>,
     pos: SourceFileIterator<'src>,
+    sort_context: &ExpressionContext<'src>,
 ) -> (bool, SourceFileIterator<'src>) {
     //Automatically make layout rule no-layout and no-errors
     let prev_allow_layout = cache.allow_layout;
@@ -340,7 +391,8 @@ pub fn skip_single_layout<'src>(
     cache.allow_layout = false;
 
     let layout_sort = state.ast.sorts.get("layout").expect("Layout exists");
-    let layout_res = parse_expression(state, cache, layout_sort, pos.clone());
+    let layout_expr = &layout_sort.expr;
+    let layout_res = parse_expression(state, cache, layout_expr, pos.clone(), sort_context);
 
     cache.no_layout_nest_count -= 1;
     cache.no_errors_nest_count -= 1;

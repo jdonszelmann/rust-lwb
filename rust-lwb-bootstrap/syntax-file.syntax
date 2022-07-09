@@ -20,6 +20,10 @@ string-char:
 
 number = [0-9]+; {single-string}
 
+string:
+    single = "'" string-char* "'"; {no-layout}
+    double = "\"" string-char* "\""; {no-layout}
+
 /// A character class represent a selection of terminal characters. This is similar to
 /// Regex character classes. Character classes can be inverted by starting them with a `^`.
 /// For example, `[^\n]` means it matches any character that is not a newline.
@@ -37,6 +41,8 @@ character-class:
 /// With expressions, you can give the syntax rules of a single constructor.
 /// Expressions can be nested and combined.
 expression:
+    double-eq = "="; {error: "an `=` can only be used at the start of a constructor"}
+
     /// Repeat some expression zero or more times
     /// Equivalent to `<expression> {0,}`
     star = expression "*";
@@ -59,9 +65,7 @@ expression:
     repeat-lower = expression "{" number "," "inf" "}";
 
     /// Matches a piece of text exactly. Layout is parsed within a literal.
-    literal = "\"" string-char* "\""; {no-layout}
-    /// Also a literal, see [`literal`]
-    single-quote-literal = "'" string-char* "'"; {no-layout}
+    literal = string;
 
     /// Delimited expressions. Says that some expression should be repeatedly parsed,
     /// but between two parses, a delimiter should be parsed too. For example, comma seperated expressions.
@@ -96,20 +100,56 @@ delimited-bound:
     plus = "+";
 
 /// Annotations are tags that modify a specific sort or more often constructor.
-/// TODO: Document each
-annotation = "{" delimited(identifier, ",", +, trailing) "}";
+annotation-list = "{" delimited(annotation, ",", +, trailing) "}";
+annotation:
+    /// Mark a constructor as being a mapping from sort x to sort x.
+    /// An example is a parenthesis rule:
+    /// ```lwb,no_run
+    /// expr:
+    ///     paren = "(" expr ")"
+    /// ```
+    ///
+    /// In that case you don't want a variant in the expr rule that's called "paren".
+    /// Instead, by adding the `injection` annotation you tell the parser that this rule is purely to create a new priority level,
+    /// but to use the inner expr as the result of the parse. Thus there will be no rule called "paren".
+    injection = "injection";
+
+    /// disable pretty printing. Doesn't work well anyway so don't bother with this annotation
+    no-pretty-print = "no-pretty-print";
+
+    /// mark a rule to appear as just a string in the AST. Whatever structure is found within, throw it away and just store
+    /// whatever was parsed.
+    ///
+    /// Note that any AST node has the .as_str() method to request this string representation of the node. For
+    /// single-string rules this is simply the default.
+    single-string = "single-string";
+
+    /// don't accept any layout characters while parsing this rule
+    no-layout = "no-layout";
+
+    /// Annotation for sorts. This sort will not appear in any of the constructors it's used in.
+    /// useful for for example the [`newline`] rule in this file.
+    hidden = "hidden";
+
+    /// if this rule manages to parse, display an error with the associated message
+    /// This annotation can be placed on constructors (these constructors then won't actually exist in the AST,
+    /// if the constructor is chosen an error is emitted), or on sorts. On a sort the annotation
+    /// has a slightly different effect. If none of the variants in the sort managed to parse
+    /// then alongside an "expected ...", that message will be displayed as well.
+    /// If this sort was the only possibility at a certain point, only the message will be displayed.
+    error = "error" ":" string;
 
 /// A [`sort`] consists of constructors. A sort will try each of the constructors
-/// from top to bottom, and use the first one that succesfully parses the input string.
+/// from top to bottom, and use the first one that successfully parses the input string.
 ///
 /// A constructor consists of a name, followed by an [`expression`]
 ///
 /// Constructors can have doc-comments using triple slashes.
-constructor:
+constructor: {error: "make sure each constructor ends with a `;` and is indented with 4 spaces."}
     constructor-documented = doc-comment+ constructor;
-    constructor = "    " identifier "=" expression+ ";" annotation? newline;
+    constructor = "    " identifier "=" expression+ ";" annotation-list? newline;
 
-newline:
+newline: {hidden}
     unix = "\n";
     windows = "\r\n";
 
@@ -123,10 +163,10 @@ newline:
 /// Sorts can have doc-comments using triple slashes.
 sort:
     sort-documented = doc-comment+ sort;
-    sort = identifier ":" newline constructor*;
+    sort = identifier ":" annotation-list? newline constructor*;
 
     /// When a sort has only one constructor, it has simpler syntax.
-    sort-single = identifier "=" expression+ ";" annotation? newline;
+    sort-single = identifier "=" expression+ ";" annotation-list? newline;
 
 /// Other top-level constructs that are not sorts
 meta:

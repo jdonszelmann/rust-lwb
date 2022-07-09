@@ -1,3 +1,4 @@
+use crate::parser::peg::parser_core_expression::ExpressionContext;
 use crate::sources::character_class::CharacterClass;
 use crate::sources::span::Span;
 use itertools::Itertools;
@@ -16,9 +17,15 @@ pub struct PEGParseError {
     pub expected: Vec<Expect>,
     pub fail_left_rec: bool,
     pub fail_loop: bool,
+    /// first the name of the sort that caused the error, then the error message
+    pub msgs: Vec<(String, String)>,
 }
 
-impl Diagnostic for PEGParseError {
+// add error bound so IDEs don't complain. Error is always derived by thiserror.
+impl Diagnostic for PEGParseError
+where
+    PEGParseError: std::error::Error,
+{
     /// Diagnostic severity. This may be used by [ReportHandler]s to change the
     /// display format of this diagnostic.
     ///
@@ -34,6 +41,17 @@ impl Diagnostic for PEGParseError {
 
     /// Labels to apply to this Diagnostic's [Diagnostic::source_code]
     fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
+        // immediately return when the grammar gave a custom error
+        if let Some(i) = self
+            .expected
+            .iter()
+            .find(|i| matches!(i, Expect::Custom(_)))
+        {
+            let label = LabeledSpan::new_with_span(Some(i.to_string()), self.span.clone());
+
+            return Some(Box::new(vec![label].into_iter()));
+        }
+
         let expect_str = self.expected.iter().map(|exp| exp.to_string()).join(", ");
         let mut labels = vec![];
 
@@ -62,15 +80,37 @@ impl Diagnostic for PEGParseError {
 
         Some(Box::new(labels.into_iter()))
     }
+
+    fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        let mut helps = Vec::new();
+        for (sort, msg) in &self.msgs {
+            helps.push(format!("if a {sort} would be parsed here then {msg}"));
+        }
+
+        if helps.is_empty() {
+            None
+        } else {
+            Some(Box::new(helps.join("\n")))
+        }
+    }
 }
 
 impl PEGParseError {
-    pub fn expect(span: Span, expect: Expect) -> Self {
+    pub fn expect(span: Span, expect: Expect, sort_context: &ExpressionContext) -> Self {
         PEGParseError {
             span,
             expected: vec![expect],
             fail_left_rec: false,
             fail_loop: false,
+            msgs: if let Some(name) = sort_context.name {
+                sort_context
+                    .error
+                    .iter()
+                    .map(|i| (name.to_string(), i.to_string()))
+                    .collect()
+            } else {
+                vec![]
+            },
         }
     }
 
@@ -80,6 +120,7 @@ impl PEGParseError {
             expected: vec![],
             fail_left_rec: true,
             fail_loop: false,
+            msgs: vec![],
         }
     }
 
@@ -89,6 +130,7 @@ impl PEGParseError {
             expected: vec![],
             fail_left_rec: false,
             fail_loop: true,
+            msgs: vec![],
         }
     }
 }
@@ -107,6 +149,9 @@ pub enum Expect {
 
     /// This happens when not the entire input was parsed, but also no errors occurred during parsing.
     NotEntireInput(),
+
+    /// This happens when a constructor has an error annotation
+    Custom(String),
 }
 
 impl Display for Expect {
@@ -123,6 +168,9 @@ impl Display for Expect {
             }
             Expect::NotEntireInput() => {
                 write!(f, "more input")
+            }
+            Expect::Custom(e) => {
+                write!(f, "{e}")
             }
         }
     }
@@ -148,6 +196,8 @@ impl PEGParseError {
                 self.expected.append(&mut other.expected);
                 //Left recursion
                 self.fail_left_rec |= other.fail_left_rec;
+
+                self.msgs.extend(other.msgs);
 
                 self
             }

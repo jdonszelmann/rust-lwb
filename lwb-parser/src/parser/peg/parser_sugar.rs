@@ -1,6 +1,6 @@
 use crate::codegen_prelude::{ParsePairExpression, ParsePairSort};
 use crate::parser::peg::parse_error::PEGParseError;
-use crate::parser::peg::parser_core_ast::{CoreAst, CoreExpression, ParsePairRaw};
+use crate::parser::peg::parser_core_ast::{CoreAst, CoreExpression, CoreSort, ParsePairRaw};
 use crate::parser::peg::parser_core_file;
 use crate::parser::peg::parser_sugar_ast::{Annotation, Expression, Sort, SyntaxFileAst};
 use crate::sources::character_class::CharacterClass;
@@ -37,7 +37,11 @@ fn desugar_ast(ast: &SyntaxFileAst) -> CoreAst {
     if !sorts.contains_key("layout") {
         sorts.insert(
             "layout",
-            CoreExpression::CharacterClass(CharacterClass::Nothing),
+            CoreSort {
+                name: "layout",
+                expr: CoreExpression::CharacterClass(CharacterClass::Nothing),
+                annotations: vec![],
+            },
         );
     }
 
@@ -47,23 +51,38 @@ fn desugar_ast(ast: &SyntaxFileAst) -> CoreAst {
     }
 }
 
-fn desugar_sort(sort: &Sort) -> CoreExpression {
-    CoreExpression::Choice(
-        sort.constructors
-            .iter()
-            .map(|c| {
-                let mut base = desugar_expr(&c.expression);
-                if c.annotations.contains(&Annotation::NoLayout) {
-                    base = CoreExpression::FlagNoLayout(Box::new(base));
-                    base = CoreExpression::FlagNoErrors(
-                        Box::new(base),
-                        String::from_iter([&sort.name, ".", &c.name]),
-                    );
-                }
-                base
-            })
-            .collect(),
-    )
+fn desugar_sort(sort: &Sort) -> CoreSort {
+    CoreSort {
+        name: &sort.name,
+        expr: CoreExpression::Choice(
+            sort.constructors
+                .iter()
+                .map(|c| {
+                    let mut base = desugar_expr(&c.expression);
+                    if c.annotations.contains(&Annotation::NoLayout) {
+                        base = CoreExpression::FlagNoLayout(Box::new(base));
+                        base = CoreExpression::FlagNoErrors(
+                            Box::new(base),
+                            String::from_iter([&sort.name, ".", &c.name]),
+                        );
+                    }
+
+                    if let Some(e) = c.annotations.iter().find_map(|i| {
+                        if let Annotation::Error(e) = i {
+                            Some(e)
+                        } else {
+                            None
+                        }
+                    }) {
+                        base = CoreExpression::Error(Box::new(base), e.to_string())
+                    }
+
+                    base
+                })
+                .collect(),
+        ),
+        annotations: sort.annotations.clone(),
+    }
 }
 
 fn desugar_expr(expr: &Expression) -> CoreExpression {

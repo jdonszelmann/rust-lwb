@@ -2,7 +2,9 @@ use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_result::ParseResult;
 use crate::parser::peg::parser_core::{ParserContext, ParserState};
 use crate::parser::peg::parser_core_ast::{CoreAst, ParsePairRaw};
-use crate::parser::peg::parser_core_expression::{parse_expression_name, skip_single_layout};
+use crate::parser::peg::parser_core_expression::{
+    parse_expression_name, skip_single_layout, ExpressionContext,
+};
 use crate::sources::source_file::{SourceFile, SourceFileIterator};
 use crate::sources::span::Span;
 use std::collections::{HashMap, VecDeque};
@@ -80,7 +82,12 @@ pub fn parse_file_sub<'src>(
 
     //If there is no input left, return Ok. Skip layout first
     loop {
-        let (ok, after_layout_pos) = skip_single_layout(state, &mut cache, res.pos.clone());
+        let (ok, after_layout_pos) = skip_single_layout(
+            state,
+            &mut cache,
+            res.pos.clone(),
+            &ExpressionContext::empty(),
+        );
         if !ok {
             break;
         };
@@ -92,6 +99,7 @@ pub fn parse_file_sub<'src>(
     } else {
         //If any occurred during the parsing, return it. Otherwise, return a generic NotEntireInput error.
         //I'm not entirely sure this logic always returns relevant errors. Maybe we should inform the user the parse was actually fine, but didn't parse enough?
+        // TODO: ^
         res.ok = false;
         match cache.best_error {
             Some(err) => (res, Some(err)),
@@ -104,6 +112,7 @@ pub fn parse_file_sub<'src>(
                     Some(PEGParseError::expect(
                         Span::from_end(state.file, curpos, endpos),
                         Expect::NotEntireInput(),
+                        &ExpressionContext::empty(),
                     )),
                 )
             }
