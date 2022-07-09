@@ -255,6 +255,28 @@ impl<M: AstInfo> FromPairs<M> for Constructor<M> {
                     );
                 }
             }
+            "constructor-bare" => {
+                if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
+                    Self::ConstructorBare(
+                        info,
+                        if let ParsePairExpression::Sort(_, ref s) = l[1usize] {
+                            Identifier::from_pairs(s, generator)
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor");
+                        },
+                        if let ParsePairExpression::List(_, ref l) = l[3usize] {
+                            l . first () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { AnnotationList :: from_pairs (s , generator) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor") ; })
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor");
+                        },
+                    )
+                } else {
+                    unreachable!(
+                        "expected different parse pair expression in pair to ast conversion of {}",
+                        "constructor"
+                    );
+                }
+            }
             a => unreachable!("{}", a),
         }
     }

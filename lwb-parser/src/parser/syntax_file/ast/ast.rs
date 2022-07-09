@@ -80,6 +80,8 @@ pub enum Constructor<M> {
         Vec<Expression<M>>,
         Option<AnnotationList<M>>,
     ),
+    ///using `test;` as a constructor desugars to `test = test;`
+    ConstructorBare(M, Identifier<M>, Option<AnnotationList<M>>),
 }
 ///With expressions, you can give the syntax rules of a single constructor.
 ///Expressions can be nested and combined.

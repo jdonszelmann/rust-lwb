@@ -89,7 +89,7 @@ expression:
     /// separator is allowed.
     delimited = "delimited" "(" expression "," expression "," delimited-bound ("," "trailing")? ")";
 
-    atom = atom;
+    atom;
 
 /// A delimited expression can be repeated just like normal repetition expressions.
 /// To denote this, you can use a delimitation bound.
@@ -164,6 +164,8 @@ annotation:
 constructor: {error: "make sure each constructor ends with a `;` and is indented with 4 spaces."}
     constructor-documented = doc-comment+ constructor;
     constructor = "    " identifier "=" expression+ ";" annotation-list? newline;
+    /// using `test;` as a constructor desugars to `test = test;`
+    constructor-bare = "    " identifier ";" annotation-list? newline;
 
 newline: {hidden}
     unix = "\n";
