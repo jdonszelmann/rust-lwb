@@ -16,6 +16,7 @@ pub enum CoreExpression<'src> {
     Choice(Vec<CoreExpression<'src>>),
     FlagNoLayout(Box<CoreExpression<'src>>),
     FlagNoErrors(Box<CoreExpression<'src>>, String),
+    Error(Box<CoreExpression<'src>>, String),
 }
 
 #[derive(Debug, Clone)]

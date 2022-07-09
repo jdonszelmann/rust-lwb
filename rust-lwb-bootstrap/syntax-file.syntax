@@ -150,7 +150,7 @@ constructor: {error: "make sure each constructor ends with a `;` and is indented
     constructor = "    " identifier "=" expression+ ";" annotation-list? newline;
 
 newline: {hidden}
-    unix = "\n"
+    unix = "\n";
     windows = "\r\n";
 
 /// A sort is a group of constructors. See [`constructor`] for more details.

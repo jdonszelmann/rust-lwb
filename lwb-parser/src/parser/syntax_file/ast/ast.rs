@@ -86,7 +86,6 @@ pub enum Constructor<M> {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub enum Expression<M> {
-    DoubleEq(M),
     #[doc = "Repeat some expression zero or more times"]
     #[doc = "Equivalent to `<expression> {0,}`"]
     Star(M, Box<Expression<M>>),

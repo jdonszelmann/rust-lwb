@@ -135,9 +135,13 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
             name: convert_identifier(name),
             constructors: constructors
                 .into_iter()
+                // .filter(|i| match i {
+                //     ast::Constructor::ConstructorDocumented(_, _, c) => true,
+                //     ast::Constructor::Constructor(_, n, _, _) => n.1 != "double-eq",
+                // })
                 .map(|i| convert_constructor(i))
                 .collect::<Result<_, _>>()?,
-            annotations: annos.map_or(Ok(vec![]), |a| convert_annotations(&a))?
+            annotations: annos.map_or(Ok(vec![]), |a| convert_annotations(&a))?,
         },
         ast::Sort::SortSingle(_, name, expressions, annotations) => {
             let name = convert_identifier(name);
@@ -150,8 +154,7 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
                     expression: convert_expressions(expressions)?,
                     annotations: annotations.as_ref().map_or(Ok(vec![]), |a| convert_annotations(a))?,
                 }],
-                annotations: annotations.as_ref().map_or(Ok(vec![]), |a| convert_annotations(a))?
-
+                annotations: annotations.as_ref().map_or(Ok(vec![]), |a| convert_annotations(a))?,
             }
         }
         ast::Sort::SortDocumented(_, comments, sort) => convert_sort(*sort).and_then(|mut i| {
@@ -230,7 +233,6 @@ fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<E
                 trailing,
             }
         }
-        ast::Expression::DoubleEq(_) => {}
     })
 }
 

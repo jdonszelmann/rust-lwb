@@ -62,6 +62,15 @@ fn desugar_sort(sort: &Sort) -> CoreSort {
                             String::from_iter([&sort.name, ".", &c.name]),
                         );
                     }
+
+                    if let Some(e) = c.annotations.iter().find_map(|i| if let Annotation::Error(e) = i {
+                        Some(e)
+                    } else {
+                        None
+                    }) {
+                        base = CoreExpression::Error(Box::new(base), e.to_string())
+                    }
+
                     base
                 })
                 .collect(),

@@ -2,7 +2,7 @@ use crate::parser::peg::parse_error::{Expect, PEGParseError};
 use crate::parser::peg::parse_result::ParseResult;
 use crate::parser::peg::parser_core::{ParserContext, ParserState};
 use crate::parser::peg::parser_core_ast::{CoreAst, ParsePairRaw};
-use crate::parser::peg::parser_core_expression::{parse_expression_name, skip_single_layout, SortContext};
+use crate::parser::peg::parser_core_expression::{parse_expression_name, skip_single_layout, ExpressionContext};
 use crate::sources::source_file::{SourceFile, SourceFileIterator};
 use crate::sources::span::Span;
 use std::collections::{HashMap, VecDeque};
@@ -80,7 +80,7 @@ pub fn parse_file_sub<'src>(
 
     //If there is no input left, return Ok. Skip layout first
     loop {
-        let (ok, after_layout_pos) = skip_single_layout(state, &mut cache, res.pos.clone(), &SortContext::empty());
+        let (ok, after_layout_pos) = skip_single_layout(state, &mut cache, res.pos.clone(), &ExpressionContext::empty());
         if !ok {
             break;
         };
@@ -105,7 +105,7 @@ pub fn parse_file_sub<'src>(
                     Some(PEGParseError::expect(
                         Span::from_end(state.file, curpos, endpos),
                         Expect::NotEntireInput(),
-                        &SortContext::empty()
+                        &ExpressionContext::empty()
                     )),
                 )
             }

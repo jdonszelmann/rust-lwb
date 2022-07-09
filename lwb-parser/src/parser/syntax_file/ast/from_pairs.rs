@@ -264,7 +264,6 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
         assert_eq!(pair.sort, "expression");
         let info = generator.generate(&pair);
         match pair.constructor_name {
-            "double-eq" => Self::DoubleEq(info),
             "star" => {
                 if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
                     Self::Star(

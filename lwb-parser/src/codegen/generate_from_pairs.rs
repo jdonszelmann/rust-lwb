@@ -270,12 +270,14 @@ pub fn generate_from_pairs(
             let constructor_names_str = sort
                 .constructors
                 .iter()
+                .filter(|i| !i.annotations.iter().any(|i| matches!(i, Annotation::Error(_))))
                 .map(|i| i.name.as_str())
                 .collect_vec();
 
             let unpacks = sort
                 .constructors
                 .iter()
+                .filter(|i| !i.annotations.iter().any(|i| matches!(i, Annotation::Error(_))))
                 .map(|constr| {
                     let name = format_ident!("{}", sanitize_identifier(&constr.name));
 

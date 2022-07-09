@@ -5,7 +5,7 @@ use miette::{Diagnostic, LabeledSpan, Severity, SourceCode};
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
-use crate::parser::peg::parser_core_expression::SortContext;
+use crate::parser::peg::parser_core_expression::ExpressionContext;
 
 /// A parsing error represents a single error that occurred during parsing.
 /// The parsing error occurs at a certain position in a file, represented by the span.
@@ -38,6 +38,16 @@ impl Diagnostic for PEGParseError where PEGParseError: std::error::Error {
 
     /// Labels to apply to this Diagnostic's [Diagnostic::source_code]
     fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
+        // immediately return when the grammar gave a custom error
+        if let Some(i) = self.expected.iter().find(|i| matches!(i, Expect::Custom(_))) {
+            let label = LabeledSpan::new_with_span(
+                Some(i.to_string()),
+                self.span.clone(),
+            );
+
+            return Some(Box::new(vec![label].into_iter()));
+        }
+
         let expect_str = self.expected.iter().map(|exp| exp.to_string()).join(", ");
         let mut labels = vec![];
 
@@ -83,7 +93,7 @@ impl Diagnostic for PEGParseError where PEGParseError: std::error::Error {
 }
 
 impl PEGParseError {
-    pub fn expect(span: Span, expect: Expect, sort_context: &SortContext) -> Self {
+    pub fn expect(span: Span, expect: Expect, sort_context: &ExpressionContext) -> Self {
         PEGParseError {
             span,
             expected: vec![expect],
@@ -134,6 +144,9 @@ pub enum Expect {
 
     /// This happens when not the entire input was parsed, but also no errors occurred during parsing.
     NotEntireInput(),
+
+    /// This happens when a constructor has an error annotation
+    Custom(String),
 }
 
 impl Display for Expect {
@@ -150,6 +163,9 @@ impl Display for Expect {
             }
             Expect::NotEntireInput() => {
                 write!(f, "more input")
+            }
+            Expect::Custom(e) => {
+                write!(f, "{e}")
             }
         }
     }

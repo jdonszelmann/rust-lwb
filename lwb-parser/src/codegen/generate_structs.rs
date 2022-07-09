@@ -68,6 +68,11 @@ pub fn generate_structs(
             let doc = convert_docs(rule.documentation.as_ref());
             let constr = &rule.constructors[0];
 
+            if constr.annotations.iter().any(|i| matches!(i, &Annotation::Error(_))) {
+                // continues outer loop (over sorts)
+                continue;
+            }
+
             if constr.annotations.contains(&SingleString) {
                 items.push(quote!(
                     #(#doc)*
@@ -98,6 +103,10 @@ pub fn generate_structs(
             let mut variants = Vec::new();
 
             for constr in &rule.constructors {
+                if constr.annotations.iter().any(|i| matches!(i, &Annotation::Error(_))) {
+                    continue;
+                }
+
                 let name = format_ident!("{}", sanitize_identifier(&constr.name));
                 let doc = convert_docs(constr.documentation.as_ref());
 

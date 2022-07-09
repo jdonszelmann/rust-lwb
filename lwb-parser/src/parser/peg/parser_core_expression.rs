@@ -8,12 +8,12 @@ use crate::parser::peg::parser_sugar_ast::Annotation;
 use crate::sources::source_file::SourceFileIterator;
 use crate::sources::span::Span;
 
-pub struct SortContext<'src> {
+pub struct ExpressionContext<'src> {
     pub name: Option<&'src str>,
     pub error: Option<&'src String>,
 }
 
-impl<'src> SortContext<'src> {
+impl<'src> ExpressionContext<'src> {
     pub fn empty() -> Self {
         Self {
             name: None,
@@ -33,10 +33,10 @@ pub fn parse_expression_name<'src>(
         .ast
         .sorts
         .get(expr_name)
-        .expect("Name is guaranteed to exist");
+        .expect("name is guaranteed to exist");
 
     let expr = &sort.expr;
-    let sort_context = SortContext {
+    let sort_context = ExpressionContext {
         name: Some(sort.name),
         error: sort.annotations.iter().find_map(|i| if let Annotation::Error(e) = i {
             Some(e)
@@ -121,7 +121,7 @@ pub fn parse_expression<'src>(
     cache: &mut ParserState<'src>,
     expr: &'src CoreExpression,
     mut pos: SourceFileIterator<'src>,
-    sort_context: &SortContext<'src>,
+    sort_context: &ExpressionContext<'src>,
 ) -> ParseResult<'src, ParsePairRaw> {
     match expr {
         //To parse a sort, call parse_sort recursively.
@@ -353,6 +353,22 @@ pub fn parse_expression<'src>(
             }
             res
         }
+        CoreExpression::Error(e, msg) => {
+            let pos_backup = pos.clone();
+            let start_pos = pos.position();
+            let mut res = parse_expression(state, cache, e, pos.clone(), sort_context);
+
+            if res.ok {
+                let mut next_pos = res.pos.clone();
+                next_pos.skip_n(1);
+                let span = Span::from_end(state.file, start_pos, next_pos.position());
+                let err = PEGParseError::expect(span, Expect::Custom(msg.to_string()), sort_context);
+                cache.add_error(err);
+
+                res.pos = pos_backup;
+            }
+            res
+        }
     }
 }
 
@@ -360,7 +376,7 @@ pub fn skip_single_layout<'src>(
     state: &ParserContext<'src>,
     cache: &mut ParserState<'src>,
     pos: SourceFileIterator<'src>,
-    sort_context: &SortContext<'src>,
+    sort_context: &ExpressionContext<'src>,
 ) -> (bool, SourceFileIterator<'src>) {
     //Automatically make layout rule no-layout and no-errors
     let prev_allow_layout = cache.allow_layout;

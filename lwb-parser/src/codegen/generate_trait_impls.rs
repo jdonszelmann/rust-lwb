@@ -19,12 +19,14 @@ pub fn generate_trait_impls(syntax: &SyntaxFileAst) -> Result<TokenStream, Codeg
         let constructor_names = sort
             .constructors
             .iter()
+            .filter(|i| !i.annotations.iter().any(|i| matches!(i, Annotation::Error(_))))
             .map(|i| format_ident!("{}", sanitize_identifier(&i.name)))
             .collect_vec();
 
         let constructor_names_str = sort
             .constructors
             .iter()
+            .filter(|i| !i.annotations.iter().any(|i| matches!(i, Annotation::Error(_))))
             .map(|i| i.name.as_str())
             .collect_vec();
 
