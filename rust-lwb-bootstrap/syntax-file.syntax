@@ -38,6 +38,25 @@ string:
 character-class:
     class =  "[" "^"? character-class-item* "]"; {no-layout}
 
+// {part-of: expression}
+atom:
+    double-eq = "="; {error: "an `=` can only be used at the start of a constructor"}
+
+    /// Matches a piece of text exactly. Layout is parsed within a literal.
+    literal = string;
+
+    /// You can use parentheses to group parts of expressions.
+    paren = "(" expression+ ")";
+
+    labelled = identifier ":" atom;
+
+    /// Reference another sort within this expression.
+    /// That sort should be parsed in this position in the expression.
+    sort = identifier;
+
+    /// A [`character class`](character-class) (range of characters) should be parsed here.
+    class = character-class;
+
 /// With expressions, you can give the syntax rules of a single constructor.
 /// Expressions can be nested and combined.
 expression:
@@ -45,27 +64,24 @@ expression:
 
     /// Repeat some expression zero or more times
     /// Equivalent to `<expression> {0,}`
-    star = expression "*";
+    star = atom "*";
 
     /// Repeat some expression one or more times
     /// Equivalent to `<expression> {1,}`
-    plus = expression "+";
+    plus = atom "+";
 
     /// Optionally have some expression.
     /// Equivalent to `<expression> {0,1}`
-    maybe = expression "?";
+    maybe = atom "?";
 
     /// Exact repetition. The expression is repeated an exact number of times. Equivalent
     /// to ranged repetition with an equal lower and upper bound.
-    repeat-exact = expression "{" number "}";
+    repeat-exact = atom "{" number "}";
     /// Ranged repetition. The expression may be repeated any number of times, within the range.
     /// Both bounds are inclusive.
-    repeat-range = expression "{" number "," number "}";
+    repeat-range = atom "{" number "," number "}";
     /// Ranged repetition, without upper bound (or an infinite maximum)
-    repeat-lower = expression "{" number "," "inf" "}";
-
-    /// Matches a piece of text exactly. Layout is parsed within a literal.
-    literal = string;
+    repeat-lower = atom "{" number "," "inf" "}";
 
     /// Delimited expressions. Says that some expression should be repeatedly parsed,
     /// but between two parses, a delimiter should be parsed too. For example, comma seperated expressions.
@@ -73,14 +89,7 @@ expression:
     /// separator is allowed.
     delimited = "delimited" "(" expression "," expression "," delimited-bound ("," "trailing")? ")";
 
-    /// Reference another sort within this expression. That sort should be parsed in this position in the expression.
-    sort = identifier;
-
-    /// A [`character class`](character-class) (range of characters) should be parsed here.
-    class = character-class;
-
-    /// You can use parentheses to group parts of expressions.
-    paren = "(" expression+ ")"; {injection}
+    atom = atom;
 
 /// A delimited expression can be repeated just like normal repetition expressions.
 /// To denote this, you can use a delimitation bound.

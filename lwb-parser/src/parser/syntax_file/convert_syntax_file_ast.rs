@@ -176,47 +176,53 @@ fn convert_comments<M: AstInfo>(inp: Vec<ast::DocComment<M>>) -> ConversionResul
         .join("\n"))
 }
 
+fn convert_atom<M: AstInfo>(inp: ast::Atom<M>) -> ConversionResult<Expression> {
+    Ok(match inp {
+        ast::Atom::Literal(_, l) => Expression::Literal(l.to_string()),
+        ast::Atom::Sort(_, s) => Expression::Sort(convert_identifier(s)),
+        ast::Atom::Class(_, cc) => Expression::CharacterClass(convert_character_class(cc)?),
+        ast::Atom::Paren(_, exp) => {
+            convert_expressions(exp.into_iter().map(|i| *i).collect())?
+        }
+        ast::Atom::Labelled(_, _, _) => todo!(),
+    })
+}
+
 fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<Expression> {
     Ok(match inp {
         ast::Expression::Star(_, exp) => Expression::Repeat {
-            e: Box::new(convert_expression(*exp)?),
+            e: Box::new(convert_atom(exp)?),
             min: 0,
             max: None,
         },
         ast::Expression::Plus(_, exp) => Expression::Repeat {
-            e: Box::new(convert_expression(*exp)?),
+            e: Box::new(convert_atom(exp)?),
             min: 1,
             max: None,
         },
         ast::Expression::Maybe(_, exp) => Expression::Repeat {
-            e: Box::new(convert_expression(*exp)?),
+            e: Box::new(convert_atom(exp)?),
             min: 0,
             max: Some(1),
         },
         ast::Expression::RepeatExact(_, exp, num) => {
             let converted_num = convert_number(num)?;
             Expression::Repeat {
-                e: Box::new(convert_expression(*exp)?),
+                e: Box::new(convert_atom(exp)?),
                 min: converted_num,
                 max: Some(converted_num),
             }
         }
         ast::Expression::RepeatRange(_, exp, min, max) => Expression::Repeat {
-            e: Box::new(convert_expression(*exp)?),
+            e: Box::new(convert_atom(exp)?),
             min: convert_number(min)?,
             max: Some(convert_number(max)?),
         },
         ast::Expression::RepeatLower(_, exp, num) => Expression::Repeat {
-            e: Box::new(convert_expression(*exp)?),
+            e: Box::new(convert_atom(exp)?),
             min: convert_number(num)?,
             max: None,
         },
-        ast::Expression::Literal(_, l) => Expression::Literal(l.to_string()),
-        ast::Expression::Sort(_, s) => Expression::Sort(convert_identifier(s)),
-        ast::Expression::Class(_, cc) => Expression::CharacterClass(convert_character_class(cc)?),
-        ast::Expression::Paren(_, exp) => {
-            convert_expressions(exp.into_iter().map(|i| *i).collect())?
-        }
         ast::Expression::Delimited(_, exp, delim, bound, trailing) => {
             let (min, max) = match bound {
                 DelimitedBound::NumNum(_, min, max) => {
@@ -235,6 +241,7 @@ fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<E
                 trailing,
             }
         }
+        ast::Expression::Atom(_, atom) => convert_atom(atom)?
     })
 }
 

@@ -88,23 +88,21 @@ pub enum Constructor<M> {
 pub enum Expression<M> {
     ///Repeat some expression zero or more times
     ///Equivalent to `<expression> {0,}`
-    Star(M, Box<Expression<M>>),
+    Star(M, Atom<M>),
     ///Repeat some expression one or more times
     ///Equivalent to `<expression> {1,}`
-    Plus(M, Box<Expression<M>>),
+    Plus(M, Atom<M>),
     ///Optionally have some expression.
     ///Equivalent to `<expression> {0,1}`
-    Maybe(M, Box<Expression<M>>),
+    Maybe(M, Atom<M>),
     ///Exact repetition. The expression is repeated an exact number of times. Equivalent
     ///to ranged repetition with an equal lower and upper bound.
-    RepeatExact(M, Box<Expression<M>>, Number<M>),
+    RepeatExact(M, Atom<M>, Number<M>),
     ///Ranged repetition. The expression may be repeated any number of times, within the range.
     ///Both bounds are inclusive.
-    RepeatRange(M, Box<Expression<M>>, Number<M>, Number<M>),
+    RepeatRange(M, Atom<M>, Number<M>, Number<M>),
     ///Ranged repetition, without upper bound (or an infinite maximum)
-    RepeatLower(M, Box<Expression<M>>, Number<M>),
-    ///Matches a piece of text exactly. Layout is parsed within a literal.
-    Literal(M, String<M>),
+    RepeatLower(M, Atom<M>, Number<M>),
     ///Delimited expressions. Says that some expression should be repeatedly parsed,
     ///but between two parses, a delimiter should be parsed too. For example, comma seperated expressions.
     ///The final trailing keyword enables a trailing separator after the sequence. If not present, no trailing
@@ -116,12 +114,7 @@ pub enum Expression<M> {
         DelimitedBound<M>,
         bool,
     ),
-    ///Reference another sort within this expression. That sort should be parsed in this position in the expression.
-    Sort(M, Identifier<M>),
-    ///A [`character class`](character-class) (range of characters) should be parsed here.
-    Class(M, CharacterClass<M>),
-    ///You can use parentheses to group parts of expressions.
-    Paren(M, Vec<Box<Expression<M>>>),
+    Atom(M, Atom<M>),
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
@@ -160,13 +153,21 @@ pub enum Annotation<M> {
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub struct Number<M>(pub M, pub std::string::String);
+pub enum Atom<M> {
+    ///Matches a piece of text exactly. Layout is parsed within a literal.
+    Literal(M, String<M>),
+    ///You can use parentheses to group parts of expressions.
+    Paren(M, Vec<Box<Expression<M>>>),
+    Labelled(M, Identifier<M>, Box<Atom<M>>),
+    ///Reference another sort within this expression.
+    ///That sort should be parsed in this position in the expression.
+    Sort(M, Identifier<M>),
+    ///A [`character class`](character-class) (range of characters) should be parsed here.
+    Class(M, CharacterClass<M>),
+}
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub enum String<M> {
-    Single(M, Vec<StringChar<M>>),
-    Double(M, Vec<StringChar<M>>),
-}
+pub struct Number<M>(pub M, pub std::string::String);
 ///A delimited expression can be repeated just like normal repetition expressions.
 ///To denote this, you can use a delimitation bound.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -181,6 +182,12 @@ pub enum DelimitedBound<M> {
     Star(M),
     ///One or more repetitions.
     Plus(M),
+}
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
+pub enum String<M> {
+    Single(M, Vec<StringChar<M>>),
+    Double(M, Vec<StringChar<M>>),
 }
 ///A character class represent a selection of terminal characters. This is similar to
 ///Regex character classes. Character classes can be inverted by starting them with a `^`.
