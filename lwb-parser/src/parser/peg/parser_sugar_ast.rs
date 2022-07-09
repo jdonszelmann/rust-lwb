@@ -58,6 +58,10 @@ pub enum Annotation {
     /// This rule gives an error when parsed
     #[display(fmt = "error")]
     Error(String),
+
+    /// Says that one rule must generate its constructors as part of another rule
+    #[display(fmt = "part-of: {}", _0)]
+    PartOf(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

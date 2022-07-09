@@ -459,6 +459,23 @@ impl<M: AstInfo> FromPairs<M> for Annotation<M> {
                     );
                 }
             }
+            "part-of" => {
+                if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
+                    Self::PartOf(
+                        info,
+                        if let ParsePairExpression::Sort(_, ref s) = l[2usize] {
+                            Identifier::from_pairs(s, generator)
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "annotation");
+                        },
+                    )
+                } else {
+                    unreachable!(
+                        "expected different parse pair expression in pair to ast conversion of {}",
+                        "annotation"
+                    );
+                }
+            }
             a => unreachable!("{}", a),
         }
     }

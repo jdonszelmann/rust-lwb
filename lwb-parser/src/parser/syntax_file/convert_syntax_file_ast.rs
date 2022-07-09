@@ -39,7 +39,7 @@ pub fn convert<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionResult<SyntaxFile
                 if start.is_some() {
                     return Err(DuplicateStartingRule);
                 } else {
-                    start = Some(convert_identifier(m.1))
+                    start = Some(convert_identifier(&m.1))
                 }
             }
             SortOrMeta::Sort(_, sort) => {
@@ -55,7 +55,7 @@ pub fn convert<M: AstInfo>(inp: ast::AST_ROOT<M>) -> ConversionResult<SyntaxFile
     })
 }
 
-fn convert_identifier<M: AstInfo>(inp: ast::Identifier<M>) -> String {
+fn convert_identifier<M: AstInfo>(inp: &ast::Identifier<M>) -> String {
     inp.1.trim().to_string()
 }
 
@@ -132,7 +132,7 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
     Ok(match inp {
         ast::Sort::Sort(_, name, annos, constructors) => Sort {
             documentation: None,
-            name: convert_identifier(name),
+            name: convert_identifier(&name),
             constructors: constructors
                 .into_iter()
                 // .filter(|i| match i {
@@ -144,7 +144,7 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
             annotations: annos.map_or(Ok(vec![]), |a| convert_annotations(&a))?,
         },
         ast::Sort::SortSingle(_, name, expressions, annotations) => {
-            let name = convert_identifier(name);
+            let name = convert_identifier(&name);
             Sort {
                 documentation: None,
                 name: name.clone(),
@@ -179,7 +179,7 @@ fn convert_comments<M: AstInfo>(inp: Vec<ast::DocComment<M>>) -> ConversionResul
 fn convert_atom<M: AstInfo>(inp: ast::Atom<M>) -> ConversionResult<Expression> {
     Ok(match inp {
         ast::Atom::Literal(_, l) => Expression::Literal(l.to_string()),
-        ast::Atom::Sort(_, s) => Expression::Sort(convert_identifier(s)),
+        ast::Atom::Sort(_, s) => Expression::Sort(convert_identifier(&s)),
         ast::Atom::Class(_, cc) => Expression::CharacterClass(convert_character_class(cc)?),
         ast::Atom::Paren(_, exp) => {
             convert_expressions(exp.into_iter().map(|i| *i).collect())?
@@ -284,6 +284,7 @@ fn convert_annotations<M: AstInfo>(
                 ast::Annotation::NoLayout(_) => Annotation::NoLayout,
                 ast::Annotation::Hidden(_) => Annotation::Hidden,
                 ast::Annotation::Error(_, msg) => Annotation::Error(msg.to_string()),
+                ast::Annotation::PartOf(_, name) => Annotation::PartOf(convert_identifier(name)),
             })
         })
         .collect::<Result<_, _>>()
@@ -293,7 +294,7 @@ fn convert_constructor<M: AstInfo>(inp: ast::Constructor<M>) -> ConversionResult
     Ok(match inp {
         ast::Constructor::Constructor(_, name, expressions, annotations) => Constructor {
             documentation: None,
-            name: convert_identifier(name),
+            name: convert_identifier(&name),
             expression: convert_expressions(expressions)?,
             annotations: if let Some(a) = annotations {
                 convert_annotations(&a)?

@@ -150,6 +150,12 @@ pub enum Annotation<M> {
     ///then alongside an "expected ...", that message will be displayed as well.
     ///If this sort was the only possibility at a certain point, only the message will be displayed.
     Error(M, String<M>),
+    ///Makes constructors of this rule generate as part of another rule.
+    ///This has one major requirement. If a is part-of b then
+    ///b must have a rule like `a=a` to allow any a to appear in b
+    ///
+    ///Injections on rule a become injections into rule b too.
+    PartOf(M, Identifier<M>),
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
