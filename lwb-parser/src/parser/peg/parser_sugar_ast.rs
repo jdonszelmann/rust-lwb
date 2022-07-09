@@ -1,9 +1,7 @@
 use crate::sources::character_class::CharacterClass;
 use derive_more::Display;
-use enum_iterator::IntoEnumIterator;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Constructor {
@@ -37,7 +35,7 @@ pub enum Expression {
     Positive(Box<Expression>),
 }
 
-#[derive(Debug, Clone, IntoEnumIterator, Display, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Display, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Annotation {
     #[display(fmt = "no-pretty-print")]
     NoPrettyPrint,
@@ -56,19 +54,10 @@ pub enum Annotation {
     /// this rule does not appear in the ast anywhere its used.
     #[display(fmt = "hidden")]
     Hidden,
-}
 
-impl FromStr for Annotation {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        for i in Annotation::into_enum_iter() {
-            if s == i.to_string() {
-                return Ok(i);
-            }
-        }
-        Err(())
-    }
+    /// This rule gives an error when parsed
+    #[display(fmt = "error")]
+    Error(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

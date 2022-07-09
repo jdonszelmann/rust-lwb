@@ -34,6 +34,11 @@ number = [0-9]+; {single-string}
 character-class:
     class =  "[" "^"? character-class-item* "]"; {no-layout}
 
+string:
+    single = "'" string-char* "'"; {no-layout}
+    double = "\"" string-char* "\""; {no-layout}
+
+
 /// With expressions, you can give the syntax rules of a single constructor.
 /// Expressions can be nested and combined.
 expression:
@@ -59,9 +64,7 @@ expression:
     repeat-lower = expression "{" number "," "inf" "}";
 
     /// Matches a piece of text exactly. Layout is parsed within a literal.
-    literal = "\"" string-char* "\""; {no-layout}
-    /// Also a literal, see [`literal`]
-    single-quote-literal = "'" string-char* "'"; {no-layout}
+    literal = string;
 
     /// Delimited expressions. Says that some expression should be repeatedly parsed,
     /// but between two parses, a delimiter should be parsed too. For example, comma seperated expressions.
@@ -127,6 +130,8 @@ annotation:
     /// useful for for example the [`newline`] rule in this file.
     hidden = "hidden";
 
+    /// if this rule manages to parse, display an error with the associated message
+    error = "error" ":" "'" string;
 
 /// A [`sort`] consists of constructors. A sort will try each of the constructors
 /// from top to bottom, and use the first one that successfully parses the input string.

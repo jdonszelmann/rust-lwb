@@ -82,7 +82,7 @@ fn convert_escape_closing_bracket<M: AstInfo>(inp: ast::EscapeClosingBracket<M>)
     }
 }
 
-fn convert_string_char<M: AstInfo>(inp: ast::StringChar<M>) -> char {
+fn convert_string_char<M>(inp: &ast::StringChar<M>) -> char {
     match inp {
         StringChar::Escaped(_, c) => match c.as_str() {
             "n" => '\n',
@@ -204,8 +204,8 @@ fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<E
             min: convert_number(num)?,
             max: None,
         },
-        ast::Expression::Literal(_, l) | ast::Expression::SingleQuoteLiteral(_, l) => {
-            Expression::Literal(l.into_iter().map(|i| convert_string_char(i)).collect())
+        ast::Expression::Literal(_, l) => {
+            Expression::Literal(l.to_string())
         }
         ast::Expression::Sort(_, s) => Expression::Sort(convert_identifier(s)),
         ast::Expression::Class(_, cc) => Expression::CharacterClass(convert_character_class(cc)?),
@@ -248,6 +248,16 @@ fn convert_expressions<M: AstInfo>(
     }
 }
 
+impl<M> ToString for ast::String<M> {
+    fn to_string(&self) -> String {
+        let chars = match self {
+            ast::String::Single(_, s) => s,
+            ast::String::Double(_, s) => s,
+        };
+        chars.into_iter().map(|i| convert_string_char(i)).collect()
+    }
+}
+
 fn convert_annotations<M: AstInfo>(inp: &ast::AnnotationList<M>) -> ConversionResult<Vec<Annotation>> {
     let ast::AnnotationList(_, annotations) = inp;
     annotations
@@ -258,6 +268,7 @@ fn convert_annotations<M: AstInfo>(inp: &ast::AnnotationList<M>) -> ConversionRe
             ast::Annotation::SingleString(_) => Annotation::SingleString,
             ast::Annotation::NoLayout(_) => Annotation::NoLayout,
             ast::Annotation::Hidden(_) => Annotation::Hidden,
+            ast::Annotation::Error(_, msg) => Annotation::Error(msg.to_string()),
         }))
         .collect::<Result<_, _>>()
 }

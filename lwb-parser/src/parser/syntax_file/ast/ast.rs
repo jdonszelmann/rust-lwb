@@ -104,9 +104,7 @@ pub enum Expression<M> {
     #[doc = "Ranged repetition, without upper bound (or an infinite maximum)"]
     RepeatLower(M, Box<Expression<M>>, Number<M>),
     #[doc = "Matches a piece of text exactly. Layout is parsed within a literal."]
-    Literal(M, Vec<StringChar<M>>),
-    #[doc = "Also a literal, see [`literal`]"]
-    SingleQuoteLiteral(M, Vec<StringChar<M>>),
+    Literal(M, String<M>),
     #[doc = "Delimited expressions. Says that some expression should be repeatedly parsed,"]
     #[doc = "but between two parses, a delimiter should be parsed too. For example, comma seperated expressions."]
     #[doc = "The final trailing keyword enables a trailing separator after the sequence. If not present, no trailing"]
@@ -152,15 +150,17 @@ pub enum Annotation<M> {
     #[doc = "Annotation for sorts. This sort will not appear in any of the constructors it's used in."]
     #[doc = "useful for for example the [`newline`] rule in this file."]
     Hidden(M),
+    #[doc = "if this rule manages to parse, display an error with the associated message"]
+    Error(M, String<M>),
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub struct Number<M>(pub M, pub std::string::String);
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
-pub enum StringChar<M> {
-    Escaped(M, std::string::String),
-    Normal(M, std::string::String),
+pub enum String<M> {
+    Single(M, Vec<StringChar<M>>),
+    Double(M, Vec<StringChar<M>>),
 }
 #[doc = "A delimited expression can be repeated just like normal repetition expressions."]
 #[doc = "To denote this, you can use a delimitation bound."]
@@ -191,6 +191,12 @@ pub enum DelimitedBound<M> {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub struct CharacterClass<M>(pub M, pub bool, pub Vec<CharacterClassItem<M>>);
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
+pub enum StringChar<M> {
+    Escaped(M, std::string::String),
+    Normal(M, std::string::String),
+}
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub enum CharacterClassItem<M> {
