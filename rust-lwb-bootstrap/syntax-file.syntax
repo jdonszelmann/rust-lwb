@@ -104,7 +104,7 @@ annotation-list = "{" delimited(annotation, ",", +, trailing) "}";
 annotation:
     /// Mark a constructor as being a mapping from sort x to sort x.
     /// An example is a parenthesis rule:
-    /// ```
+    /// ```lwb,no_run
     /// expr:
     ///     paren = "(" expr ")"
     /// ```

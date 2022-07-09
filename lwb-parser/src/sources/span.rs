@@ -1,7 +1,7 @@
-use std::fmt::{Debug, DebugStruct, Formatter};
 use crate::sources::source_file::SourceFile;
 use miette::{MietteError, SourceCode, SourceSpan, SpanContents};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Formatter};
 
 /// Represents a certain range of a file. This is useful for marking the locations that certain tokens or errors occur.
 /// The position and length are both in BYTES. The byte offsets provided should be valid.

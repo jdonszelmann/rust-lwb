@@ -152,9 +152,13 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
                     documentation: None,
                     name,
                     expression: convert_expressions(expressions)?,
-                    annotations: annotations.as_ref().map_or(Ok(vec![]), |a| convert_annotations(a))?,
+                    annotations: annotations
+                        .as_ref()
+                        .map_or(Ok(vec![]), |a| convert_annotations(a))?,
                 }],
-                annotations: annotations.as_ref().map_or(Ok(vec![]), |a| convert_annotations(a))?,
+                annotations: annotations
+                    .as_ref()
+                    .map_or(Ok(vec![]), |a| convert_annotations(a))?,
             }
         }
         ast::Sort::SortDocumented(_, comments, sort) => convert_sort(*sort).and_then(|mut i| {
@@ -207,9 +211,7 @@ fn convert_expression<M: AstInfo>(inp: ast::Expression<M>) -> ConversionResult<E
             min: convert_number(num)?,
             max: None,
         },
-        ast::Expression::Literal(_, l) => {
-            Expression::Literal(l.to_string())
-        }
+        ast::Expression::Literal(_, l) => Expression::Literal(l.to_string()),
         ast::Expression::Sort(_, s) => Expression::Sort(convert_identifier(s)),
         ast::Expression::Class(_, cc) => Expression::CharacterClass(convert_character_class(cc)?),
         ast::Expression::Paren(_, exp) => {
@@ -257,22 +259,26 @@ impl<M> ToString for ast::String<M> {
             ast::String::Single(_, s) => s,
             ast::String::Double(_, s) => s,
         };
-        chars.into_iter().map(|i| convert_string_char(i)).collect()
+        chars.iter().map(|i| convert_string_char(i)).collect()
     }
 }
 
-fn convert_annotations<M: AstInfo>(inp: &ast::AnnotationList<M>) -> ConversionResult<Vec<Annotation>> {
+fn convert_annotations<M: AstInfo>(
+    inp: &ast::AnnotationList<M>,
+) -> ConversionResult<Vec<Annotation>> {
     let ast::AnnotationList(_, annotations) = inp;
     annotations
-        .into_iter()
-        .map(|an: &ast::Annotation<M>| Ok(match an {
-            ast::Annotation::Injection(_) => Annotation::Injection,
-            ast::Annotation::NoPrettyPrint(_) => Annotation::NoPrettyPrint,
-            ast::Annotation::SingleString(_) => Annotation::SingleString,
-            ast::Annotation::NoLayout(_) => Annotation::NoLayout,
-            ast::Annotation::Hidden(_) => Annotation::Hidden,
-            ast::Annotation::Error(_, msg) => Annotation::Error(msg.to_string()),
-        }))
+        .iter()
+        .map(|an: &ast::Annotation<M>| {
+            Ok(match an {
+                ast::Annotation::Injection(_) => Annotation::Injection,
+                ast::Annotation::NoPrettyPrint(_) => Annotation::NoPrettyPrint,
+                ast::Annotation::SingleString(_) => Annotation::SingleString,
+                ast::Annotation::NoLayout(_) => Annotation::NoLayout,
+                ast::Annotation::Hidden(_) => Annotation::Hidden,
+                ast::Annotation::Error(_, msg) => Annotation::Error(msg.to_string()),
+            })
+        })
         .collect::<Result<_, _>>()
 }
 

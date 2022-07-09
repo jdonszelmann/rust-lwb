@@ -1,7 +1,7 @@
+use crate::parser::peg::parser_sugar_ast::Annotation;
 use crate::sources::character_class::CharacterClass;
 use crate::sources::span::Span;
 use std::collections::HashMap;
-use crate::parser::peg::parser_sugar_ast::Annotation;
 
 #[derive(Debug, Clone)]
 pub enum CoreExpression<'src> {

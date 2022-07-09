@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use crate::codegen::check_recursive::{BreadthFirstAstIterator, RecursionChecker};
 use crate::codegen::error::CodegenError;
 use crate::codegen::generate_misc::generate_serde_attrs;
@@ -8,6 +7,7 @@ use crate::parser::peg::parser_sugar_ast::{Annotation, Expression, Sort, SyntaxF
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
+use std::collections::HashMap;
 
 pub fn convert_docs(docs: Option<&String>) -> Vec<TokenStream> {
     docs.cloned()
@@ -52,14 +52,18 @@ pub fn generate_structs(
 
     let derives = derives.iter().map(|i| format_ident!("{}", i)).collect_vec();
 
-    let sort_list = syntax.sorts.iter().map(|(k, v)| (k.as_str(), v)).collect::<HashMap<&str, &Sort>>();
+    let sort_list = syntax
+        .sorts
+        .iter()
+        .map(|(k, v)| (k.as_str(), v))
+        .collect::<HashMap<&str, &Sort>>();
 
     let arena = Default::default();
     let sorts_iterator = BreadthFirstAstIterator::new(syntax, &arena);
 
     for (rule, ckr) in sorts_iterator {
         if rule.annotations.contains(&Annotation::Hidden) {
-            continue
+            continue;
         }
 
         if rule.constructors.len() == 1 {
@@ -68,7 +72,11 @@ pub fn generate_structs(
             let doc = convert_docs(rule.documentation.as_ref());
             let constr = &rule.constructors[0];
 
-            if constr.annotations.iter().any(|i| matches!(i, &Annotation::Error(_))) {
+            if constr
+                .annotations
+                .iter()
+                .any(|i| matches!(i, &Annotation::Error(_)))
+            {
                 // continues outer loop (over sorts)
                 continue;
             }
@@ -103,7 +111,11 @@ pub fn generate_structs(
             let mut variants = Vec::new();
 
             for constr in &rule.constructors {
-                if constr.annotations.iter().any(|i| matches!(i, &Annotation::Error(_))) {
+                if constr
+                    .annotations
+                    .iter()
+                    .any(|i| matches!(i, &Annotation::Error(_)))
+                {
                     continue;
                 }
 
@@ -196,11 +208,15 @@ impl<'a, T> Iterator for TreeIterator<'a, T> {
 fn generate_constructor_type(
     constructor: &Expression,
     ckr: &RecursionChecker,
-    sort_list: &HashMap<&str, &Sort>
+    sort_list: &HashMap<&str, &Sort>,
 ) -> Tree<TokenStream> {
     match constructor {
         Expression::Sort(sort) => {
-            if sort_list.get(sort.as_str()).map(|i| i.annotations.contains(&Annotation::Hidden)).unwrap_or_default() {
+            if sort_list
+                .get(sort.as_str())
+                .map(|i| i.annotations.contains(&Annotation::Hidden))
+                .unwrap_or_default()
+            {
                 return Tree::Empty;
             }
 

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use crate::codegen::check_recursive::{BreadthFirstAstIterator, RecursionChecker};
 use crate::codegen::error::CodegenError;
 use crate::codegen::sanitize_identifier;
@@ -7,6 +6,7 @@ use crate::parser::peg::parser_sugar_ast::{Annotation, Expression, Sort, SyntaxF
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
+use std::collections::HashMap;
 
 fn generate_unpack_expression(
     expression: &Expression,
@@ -14,13 +14,17 @@ fn generate_unpack_expression(
     src: TokenStream,
     ckr: &RecursionChecker,
     non_exhaustive: TokenStream,
-    sort_list: &HashMap<&str, &Sort>
+    sort_list: &HashMap<&str, &Sort>,
 ) -> Option<TokenStream> {
     let unreachable_exp = quote!(unreachable!("expected different parse pair expression in pair to ast conversion of {}", #sort););
 
     Some(match expression {
         Expression::Sort(name) => {
-            if sort_list.get(name.as_str()).map(|i| i.annotations.contains(&Annotation::Hidden)).unwrap_or_default() {
+            if sort_list
+                .get(name.as_str())
+                .map(|i| i.annotations.contains(&Annotation::Hidden))
+                .unwrap_or_default()
+            {
                 return None;
             }
 
@@ -47,7 +51,9 @@ fn generate_unpack_expression(
             )
         }
         Expression::Repeat { min, max, e } | Expression::Delimited { min, max, e, .. } => {
-            if let Some(ue) = generate_unpack_expression(e, sort, quote!(x), ckr, non_exhaustive, sort_list) {
+            if let Some(ue) =
+                generate_unpack_expression(e, sort, quote!(x), ckr, non_exhaustive, sort_list)
+            {
                 match (min, max) {
                     (0, Some(1)) => quote!(
                         if let ParsePairExpression::List(_, ref l) = #src {
@@ -241,7 +247,11 @@ pub fn generate_from_pairs(
     } else {
         TokenStream::new()
     };
-    let sort_list = syntax.sorts.iter().map(|(k, v)| (k.as_str(), v)).collect::<HashMap<&str, &Sort>>();
+    let sort_list = syntax
+        .sorts
+        .iter()
+        .map(|(k, v)| (k.as_str(), v))
+        .collect::<HashMap<&str, &Sort>>();
 
     let arena = Default::default();
     let sorts_iterator = BreadthFirstAstIterator::new(syntax, &arena);
@@ -270,14 +280,22 @@ pub fn generate_from_pairs(
             let constructor_names_str = sort
                 .constructors
                 .iter()
-                .filter(|i| !i.annotations.iter().any(|i| matches!(i, Annotation::Error(_))))
+                .filter(|i| {
+                    !i.annotations
+                        .iter()
+                        .any(|i| matches!(i, Annotation::Error(_)))
+                })
                 .map(|i| i.name.as_str())
                 .collect_vec();
 
             let unpacks = sort
                 .constructors
                 .iter()
-                .filter(|i| !i.annotations.iter().any(|i| matches!(i, Annotation::Error(_))))
+                .filter(|i| {
+                    !i.annotations
+                        .iter()
+                        .any(|i| matches!(i, Annotation::Error(_)))
+                })
                 .map(|constr| {
                     let name = format_ident!("{}", sanitize_identifier(&constr.name));
 

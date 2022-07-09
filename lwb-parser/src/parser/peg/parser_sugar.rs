@@ -37,7 +37,11 @@ fn desugar_ast(ast: &SyntaxFileAst) -> CoreAst {
     if !sorts.contains_key("layout") {
         sorts.insert(
             "layout",
-            CoreSort { name: "layout", expr: CoreExpression::CharacterClass(CharacterClass::Nothing), annotations: vec![]},
+            CoreSort {
+                name: "layout",
+                expr: CoreExpression::CharacterClass(CharacterClass::Nothing),
+                annotations: vec![],
+            },
         );
     }
 
@@ -63,10 +67,12 @@ fn desugar_sort(sort: &Sort) -> CoreSort {
                         );
                     }
 
-                    if let Some(e) = c.annotations.iter().find_map(|i| if let Annotation::Error(e) = i {
-                        Some(e)
-                    } else {
-                        None
+                    if let Some(e) = c.annotations.iter().find_map(|i| {
+                        if let Annotation::Error(e) = i {
+                            Some(e)
+                        } else {
+                            None
+                        }
                     }) {
                         base = CoreExpression::Error(Box::new(base), e.to_string())
                     }

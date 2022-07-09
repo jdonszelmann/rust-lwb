@@ -1,3 +1,4 @@
+use crate::parser::peg::parser_core_expression::ExpressionContext;
 use crate::sources::character_class::CharacterClass;
 use crate::sources::span::Span;
 use itertools::Itertools;
@@ -5,7 +6,6 @@ use miette::{Diagnostic, LabeledSpan, Severity, SourceCode};
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
-use crate::parser::peg::parser_core_expression::ExpressionContext;
 
 /// A parsing error represents a single error that occurred during parsing.
 /// The parsing error occurs at a certain position in a file, represented by the span.
@@ -22,7 +22,10 @@ pub struct PEGParseError {
 }
 
 // add error bound so IDEs don't complain. Error is always derived by thiserror.
-impl Diagnostic for PEGParseError where PEGParseError: std::error::Error {
+impl Diagnostic for PEGParseError
+where
+    PEGParseError: std::error::Error,
+{
     /// Diagnostic severity. This may be used by [ReportHandler]s to change the
     /// display format of this diagnostic.
     ///
@@ -39,11 +42,12 @@ impl Diagnostic for PEGParseError where PEGParseError: std::error::Error {
     /// Labels to apply to this Diagnostic's [Diagnostic::source_code]
     fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
         // immediately return when the grammar gave a custom error
-        if let Some(i) = self.expected.iter().find(|i| matches!(i, Expect::Custom(_))) {
-            let label = LabeledSpan::new_with_span(
-                Some(i.to_string()),
-                self.span.clone(),
-            );
+        if let Some(i) = self
+            .expected
+            .iter()
+            .find(|i| matches!(i, Expect::Custom(_)))
+        {
+            let label = LabeledSpan::new_with_span(Some(i.to_string()), self.span.clone());
 
             return Some(Box::new(vec![label].into_iter()));
         }
@@ -88,7 +92,6 @@ impl Diagnostic for PEGParseError where PEGParseError: std::error::Error {
         } else {
             Some(Box::new(helps.join("\n")))
         }
-
     }
 }
 
@@ -100,12 +103,14 @@ impl PEGParseError {
             fail_left_rec: false,
             fail_loop: false,
             msgs: if let Some(name) = sort_context.name {
-                sort_context.error.iter()
+                sort_context
+                    .error
+                    .iter()
                     .map(|i| (name.to_string(), i.to_string()))
                     .collect()
             } else {
                 vec![]
-            }
+            },
         }
     }
 
@@ -115,7 +120,7 @@ impl PEGParseError {
             expected: vec![],
             fail_left_rec: true,
             fail_loop: false,
-            msgs: vec![]
+            msgs: vec![],
         }
     }
 
@@ -125,7 +130,7 @@ impl PEGParseError {
             expected: vec![],
             fail_left_rec: false,
             fail_loop: true,
-            msgs: vec![]
+            msgs: vec![],
         }
     }
 }

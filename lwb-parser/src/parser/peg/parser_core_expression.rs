@@ -17,7 +17,7 @@ impl<'src> ExpressionContext<'src> {
     pub fn empty() -> Self {
         Self {
             name: None,
-            error: None
+            error: None,
         }
     }
 }
@@ -38,11 +38,13 @@ pub fn parse_expression_name<'src>(
     let expr = &sort.expr;
     let sort_context = ExpressionContext {
         name: Some(sort.name),
-        error: sort.annotations.iter().find_map(|i| if let Annotation::Error(e) = i {
-            Some(e)
-        } else {
-            None
-        })
+        error: sort.annotations.iter().find_map(|i| {
+            if let Annotation::Error(e) = i {
+                Some(e)
+            } else {
+                None
+            }
+        }),
     };
 
     //Check if this result is cached
@@ -132,7 +134,8 @@ pub fn parse_expression<'src>(
         //To parse a character class, check if the character is accepted, and make an ok/error based on that.
         CoreExpression::CharacterClass(characters) => {
             while cache.allow_layout && !pos.clone().accept(characters) {
-                let (ok, after_layout_pos) = skip_single_layout(state, cache, pos.clone(), sort_context);
+                let (ok, after_layout_pos) =
+                    skip_single_layout(state, cache, pos.clone(), sort_context);
                 if !ok {
                     break;
                 };
@@ -148,7 +151,7 @@ pub fn parse_expression<'src>(
                 cache.add_error(PEGParseError::expect(
                     span.clone(),
                     Expect::ExpectCharClass(characters.clone()),
-                    sort_context
+                    sort_context,
                 ));
                 ParseResult::new_err(ParsePairRaw::Error(span), pos.clone(), pos)
             }
@@ -219,7 +222,8 @@ pub fn parse_expression<'src>(
 
             //Parse at most maximum times
             for i in 0..max.unwrap_or(u64::MAX) {
-                let res = parse_expression(state, cache, subexpr.as_ref(), pos.clone(), sort_context);
+                let res =
+                    parse_expression(state, cache, subexpr.as_ref(), pos.clone(), sort_context);
                 pos_err.max_pos(res.pos_err.clone());
                 recovered |= res.recovered;
 
@@ -348,7 +352,8 @@ pub fn parse_expression<'src>(
                 let mut next_pos = res.pos.clone();
                 next_pos.skip_n(1);
                 let span = Span::from_end(state.file, start_pos, next_pos.position());
-                let err = PEGParseError::expect(span, Expect::ExpectSort(name.to_string()), sort_context);
+                let err =
+                    PEGParseError::expect(span, Expect::ExpectSort(name.to_string()), sort_context);
                 cache.add_error(err);
             }
             res
@@ -362,7 +367,8 @@ pub fn parse_expression<'src>(
                 let mut next_pos = res.pos.clone();
                 next_pos.skip_n(1);
                 let span = Span::from_end(state.file, start_pos, next_pos.position());
-                let err = PEGParseError::expect(span, Expect::Custom(msg.to_string()), sort_context);
+                let err =
+                    PEGParseError::expect(span, Expect::Custom(msg.to_string()), sort_context);
                 cache.add_error(err);
 
                 res.pos = pos_backup;

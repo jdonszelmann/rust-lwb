@@ -128,7 +128,7 @@ pub enum Expression<M> {
 pub enum Annotation<M> {
     #[doc = "Mark a constructor as being a mapping from sort x to sort x."]
     #[doc = "An example is a parenthesis rule:"]
-    #[doc = "```"]
+    #[doc = "```lwb,no_run"]
     #[doc = "expr:"]
     #[doc = "paren = \"(\" expr \")\""]
     #[doc = "```"]
