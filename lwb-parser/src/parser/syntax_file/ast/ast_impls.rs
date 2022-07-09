@@ -8,6 +8,18 @@
 // | IN GENERAL, THIS FILE SHOULD NOT BE MODIFIED IN ANY WAY. |
 // |==========================================================|
 use super::prelude::*;
+impl<M: AstInfo> AstNode<M> for CharacterClass<M> {
+    fn ast_info(&self) -> &M {
+        let Self(meta, ..) = self;
+        meta
+    }
+    fn constructor(&self) -> &'static str {
+        "class"
+    }
+    fn sort(&self) -> &'static str {
+        "character-class"
+    }
+}
 impl<M: AstInfo> AstNode<M> for Meta<M> {
     fn ast_info(&self) -> &M {
         let Self(meta, ..) = self;
@@ -18,56 +30,6 @@ impl<M: AstInfo> AstNode<M> for Meta<M> {
     }
     fn sort(&self) -> &'static str {
         "meta"
-    }
-}
-impl<M: AstInfo> AstNode<M> for DocComment<M> {
-    fn ast_info(&self) -> &M {
-        let Self(meta, ..) = self;
-        meta
-    }
-    fn constructor(&self) -> &'static str {
-        "doc-comment"
-    }
-    fn sort(&self) -> &'static str {
-        "doc-comment"
-    }
-}
-impl<M: AstInfo> AstNode<M> for Newline<M> {
-    fn ast_info(&self) -> &M {
-        match self {
-            Self::Unix(meta, ..) => meta,
-            Self::Windows(meta, ..) => meta,
-            _ => unreachable!(),
-        }
-    }
-    fn constructor(&self) -> &'static str {
-        match self {
-            Self::Unix(..) => "unix",
-            Self::Windows(..) => "windows",
-            _ => unreachable!(),
-        }
-    }
-    fn sort(&self) -> &'static str {
-        "newline"
-    }
-}
-impl<M: AstInfo> AstNode<M> for SortOrMeta<M> {
-    fn ast_info(&self) -> &M {
-        match self {
-            Self::Meta(meta, ..) => meta,
-            Self::Sort(meta, ..) => meta,
-            _ => unreachable!(),
-        }
-    }
-    fn constructor(&self) -> &'static str {
-        match self {
-            Self::Meta(..) => "meta",
-            Self::Sort(..) => "sort",
-            _ => unreachable!(),
-        }
-    }
-    fn sort(&self) -> &'static str {
-        "sort-or-meta"
     }
 }
 impl<M: AstInfo> AstNode<M> for Layout<M> {
@@ -89,6 +51,31 @@ impl<M: AstInfo> AstNode<M> for Layout<M> {
         "layout"
     }
 }
+impl<M: AstInfo> AstNode<M> for DelimitedBound<M> {
+    fn ast_info(&self) -> &M {
+        match self {
+            Self::NumNum(meta, ..) => meta,
+            Self::NumInf(meta, ..) => meta,
+            Self::Num(meta, ..) => meta,
+            Self::Star(meta, ..) => meta,
+            Self::Plus(meta, ..) => meta,
+            _ => unreachable!(),
+        }
+    }
+    fn constructor(&self) -> &'static str {
+        match self {
+            Self::NumNum(..) => "num-num",
+            Self::NumInf(..) => "num-inf",
+            Self::Num(..) => "num",
+            Self::Star(..) => "star",
+            Self::Plus(..) => "plus",
+            _ => unreachable!(),
+        }
+    }
+    fn sort(&self) -> &'static str {
+        "delimited-bound"
+    }
+}
 impl<M: AstInfo> AstNode<M> for Number<M> {
     fn ast_info(&self) -> &M {
         let Self(meta, ..) = self;
@@ -101,16 +88,16 @@ impl<M: AstInfo> AstNode<M> for Number<M> {
         "number"
     }
 }
-impl<M: AstInfo> AstNode<M> for AnnotationList<M> {
+impl<M: AstInfo> AstNode<M> for Identifier<M> {
     fn ast_info(&self) -> &M {
         let Self(meta, ..) = self;
         meta
     }
     fn constructor(&self) -> &'static str {
-        "annotation-list"
+        "identifier"
     }
     fn sort(&self) -> &'static str {
-        "annotation-list"
+        "identifier"
     }
 }
 impl<M: AstInfo> AstNode<M> for Constructor<M> {
@@ -130,30 +117,6 @@ impl<M: AstInfo> AstNode<M> for Constructor<M> {
     }
     fn sort(&self) -> &'static str {
         "constructor"
-    }
-}
-impl<M: AstInfo> AstNode<M> for Identifier<M> {
-    fn ast_info(&self) -> &M {
-        let Self(meta, ..) = self;
-        meta
-    }
-    fn constructor(&self) -> &'static str {
-        "identifier"
-    }
-    fn sort(&self) -> &'static str {
-        "identifier"
-    }
-}
-impl<M: AstInfo> AstNode<M> for CharacterClass<M> {
-    fn ast_info(&self) -> &M {
-        let Self(meta, ..) = self;
-        meta
-    }
-    fn constructor(&self) -> &'static str {
-        "class"
-    }
-    fn sort(&self) -> &'static str {
-        "character-class"
     }
 }
 impl<M: AstInfo> AstNode<M> for Sort<M> {
@@ -177,23 +140,66 @@ impl<M: AstInfo> AstNode<M> for Sort<M> {
         "sort"
     }
 }
-impl<M: AstInfo> AstNode<M> for StringChar<M> {
+impl<M: AstInfo> AstNode<M> for Program<M> {
+    fn ast_info(&self) -> &M {
+        let Self(meta, ..) = self;
+        meta
+    }
+    fn constructor(&self) -> &'static str {
+        "program"
+    }
+    fn sort(&self) -> &'static str {
+        "program"
+    }
+}
+impl<M: AstInfo> AstNode<M> for CharacterClassItem<M> {
+    fn ast_info(&self) -> &M {
+        match self {
+            Self::Range(meta, ..) => meta,
+            Self::SingleChar(meta, ..) => meta,
+            _ => unreachable!(),
+        }
+    }
+    fn constructor(&self) -> &'static str {
+        match self {
+            Self::Range(..) => "range",
+            Self::SingleChar(..) => "single-char",
+            _ => unreachable!(),
+        }
+    }
+    fn sort(&self) -> &'static str {
+        "character-class-item"
+    }
+}
+impl<M: AstInfo> AstNode<M> for EscapeClosingBracket<M> {
     fn ast_info(&self) -> &M {
         match self {
             Self::Escaped(meta, ..) => meta,
-            Self::Normal(meta, ..) => meta,
+            Self::Unescaped(meta, ..) => meta,
             _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
         match self {
             Self::Escaped(..) => "escaped",
-            Self::Normal(..) => "normal",
+            Self::Unescaped(..) => "unescaped",
             _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {
-        "string-char"
+        "escape-closing-bracket"
+    }
+}
+impl<M: AstInfo> AstNode<M> for AnnotationList<M> {
+    fn ast_info(&self) -> &M {
+        let Self(meta, ..) = self;
+        meta
+    }
+    fn constructor(&self) -> &'static str {
+        "annotation-list"
+    }
+    fn sort(&self) -> &'static str {
+        "annotation-list"
     }
 }
 impl<M: AstInfo> AstNode<M> for Expression<M> {
@@ -235,43 +241,6 @@ impl<M: AstInfo> AstNode<M> for Expression<M> {
         "expression"
     }
 }
-impl<M: AstInfo> AstNode<M> for DelimitedBound<M> {
-    fn ast_info(&self) -> &M {
-        match self {
-            Self::NumNum(meta, ..) => meta,
-            Self::NumInf(meta, ..) => meta,
-            Self::Num(meta, ..) => meta,
-            Self::Star(meta, ..) => meta,
-            Self::Plus(meta, ..) => meta,
-            _ => unreachable!(),
-        }
-    }
-    fn constructor(&self) -> &'static str {
-        match self {
-            Self::NumNum(..) => "num-num",
-            Self::NumInf(..) => "num-inf",
-            Self::Num(..) => "num",
-            Self::Star(..) => "star",
-            Self::Plus(..) => "plus",
-            _ => unreachable!(),
-        }
-    }
-    fn sort(&self) -> &'static str {
-        "delimited-bound"
-    }
-}
-impl<M: AstInfo> AstNode<M> for Program<M> {
-    fn ast_info(&self) -> &M {
-        let Self(meta, ..) = self;
-        meta
-    }
-    fn constructor(&self) -> &'static str {
-        "program"
-    }
-    fn sort(&self) -> &'static str {
-        "program"
-    }
-}
 impl<M: AstInfo> AstNode<M> for Annotation<M> {
     fn ast_info(&self) -> &M {
         match self {
@@ -297,41 +266,53 @@ impl<M: AstInfo> AstNode<M> for Annotation<M> {
         "annotation"
     }
 }
-impl<M: AstInfo> AstNode<M> for CharacterClassItem<M> {
-    fn ast_info(&self) -> &M {
-        match self {
-            Self::Range(meta, ..) => meta,
-            Self::SingleChar(meta, ..) => meta,
-            _ => unreachable!(),
-        }
-    }
-    fn constructor(&self) -> &'static str {
-        match self {
-            Self::Range(..) => "range",
-            Self::SingleChar(..) => "single-char",
-            _ => unreachable!(),
-        }
-    }
-    fn sort(&self) -> &'static str {
-        "character-class-item"
-    }
-}
-impl<M: AstInfo> AstNode<M> for EscapeClosingBracket<M> {
+impl<M: AstInfo> AstNode<M> for StringChar<M> {
     fn ast_info(&self) -> &M {
         match self {
             Self::Escaped(meta, ..) => meta,
-            Self::Unescaped(meta, ..) => meta,
+            Self::Normal(meta, ..) => meta,
             _ => unreachable!(),
         }
     }
     fn constructor(&self) -> &'static str {
         match self {
             Self::Escaped(..) => "escaped",
-            Self::Unescaped(..) => "unescaped",
+            Self::Normal(..) => "normal",
             _ => unreachable!(),
         }
     }
     fn sort(&self) -> &'static str {
-        "escape-closing-bracket"
+        "string-char"
+    }
+}
+impl<M: AstInfo> AstNode<M> for SortOrMeta<M> {
+    fn ast_info(&self) -> &M {
+        match self {
+            Self::Meta(meta, ..) => meta,
+            Self::Sort(meta, ..) => meta,
+            _ => unreachable!(),
+        }
+    }
+    fn constructor(&self) -> &'static str {
+        match self {
+            Self::Meta(..) => "meta",
+            Self::Sort(..) => "sort",
+            _ => unreachable!(),
+        }
+    }
+    fn sort(&self) -> &'static str {
+        "sort-or-meta"
+    }
+}
+impl<M: AstInfo> AstNode<M> for DocComment<M> {
+    fn ast_info(&self) -> &M {
+        let Self(meta, ..) = self;
+        meta
+    }
+    fn constructor(&self) -> &'static str {
+        "doc-comment"
+    }
+    fn sort(&self) -> &'static str {
+        "doc-comment"
     }
 }

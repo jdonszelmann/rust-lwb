@@ -130,15 +130,16 @@ fn convert_character_class<M: AstInfo>(
 
 fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
     Ok(match inp {
-        ast::Sort::Sort(_, name, _, constructors) => Sort {
+        ast::Sort::Sort(_, name, annos, constructors) => Sort {
             documentation: None,
             name: convert_identifier(name),
             constructors: constructors
                 .into_iter()
                 .map(|i| convert_constructor(i))
                 .collect::<Result<_, _>>()?,
+            annotations: annos.map_or(Ok(vec![]), |a| convert_annotations(&a))?
         },
-        ast::Sort::SortSingle(_, name, expressions, annotations, _) => {
+        ast::Sort::SortSingle(_, name, expressions, annotations) => {
             let name = convert_identifier(name);
             Sort {
                 documentation: None,
@@ -147,12 +148,10 @@ fn convert_sort<M: AstInfo>(inp: ast::Sort<M>) -> ConversionResult<Sort> {
                     documentation: None,
                     name,
                     expression: convert_expressions(expressions)?,
-                    annotations: if let Some(a) = annotations {
-                        convert_annotations(a)?
-                    } else {
-                        Vec::new()
-                    },
+                    annotations: annotations.as_ref().map_or(Ok(vec![]), |a| convert_annotations(a))?,
                 }],
+                annotations: annotations.as_ref().map_or(Ok(vec![]), |a| convert_annotations(a))?
+
             }
         }
         ast::Sort::SortDocumented(_, comments, sort) => convert_sort(*sort).and_then(|mut i| {
@@ -249,11 +248,11 @@ fn convert_expressions<M: AstInfo>(
     }
 }
 
-fn convert_annotations<M: AstInfo>(inp: ast::AnnotationList<M>) -> ConversionResult<Vec<Annotation>> {
+fn convert_annotations<M: AstInfo>(inp: &ast::AnnotationList<M>) -> ConversionResult<Vec<Annotation>> {
     let ast::AnnotationList(_, annotations) = inp;
     annotations
         .into_iter()
-        .map(|an: ast::Annotation<M>| Ok(match an {
+        .map(|an: &ast::Annotation<M>| Ok(match an {
             ast::Annotation::Injection(_) => Annotation::Injection,
             ast::Annotation::NoPrettyPrint(_) => Annotation::NoPrettyPrint,
             ast::Annotation::SingleString(_) => Annotation::SingleString,
@@ -265,12 +264,12 @@ fn convert_annotations<M: AstInfo>(inp: ast::AnnotationList<M>) -> ConversionRes
 
 fn convert_constructor<M: AstInfo>(inp: ast::Constructor<M>) -> ConversionResult<Constructor> {
     Ok(match inp {
-        ast::Constructor::Constructor(_, name, expressions, annotations, _) => Constructor {
+        ast::Constructor::Constructor(_, name, expressions, annotations) => Constructor {
             documentation: None,
             name: convert_identifier(name),
             expression: convert_expressions(expressions)?,
             annotations: if let Some(a) = annotations {
-                convert_annotations(a)?
+                convert_annotations(&a)?
             } else {
                 Vec::new()
             },

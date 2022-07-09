@@ -181,6 +181,7 @@ fn parse_sort_or_meta(i: &mut SourceFileIterator) -> ParseResult<Option<SortOrMe
             documentation: None,
             name,
             constructors,
+            annotations: vec![],
         })))
     }
 }

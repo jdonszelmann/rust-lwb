@@ -114,12 +114,12 @@ impl<M: AstInfo> FromPairs<M> for Sort<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "sort");
                         },
-                        if let ParsePairExpression::Sort(_, ref s) = l[2usize] {
-                            Newline::from_pairs(s, generator)
+                        if let ParsePairExpression::List(_, ref l) = l[2usize] {
+                            l . first () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { AnnotationList :: from_pairs (s , generator) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "sort") ; })
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "sort");
                         },
-                        if let ParsePairExpression::List(_, ref l) = l[3usize] {
+                        if let ParsePairExpression::List(_, ref l) = l[4usize] {
                             l . iter () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { Constructor :: from_pairs (s , generator) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "sort") ; }) . collect ()
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "sort");
@@ -151,11 +151,6 @@ impl<M: AstInfo> FromPairs<M> for Sort<M> {
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "sort");
                         },
-                        if let ParsePairExpression::Sort(_, ref s) = l[5usize] {
-                            Newline::from_pairs(s, generator)
-                        } else {
-                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "sort");
-                        },
                     )
                 } else {
                     unreachable!(
@@ -182,14 +177,27 @@ impl<M: AstInfo> FromPairs<M> for DocComment<M> {
         return Self(info, pair.constructor_value.span().as_str().to_string());
     }
 }
-impl<M: AstInfo> FromPairs<M> for Newline<M> {
+impl<M: AstInfo> FromPairs<M> for AnnotationList<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "newline");
+        assert_eq!(pair.sort, "annotation-list");
         let info = generator.generate(&pair);
-        match pair.constructor_name {
-            "unix" => Self::Unix(info),
-            "windows" => Self::Windows(info),
-            a => unreachable!("{}", a),
+        if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
+            Self(
+                info,
+                if let ParsePairExpression::List(_, ref l) = l[1usize] {
+                    l . iter () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { Annotation :: from_pairs (s , generator) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "annotation-list") ; }) . collect ()
+                } else {
+                    unreachable!(
+                        "expected different parse pair expression in pair to ast conversion of {}",
+                        "annotation-list"
+                    );
+                },
+            )
+        } else {
+            unreachable!(
+                "expected different parse pair expression in pair to ast conversion of {}",
+                "annotation-list"
+            );
         }
     }
 }
@@ -236,11 +244,6 @@ impl<M: AstInfo> FromPairs<M> for Constructor<M> {
                         },
                         if let ParsePairExpression::List(_, ref l) = l[5usize] {
                             l . first () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { AnnotationList :: from_pairs (s , generator) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor") ; })
-                        } else {
-                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor");
-                        },
-                        if let ParsePairExpression::Sort(_, ref s) = l[6usize] {
-                            Newline::from_pairs(s, generator)
                         } else {
                             unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor");
                         },
@@ -490,27 +493,17 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
         }
     }
 }
-impl<M: AstInfo> FromPairs<M> for AnnotationList<M> {
+impl<M: AstInfo> FromPairs<M> for Annotation<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "annotation-list");
+        assert_eq!(pair.sort, "annotation");
         let info = generator.generate(&pair);
-        if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
-            Self(
-                info,
-                if let ParsePairExpression::List(_, ref l) = l[1usize] {
-                    l . iter () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { Annotation :: from_pairs (s , generator) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "annotation-list") ; }) . collect ()
-                } else {
-                    unreachable!(
-                        "expected different parse pair expression in pair to ast conversion of {}",
-                        "annotation-list"
-                    );
-                },
-            )
-        } else {
-            unreachable!(
-                "expected different parse pair expression in pair to ast conversion of {}",
-                "annotation-list"
-            );
+        match pair.constructor_name {
+            "injection" => Self::Injection(info),
+            "no-pretty-print" => Self::NoPrettyPrint(info),
+            "single-string" => Self::SingleString(info),
+            "no-layout" => Self::NoLayout(info),
+            "hidden" => Self::Hidden(info),
+            a => unreachable!("{}", a),
         }
     }
 }
@@ -646,20 +639,6 @@ impl<M: AstInfo> FromPairs<M> for CharacterClass<M> {
                 "expected different parse pair expression in pair to ast conversion of {}",
                 "character-class"
             );
-        }
-    }
-}
-impl<M: AstInfo> FromPairs<M> for Annotation<M> {
-    fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "annotation");
-        let info = generator.generate(&pair);
-        match pair.constructor_name {
-            "injection" => Self::Injection(info),
-            "no-pretty-print" => Self::NoPrettyPrint(info),
-            "single-string" => Self::SingleString(info),
-            "no-layout" => Self::NoLayout(info),
-            "hidden" => Self::Hidden(info),
-            a => unreachable!("{}", a),
         }
     }
 }

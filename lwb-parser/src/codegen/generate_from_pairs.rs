@@ -1,8 +1,9 @@
+use std::collections::HashMap;
 use crate::codegen::check_recursive::{BreadthFirstAstIterator, RecursionChecker};
 use crate::codegen::error::CodegenError;
 use crate::codegen::sanitize_identifier;
 use crate::parser::peg::parser_sugar_ast::Annotation::SingleString;
-use crate::parser::peg::parser_sugar_ast::{Expression, SyntaxFileAst};
+use crate::parser::peg::parser_sugar_ast::{Annotation, Expression, Sort, SyntaxFileAst};
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -13,11 +14,16 @@ fn generate_unpack_expression(
     src: TokenStream,
     ckr: &RecursionChecker,
     non_exhaustive: TokenStream,
+    sort_list: &HashMap<&str, &Sort>
 ) -> Option<TokenStream> {
     let unreachable_exp = quote!(unreachable!("expected different parse pair expression in pair to ast conversion of {}", #sort););
 
     Some(match expression {
         Expression::Sort(name) => {
+            if sort_list.get(name.as_str()).map(|i| i.annotations.contains(&Annotation::Hidden)).unwrap_or_default() {
+                return None;
+            }
+
             let iname = format_ident!("{}", sanitize_identifier(name));
 
             let inner = ckr.maybe_box(
@@ -41,7 +47,7 @@ fn generate_unpack_expression(
             )
         }
         Expression::Repeat { min, max, e } | Expression::Delimited { min, max, e, .. } => {
-            if let Some(ue) = generate_unpack_expression(e, sort, quote!(x), ckr, non_exhaustive) {
+            if let Some(ue) = generate_unpack_expression(e, sort, quote!(x), ckr, non_exhaustive, sort_list) {
                 match (min, max) {
                     (0, Some(1)) => quote!(
                         if let ParsePairExpression::List(_, ref l) = #src {
@@ -88,6 +94,7 @@ fn generate_unpack_expression(
                     quote!(p[#index]),
                     ckr,
                     non_exhaustive.clone(),
+                    sort_list,
                 ) {
                     expressions.push(line)
                 }
@@ -123,6 +130,7 @@ fn generate_unpack(
     no_layout: bool,
     ckr: &RecursionChecker,
     non_exhaustive: TokenStream,
+    sort_list: &HashMap<&str, &Sort>,
 ) -> TokenStream {
     if no_layout {
         return quote!(
@@ -140,6 +148,7 @@ fn generate_unpack(
                 quote!(pair.constructor_value),
                 ckr,
                 non_exhaustive.clone(),
+                sort_list,
             );
 
             quote!(
@@ -164,6 +173,7 @@ fn generate_unpack(
                     quote!(l[#index]),
                     ckr,
                     non_exhaustive.clone(),
+                    sort_list,
                 ) {
                     expressions.push(line)
                 }
@@ -190,6 +200,7 @@ fn generate_unpack(
                 quote!(pair.constructor_value),
                 ckr,
                 non_exhaustive.clone(),
+                sort_list,
             ) {
                 quote!(#constructor(info, #expression #non_exhaustive))
             } else {
@@ -230,11 +241,16 @@ pub fn generate_from_pairs(
     } else {
         TokenStream::new()
     };
+    let sort_list = syntax.sorts.iter().map(|(k, v)| (k.as_str(), v)).collect::<HashMap<&str, &Sort>>();
 
     let arena = Default::default();
     let sorts_iterator = BreadthFirstAstIterator::new(syntax, &arena);
 
     for (sort, ckr) in sorts_iterator {
+        if sort.annotations.contains(&Annotation::Hidden) {
+            continue;
+        }
+
         let sortname = format_ident!("{}", sanitize_identifier(&sort.name));
         let sortname_str = &sort.name;
 
@@ -248,6 +264,7 @@ pub fn generate_from_pairs(
                 constr.annotations.contains(&SingleString),
                 ckr,
                 non_exhaustive.clone(),
+                &sort_list,
             )
         } else {
             let constructor_names_str = sort
@@ -271,6 +288,7 @@ pub fn generate_from_pairs(
                         constr.annotations.contains(&SingleString),
                         ckr,
                         non_exhaustive.clone(),
+                        &sort_list,
                     )
                 })
                 .collect_vec();

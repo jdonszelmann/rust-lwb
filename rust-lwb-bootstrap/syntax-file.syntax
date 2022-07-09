@@ -138,7 +138,7 @@ constructor:
     constructor-documented = doc-comment+ constructor;
     constructor = "    " identifier "=" expression+ ";" annotation-list? newline;
 
-newline:
+newline: {hidden}
     unix = "\n";
     windows = "\r\n";
 

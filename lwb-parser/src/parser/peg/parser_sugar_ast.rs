@@ -76,6 +76,7 @@ pub struct Sort {
     pub documentation: Option<String>,
     pub name: String,
     pub constructors: Vec<Constructor>,
+    pub annotations: Vec<Annotation>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
