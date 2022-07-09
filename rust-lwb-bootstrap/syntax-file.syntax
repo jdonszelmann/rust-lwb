@@ -152,7 +152,7 @@ newline:
 /// Sorts can have doc-comments using triple slashes.
 sort:
     sort-documented = doc-comment+ sort;
-    sort = identifier ":" constructor*;
+    sort = identifier ":" annotation-list? newline constructor*;
 
     /// When a sort has only one constructor, it has simpler syntax.
     sort-single = identifier "=" expression+ ";" annotation-list?;
