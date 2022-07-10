@@ -150,7 +150,8 @@ annotation:
 
     /// Makes constructors of this rule generate as part of another rule.
     /// This has one major requirement. If a is part-of b then
-    /// b must have a rule like `a=a` to allow any a to appear in b
+    /// b must have a rule like `a=a;` (also written as just `a;`) to allow
+    /// any a to appear in b
     ///
     /// Injections on rule a become injections into rule b too.
     part-of = "part-of" ":" identifier;
@@ -192,8 +193,8 @@ meta:
     start = "start" "at" identifier ";";
 
 sort-or-meta:
-    meta = meta;
-    sort = sort;
+    meta;
+    sort;
 
 program = sort-or-meta*;
 

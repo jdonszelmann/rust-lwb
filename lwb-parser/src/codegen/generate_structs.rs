@@ -115,6 +115,7 @@ pub fn generate_structs(
                     .annotations
                     .iter()
                     .any(|i| matches!(i, &Annotation::Error(_)))
+                    || constr.dont_put_in_ast
                 {
                     continue;
                 }
