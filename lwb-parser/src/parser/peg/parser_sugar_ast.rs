@@ -92,11 +92,13 @@ pub enum SimplifyError {
     #[error("You marked {0} as part of {1} but {1} contains no rule to get to {0} (a line in the form of `{0};`")]
     NoConnection(String, String),
 
-    #[error("You marked the starting sort ({0}) as part of another sort ({1}). This is not allowed.")]
+    #[error(
+        "You marked the starting sort ({0}) as part of another sort ({1}). This is not allowed."
+    )]
     StartingSort(String, String),
 
     #[error("The AST was simplified twice. This is a bug.")]
-    AlreadySimplified
+    AlreadySimplified,
 }
 
 impl SyntaxFileAst {
@@ -113,7 +115,6 @@ impl SyntaxFileAst {
         result
     }
 
-
     /// Simplification of the ast means that all rules that are marked as `part-of` are
     /// actually integrated with their associated sort. This is useful before code generation
     /// since in codegen they actually are one sort.
@@ -122,26 +123,23 @@ impl SyntaxFileAst {
             return Err(SimplifyError::AlreadySimplified);
         }
 
-
         let mut order = Vec::new();
         let mut had = HashSet::new();
         let mut todo = Vec::new();
 
-        let old_sort_names = self.sorts.keys().map(|i| i.clone()).collect::<Vec<_>>();
+        let old_sort_names = self.sorts.keys().cloned().collect::<Vec<_>>();
 
         // determine all relations between sorts.
         // handle the ones that aren't part-of another sort last
         // by pretty much topologically sorting them.
         for (name, sort) in self.sorts {
-            if let Some(other) = sort.annotations.iter()
-                .find_map(|i| {
-                    if let Annotation::PartOf(a) = i {
-                        Some(a)
-                    } else {
-                        None
-                    }
-                })
-            {
+            if let Some(other) = sort.annotations.iter().find_map(|i| {
+                if let Annotation::PartOf(a) = i {
+                    Some(a)
+                } else {
+                    None
+                }
+            }) {
                 let other = other.clone();
                 todo.push((name, sort, other));
             } else {
@@ -166,7 +164,7 @@ impl SyntaxFileAst {
             }
 
             if start_length == new_todo.len() {
-                return Err(SimplifyError::Cycle)
+                return Err(SimplifyError::Cycle);
             }
 
             todo = new_todo;
@@ -184,7 +182,7 @@ impl SyntaxFileAst {
                 }
             }
 
-            if let Some(other) = part_of.as_ref().map(|i| sort_refs.get(i)).flatten() {
+            if let Some(other) = part_of.as_ref().and_then(|i| sort_refs.get(i)) {
                 let mut has_connection = false;
                 for i in &other.constructors {
                     if i.expression == Expression::Sort(sort.name.clone()) {
@@ -194,7 +192,10 @@ impl SyntaxFileAst {
                 }
 
                 if !has_connection {
-                    return Err(SimplifyError::NoConnection(sort.name.clone(), other.name.clone()))
+                    return Err(SimplifyError::NoConnection(
+                        sort.name.clone(),
+                        other.name.clone(),
+                    ));
                 }
             }
         }
@@ -210,14 +211,16 @@ impl SyntaxFileAst {
             if let Some(others) = merges.remove(&name) {
                 for other in others {
                     // extend the constructors
-                    sort.constructors = sort.constructors.into_iter()
+                    sort.constructors = sort
+                        .constructors
+                        .into_iter()
                         .map(|mut i| {
-                            i.dont_put_in_ast = i.expression == Expression::Sort(other.name.clone());
+                            i.dont_put_in_ast =
+                                i.expression == Expression::Sort(other.name.clone());
                             i
                         })
                         .chain(other.constructors)
                         .collect();
-
 
                     // merge documentation nicely
                     if let Some(ref documentation) = other.documentation {
@@ -244,15 +247,21 @@ impl SyntaxFileAst {
 
         // now some sorts got removed. Rename their references to the appropriate parent.
         // then undo partial move (and restore self)
-        self.sorts = new_sorts.into_iter().map(|(name, mut sort)| {
-            sort.constructors = sort.constructors.into_iter()
-                .map(|mut c| {
-                    c.expression = Self::rewrite_expression(c.expression, &occurred_merges);
-                    c
-                }).collect();
+        self.sorts = new_sorts
+            .into_iter()
+            .map(|(name, mut sort)| {
+                sort.constructors = sort
+                    .constructors
+                    .into_iter()
+                    .map(|mut c| {
+                        c.expression = Self::rewrite_expression(c.expression, &occurred_merges);
+                        c
+                    })
+                    .collect();
 
-            (name, sort)
-        }).collect();
+                (name, sort)
+            })
+            .collect();
 
         self.merges = occurred_merges;
         self.old_sort_names = old_sort_names;
@@ -270,35 +279,43 @@ impl SyntaxFileAst {
 
     fn rewrite_expression(e: Expression, merges: &HashMap<String, String>) -> Expression {
         match e {
-            Expression::Sort(name) => {
-                Expression::Sort(Self::get_new_name(&name, merges))
-            }
-            a@Expression::Literal(_) => a,
+            Expression::Sort(name) => Expression::Sort(Self::get_new_name(&name, merges)),
+            a @ Expression::Literal(_) => a,
             Expression::Sequence(s) => Expression::Sequence(
                 s.into_iter()
                     .map(|e| Self::rewrite_expression(e, merges))
-                    .collect()
+                    .collect(),
             ),
             Expression::Repeat { e, min, max } => Expression::Repeat {
                 e: Box::new(Self::rewrite_expression(*e, merges)),
                 min,
-                max
+                max,
             },
-            a@Expression::CharacterClass(_) => a,
+            a @ Expression::CharacterClass(_) => a,
             Expression::Choice(s) => Expression::Choice(
                 s.into_iter()
                     .map(|e| Self::rewrite_expression(e, merges))
-                    .collect()
+                    .collect(),
             ),
-            Expression::Delimited { e, delim, min, max, trailing } => Expression::Delimited {
+            Expression::Delimited {
+                e,
+                delim,
+                min,
+                max,
+                trailing,
+            } => Expression::Delimited {
                 e: Box::new(Self::rewrite_expression(*e, merges)),
                 delim,
                 min,
                 max,
-                trailing
+                trailing,
             },
-            Expression::Negative(e) => Expression::Negative(Box::new(Self::rewrite_expression(*e, merges))),
-            Expression::Positive(e) => Expression::Positive(Box::new(Self::rewrite_expression(*e, merges))),
+            Expression::Negative(e) => {
+                Expression::Negative(Box::new(Self::rewrite_expression(*e, merges)))
+            }
+            Expression::Positive(e) => {
+                Expression::Positive(Box::new(Self::rewrite_expression(*e, merges)))
+            }
         }
     }
 }

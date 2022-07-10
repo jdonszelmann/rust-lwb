@@ -77,7 +77,7 @@ fn codegen_internal(
         derives.extend(["Serialize", "Deserialize"]);
     }
 
-    let legacy_ast= legacy_ast.clone().simplify()?;
+    let legacy_ast = legacy_ast.simplify()?;
 
     let structs = generate_structs(&legacy_ast, &derives, config.syntax.non_exhaustive)?;
     let from_pairs = generate_from_pairs(&legacy_ast, config.syntax.non_exhaustive)?;

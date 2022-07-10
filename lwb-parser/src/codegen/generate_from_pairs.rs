@@ -129,6 +129,7 @@ fn generate_unpack_expression(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn generate_unpack(
     sort: &str,
     constructor: TokenStream,

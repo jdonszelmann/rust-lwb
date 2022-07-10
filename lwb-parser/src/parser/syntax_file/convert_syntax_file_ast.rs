@@ -306,14 +306,12 @@ fn convert_constructor<M: AstInfo>(inp: ast::Constructor<M>) -> ConversionResult
                 Ok(i)
             })?
         }
-        ast::Constructor::ConstructorBare(_, name, annotations) => {
-            Constructor {
-                documentation: None,
-                name: convert_identifier(&name),
-                expression: Expression::Sort(convert_identifier(&name)),
-                annotations: annotations.map_or(Ok(vec![]), |i | convert_annotations(&i))?,
-                dont_put_in_ast: false,
-            }
-        }
+        ast::Constructor::ConstructorBare(_, name, annotations) => Constructor {
+            documentation: None,
+            name: convert_identifier(&name),
+            expression: Expression::Sort(convert_identifier(&name)),
+            annotations: annotations.map_or(Ok(vec![]), |i| convert_annotations(&i))?,
+            dont_put_in_ast: false,
+        },
     })
 }

@@ -1,7 +1,7 @@
+use crate::parser::peg::parser_sugar_ast::SimplifyError;
 use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError;
 use crate::parser::syntax_file::ParseError;
 use thiserror::Error;
-use crate::parser::peg::parser_sugar_ast::SimplifyError;
 
 #[derive(Debug, Error)]
 pub enum CodegenError {
