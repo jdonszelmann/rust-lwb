@@ -80,6 +80,8 @@ pub enum Constructor<M> {
         Vec<Expression<M>>,
         Option<AnnotationList<M>>,
     ),
+    ///using `test;` as a constructor desugars to `test = test;`
+    ConstructorBare(M, Identifier<M>, Option<AnnotationList<M>>),
 }
 ///With expressions, you can give the syntax rules of a single constructor.
 ///Expressions can be nested and combined.
@@ -103,8 +105,6 @@ pub enum Expression<M> {
     RepeatRange(M, Box<Expression<M>>, Number<M>, Number<M>),
     ///Ranged repetition, without upper bound (or an infinite maximum)
     RepeatLower(M, Box<Expression<M>>, Number<M>),
-    ///Matches a piece of text exactly. Layout is parsed within a literal.
-    Literal(M, String<M>),
     ///Delimited expressions. Says that some expression should be repeatedly parsed,
     ///but between two parses, a delimiter should be parsed too. For example, comma seperated expressions.
     ///The final trailing keyword enables a trailing separator after the sequence. If not present, no trailing
@@ -116,12 +116,16 @@ pub enum Expression<M> {
         DelimitedBound<M>,
         bool,
     ),
-    ///Reference another sort within this expression. That sort should be parsed in this position in the expression.
+    ///Matches a piece of text exactly. Layout is parsed within a literal.
+    Literal(M, String<M>),
+    ///You can use parentheses to group parts of expressions.
+    Paren(M, Vec<Box<Expression<M>>>),
+    Labelled(M, Identifier<M>, Box<Expression<M>>),
+    ///Reference another sort within this expression.
+    ///That sort should be parsed in this position in the expression.
     Sort(M, Identifier<M>),
     ///A [`character class`](character-class) (range of characters) should be parsed here.
     Class(M, CharacterClass<M>),
-    ///You can use parentheses to group parts of expressions.
-    Paren(M, Vec<Box<Expression<M>>>),
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
@@ -157,16 +161,17 @@ pub enum Annotation<M> {
     ///then alongside an "expected ...", that message will be displayed as well.
     ///If this sort was the only possibility at a certain point, only the message will be displayed.
     Error(M, String<M>),
+    ///Makes constructors of this rule generate as part of another rule.
+    ///This has one major requirement. If a is part-of b then
+    ///b must have a rule like `a=a;` (also written as just `a;`) to allow
+    ///any a to appear in b
+    ///
+    ///Injections on rule a become injections into rule b too.
+    PartOf(M, Identifier<M>),
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(crate = "self::serde")]
 pub struct Number<M>(pub M, pub std::string::String);
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(crate = "self::serde")]
-pub enum String<M> {
-    Single(M, Vec<StringChar<M>>),
-    Double(M, Vec<StringChar<M>>),
-}
 ///A delimited expression can be repeated just like normal repetition expressions.
 ///To denote this, you can use a delimitation bound.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -181,6 +186,12 @@ pub enum DelimitedBound<M> {
     Star(M),
     ///One or more repetitions.
     Plus(M),
+}
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(crate = "self::serde")]
+pub enum String<M> {
+    Single(M, Vec<StringChar<M>>),
+    Double(M, Vec<StringChar<M>>),
 }
 ///A character class represent a selection of terminal characters. This is similar to
 ///Regex character classes. Character classes can be inverted by starting them with a `^`.

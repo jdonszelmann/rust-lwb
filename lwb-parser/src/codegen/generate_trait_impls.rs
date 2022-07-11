@@ -19,6 +19,7 @@ pub fn generate_trait_impls(syntax: &SyntaxFileAst) -> Result<TokenStream, Codeg
         let constructor_names = sort
             .constructors
             .iter()
+            .filter(|i| !i.dont_put_in_ast)
             .filter(|i| {
                 !i.annotations
                     .iter()
@@ -30,6 +31,7 @@ pub fn generate_trait_impls(syntax: &SyntaxFileAst) -> Result<TokenStream, Codeg
         let constructor_names_str = sort
             .constructors
             .iter()
+            .filter(|i| !i.dont_put_in_ast)
             .filter(|i| {
                 !i.annotations
                     .iter()

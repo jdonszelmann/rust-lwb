@@ -129,6 +129,7 @@ fn generate_unpack_expression(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn generate_unpack(
     sort: &str,
     constructor: TokenStream,
@@ -137,6 +138,7 @@ fn generate_unpack(
     ckr: &RecursionChecker,
     non_exhaustive: TokenStream,
     sort_list: &HashMap<&str, &Sort>,
+    dont_put_in_ast: bool,
 ) -> TokenStream {
     if no_layout {
         return quote!(
@@ -157,9 +159,15 @@ fn generate_unpack(
                 sort_list,
             );
 
-            quote!(
-                #constructor(info, #nested #non_exhaustive)
-            )
+            if dont_put_in_ast {
+                quote!(
+                    *#nested
+                )
+            } else {
+                quote!(
+                    #constructor(info, #nested #non_exhaustive)
+                )
+            }
         }
         Expression::Sequence(c) => {
             let mut expressions = Vec::new();
@@ -261,8 +269,8 @@ pub fn generate_from_pairs(
             continue;
         }
 
+        let sortnames_str = syntax.names(&sort.name);
         let sortname = format_ident!("{}", sanitize_identifier(&sort.name));
-        let sortname_str = &sort.name;
 
         let unpack_body = if sort.constructors.len() == 1 {
             let constr = &sort.constructors[0];
@@ -275,6 +283,7 @@ pub fn generate_from_pairs(
                 ckr,
                 non_exhaustive.clone(),
                 &sort_list,
+                constr.dont_put_in_ast,
             )
         } else {
             let constructor_names_str = sort
@@ -309,6 +318,7 @@ pub fn generate_from_pairs(
                         ckr,
                         non_exhaustive.clone(),
                         &sort_list,
+                        constr.dont_put_in_ast,
                     )
                 })
                 .collect_vec();
@@ -326,7 +336,7 @@ pub fn generate_from_pairs(
         impls.push(quote!(
             impl<M: AstInfo> FromPairs<M> for #sortname<M> {
                 fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-                    assert_eq!(pair.sort, #sortname_str);
+                    assert!(vec![#(#sortnames_str),*].contains(&pair.sort), "{} not in {:?}", pair.sort, vec![#(#sortnames_str),*]);
                     let info = generator.generate(&pair);
 
                     #unpack_body

@@ -1,3 +1,4 @@
+use crate::parser::peg::parser_sugar_ast::SimplifyError;
 use crate::parser::syntax_file::convert_syntax_file_ast::AstConversionError;
 use crate::parser::syntax_file::ParseError;
 use thiserror::Error;
@@ -18,4 +19,7 @@ pub enum CodegenError {
 
     #[error("filename has no extension (while creating module structure for codegen phase)")]
     NoExtension,
+
+    #[error(transparent)]
+    Simplify(#[from] SimplifyError),
 }

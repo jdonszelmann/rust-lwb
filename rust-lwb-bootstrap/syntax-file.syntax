@@ -38,6 +38,25 @@ string:
 character-class:
     class =  "[" "^"? character-class-item* "]"; {no-layout}
 
+
+atom: {part-of: expression}
+    double-eq = "="; {error: "an `=` can only be used at the start of a constructor"}
+
+    /// Matches a piece of text exactly. Layout is parsed within a literal.
+    literal = string;
+
+    /// You can use parentheses to group parts of expressions.
+    paren = "(" expression+ ")";
+
+    labelled = identifier ":" atom;
+
+    /// Reference another sort within this expression.
+    /// That sort should be parsed in this position in the expression.
+    sort = identifier;
+
+    /// A [`character class`](character-class) (range of characters) should be parsed here.
+    class = character-class;
+
 /// With expressions, you can give the syntax rules of a single constructor.
 /// Expressions can be nested and combined.
 expression:
@@ -45,27 +64,24 @@ expression:
 
     /// Repeat some expression zero or more times
     /// Equivalent to `<expression> {0,}`
-    star = expression "*";
+    star = atom "*";
 
     /// Repeat some expression one or more times
     /// Equivalent to `<expression> {1,}`
-    plus = expression "+";
+    plus = atom "+";
 
     /// Optionally have some expression.
     /// Equivalent to `<expression> {0,1}`
-    maybe = expression "?";
+    maybe = atom "?";
 
     /// Exact repetition. The expression is repeated an exact number of times. Equivalent
     /// to ranged repetition with an equal lower and upper bound.
-    repeat-exact = expression "{" number "}";
+    repeat-exact = atom "{" number "}";
     /// Ranged repetition. The expression may be repeated any number of times, within the range.
     /// Both bounds are inclusive.
-    repeat-range = expression "{" number "," number "}";
+    repeat-range = atom "{" number "," number "}";
     /// Ranged repetition, without upper bound (or an infinite maximum)
-    repeat-lower = expression "{" number "," "inf" "}";
-
-    /// Matches a piece of text exactly. Layout is parsed within a literal.
-    literal = string;
+    repeat-lower = atom "{" number "," "inf" "}";
 
     /// Delimited expressions. Says that some expression should be repeatedly parsed,
     /// but between two parses, a delimiter should be parsed too. For example, comma seperated expressions.
@@ -73,14 +89,7 @@ expression:
     /// separator is allowed.
     delimited = "delimited" "(" expression "," expression "," delimited-bound ("," "trailing")? ")";
 
-    /// Reference another sort within this expression. That sort should be parsed in this position in the expression.
-    sort = identifier;
-
-    /// A [`character class`](character-class) (range of characters) should be parsed here.
-    class = character-class;
-
-    /// You can use parentheses to group parts of expressions.
-    paren = "(" expression+ ")"; {injection}
+    atom;
 
 /// A delimited expression can be repeated just like normal repetition expressions.
 /// To denote this, you can use a delimitation bound.
@@ -139,6 +148,14 @@ annotation:
     /// If this sort was the only possibility at a certain point, only the message will be displayed.
     error = "error" ":" string;
 
+    /// Makes constructors of this rule generate as part of another rule.
+    /// This has one major requirement. If a is part-of b then
+    /// b must have a rule like `a=a;` (also written as just `a;`) to allow
+    /// any a to appear in b
+    ///
+    /// Injections on rule a become injections into rule b too.
+    part-of = "part-of" ":" identifier;
+
 /// A [`sort`] consists of constructors. A sort will try each of the constructors
 /// from top to bottom, and use the first one that successfully parses the input string.
 ///
@@ -148,6 +165,8 @@ annotation:
 constructor: {error: "make sure each constructor ends with a `;` and is indented with 4 spaces."}
     constructor-documented = doc-comment+ constructor;
     constructor = "    " identifier "=" expression+ ";" annotation-list? newline;
+    /// using `test;` as a constructor desugars to `test = test;`
+    constructor-bare = "    " identifier ";" annotation-list? newline;
 
 newline: {hidden}
     unix = "\n";
@@ -174,8 +193,8 @@ meta:
     start = "start" "at" identifier ";";
 
 sort-or-meta:
-    meta = meta;
-    sort = sort;
+    meta;
+    sort;
 
 program = sort-or-meta*;
 

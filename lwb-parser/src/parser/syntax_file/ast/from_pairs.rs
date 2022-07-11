@@ -10,7 +10,12 @@
 use super::prelude::*;
 impl<M: AstInfo> FromPairs<M> for Program<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "program");
+        assert!(
+            vec!["program"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["program"]
+        );
         let info = generator.generate(&pair);
         Self(
             info,
@@ -27,7 +32,12 @@ impl<M: AstInfo> FromPairs<M> for Program<M> {
 }
 impl<M: AstInfo> FromPairs<M> for SortOrMeta<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "sort-or-meta");
+        assert!(
+            vec!["sort-or-meta"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["sort-or-meta"]
+        );
         let info = generator.generate(&pair);
         match pair.constructor_name {
             "meta" => {
@@ -56,7 +66,12 @@ impl<M: AstInfo> FromPairs<M> for SortOrMeta<M> {
 }
 impl<M: AstInfo> FromPairs<M> for Meta<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "meta");
+        assert!(
+            vec!["meta"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["meta"]
+        );
         let info = generator.generate(&pair);
         if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
             Self(
@@ -80,7 +95,12 @@ impl<M: AstInfo> FromPairs<M> for Meta<M> {
 }
 impl<M: AstInfo> FromPairs<M> for Sort<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "sort");
+        assert!(
+            vec!["sort"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["sort"]
+        );
         let info = generator.generate(&pair);
         match pair.constructor_name {
             "sort-documented" => {
@@ -165,21 +185,36 @@ impl<M: AstInfo> FromPairs<M> for Sort<M> {
 }
 impl<M: AstInfo> FromPairs<M> for Identifier<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "identifier");
+        assert!(
+            vec!["identifier"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["identifier"]
+        );
         let info = generator.generate(&pair);
         return Self(info, pair.constructor_value.span().as_str().to_string());
     }
 }
 impl<M: AstInfo> FromPairs<M> for DocComment<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "doc-comment");
+        assert!(
+            vec!["doc-comment"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["doc-comment"]
+        );
         let info = generator.generate(&pair);
         return Self(info, pair.constructor_value.span().as_str().to_string());
     }
 }
 impl<M: AstInfo> FromPairs<M> for AnnotationList<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "annotation-list");
+        assert!(
+            vec!["annotation-list"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["annotation-list"]
+        );
         let info = generator.generate(&pair);
         if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
             Self(
@@ -203,7 +238,12 @@ impl<M: AstInfo> FromPairs<M> for AnnotationList<M> {
 }
 impl<M: AstInfo> FromPairs<M> for Constructor<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "constructor");
+        assert!(
+            vec!["constructor"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["constructor"]
+        );
         let info = generator.generate(&pair);
         match pair.constructor_name {
             "constructor-documented" => {
@@ -255,13 +295,40 @@ impl<M: AstInfo> FromPairs<M> for Constructor<M> {
                     );
                 }
             }
+            "constructor-bare" => {
+                if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
+                    Self::ConstructorBare(
+                        info,
+                        if let ParsePairExpression::Sort(_, ref s) = l[1usize] {
+                            Identifier::from_pairs(s, generator)
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor");
+                        },
+                        if let ParsePairExpression::List(_, ref l) = l[3usize] {
+                            l . first () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { AnnotationList :: from_pairs (s , generator) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor") ; })
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "constructor");
+                        },
+                    )
+                } else {
+                    unreachable!(
+                        "expected different parse pair expression in pair to ast conversion of {}",
+                        "constructor"
+                    );
+                }
+            }
             a => unreachable!("{}", a),
         }
     }
 }
 impl<M: AstInfo> FromPairs<M> for Expression<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "expression");
+        assert!(
+            vec!["atom", "expression"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["atom", "expression"]
+        );
         let info = generator.generate(&pair);
         match pair.constructor_name {
             "star" => {
@@ -386,16 +453,6 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                     );
                 }
             }
-            "literal" => {
-                Self::Literal(
-                    info,
-                    if let ParsePairExpression::Sort(_, ref s) = pair.constructor_value {
-                        String::from_pairs(s, generator)
-                    } else {
-                        unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
-                    },
-                )
-            }
             "delimited" => {
                 if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
                     Self::Delimited(
@@ -428,21 +485,21 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                     );
                 }
             }
-            "sort" => {
-                Self::Sort(
-                    info,
-                    if let ParsePairExpression::Sort(_, ref s) = pair.constructor_value {
-                        Identifier::from_pairs(s, generator)
-                    } else {
-                        unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
-                    },
-                )
+            "atom" => {
+                *if let ParsePairExpression::Sort(_, ref s) = pair.constructor_value {
+                    Box::new(Expression::from_pairs(s, generator))
+                } else {
+                    unreachable!(
+                        "expected different parse pair expression in pair to ast conversion of {}",
+                        "expression"
+                    );
+                }
             }
-            "class" => {
-                Self::Class(
+            "literal" => {
+                Self::Literal(
                     info,
                     if let ParsePairExpression::Sort(_, ref s) = pair.constructor_value {
-                        CharacterClass::from_pairs(s, generator)
+                        String::from_pairs(s, generator)
                     } else {
                         unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
                     },
@@ -465,13 +522,60 @@ impl<M: AstInfo> FromPairs<M> for Expression<M> {
                     );
                 }
             }
+            "labelled" => {
+                if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
+                    Self::Labelled(
+                        info,
+                        if let ParsePairExpression::Sort(_, ref s) = l[0usize] {
+                            Identifier::from_pairs(s, generator)
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                        if let ParsePairExpression::Sort(_, ref s) = l[2usize] {
+                            Box::new(Expression::from_pairs(s, generator))
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                        },
+                    )
+                } else {
+                    unreachable!(
+                        "expected different parse pair expression in pair to ast conversion of {}",
+                        "expression"
+                    );
+                }
+            }
+            "sort" => {
+                Self::Sort(
+                    info,
+                    if let ParsePairExpression::Sort(_, ref s) = pair.constructor_value {
+                        Identifier::from_pairs(s, generator)
+                    } else {
+                        unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                    },
+                )
+            }
+            "class" => {
+                Self::Class(
+                    info,
+                    if let ParsePairExpression::Sort(_, ref s) = pair.constructor_value {
+                        CharacterClass::from_pairs(s, generator)
+                    } else {
+                        unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "expression");
+                    },
+                )
+            }
             a => unreachable!("{}", a),
         }
     }
 }
 impl<M: AstInfo> FromPairs<M> for Annotation<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "annotation");
+        assert!(
+            vec!["annotation"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["annotation"]
+        );
         let info = generator.generate(&pair);
         match pair.constructor_name {
             "injection" => Self::Injection(info),
@@ -496,63 +600,47 @@ impl<M: AstInfo> FromPairs<M> for Annotation<M> {
                     );
                 }
             }
+            "part-of" => {
+                if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
+                    Self::PartOf(
+                        info,
+                        if let ParsePairExpression::Sort(_, ref s) = l[2usize] {
+                            Identifier::from_pairs(s, generator)
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "annotation");
+                        },
+                    )
+                } else {
+                    unreachable!(
+                        "expected different parse pair expression in pair to ast conversion of {}",
+                        "annotation"
+                    );
+                }
+            }
             a => unreachable!("{}", a),
         }
     }
 }
 impl<M: AstInfo> FromPairs<M> for Number<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "number");
+        assert!(
+            vec!["number"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["number"]
+        );
         let info = generator.generate(&pair);
         return Self(info, pair.constructor_value.span().as_str().to_string());
     }
 }
-impl<M: AstInfo> FromPairs<M> for String<M> {
-    fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "string");
-        let info = generator.generate(&pair);
-        match pair.constructor_name {
-            "single" => {
-                if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
-                    Self::Single(
-                        info,
-                        if let ParsePairExpression::List(_, ref l) = l[1usize] {
-                            l . iter () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { StringChar :: from_pairs (s , generator) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "string") ; }) . collect ()
-                        } else {
-                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "string");
-                        },
-                    )
-                } else {
-                    unreachable!(
-                        "expected different parse pair expression in pair to ast conversion of {}",
-                        "string"
-                    );
-                }
-            }
-            "double" => {
-                if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
-                    Self::Double(
-                        info,
-                        if let ParsePairExpression::List(_, ref l) = l[1usize] {
-                            l . iter () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { StringChar :: from_pairs (s , generator) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "string") ; }) . collect ()
-                        } else {
-                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "string");
-                        },
-                    )
-                } else {
-                    unreachable!(
-                        "expected different parse pair expression in pair to ast conversion of {}",
-                        "string"
-                    );
-                }
-            }
-            a => unreachable!("{}", a),
-        }
-    }
-}
 impl<M: AstInfo> FromPairs<M> for DelimitedBound<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "delimited-bound");
+        assert!(
+            vec!["delimited-bound"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["delimited-bound"]
+        );
         let info = generator.generate(&pair);
         match pair.constructor_name {
             "num-num" => {
@@ -610,9 +698,62 @@ impl<M: AstInfo> FromPairs<M> for DelimitedBound<M> {
         }
     }
 }
+impl<M: AstInfo> FromPairs<M> for String<M> {
+    fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
+        assert!(
+            vec!["string"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["string"]
+        );
+        let info = generator.generate(&pair);
+        match pair.constructor_name {
+            "single" => {
+                if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
+                    Self::Single(
+                        info,
+                        if let ParsePairExpression::List(_, ref l) = l[1usize] {
+                            l . iter () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { StringChar :: from_pairs (s , generator) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "string") ; }) . collect ()
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "string");
+                        },
+                    )
+                } else {
+                    unreachable!(
+                        "expected different parse pair expression in pair to ast conversion of {}",
+                        "string"
+                    );
+                }
+            }
+            "double" => {
+                if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
+                    Self::Double(
+                        info,
+                        if let ParsePairExpression::List(_, ref l) = l[1usize] {
+                            l . iter () . map (| x | if let ParsePairExpression :: Sort (_ , ref s) = x { StringChar :: from_pairs (s , generator) } else { unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "string") ; }) . collect ()
+                        } else {
+                            unreachable ! ("expected different parse pair expression in pair to ast conversion of {}" , "string");
+                        },
+                    )
+                } else {
+                    unreachable!(
+                        "expected different parse pair expression in pair to ast conversion of {}",
+                        "string"
+                    );
+                }
+            }
+            a => unreachable!("{}", a),
+        }
+    }
+}
 impl<M: AstInfo> FromPairs<M> for CharacterClass<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "character-class");
+        assert!(
+            vec!["character-class"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["character-class"]
+        );
         let info = generator.generate(&pair);
         if let ParsePairExpression::List(_, ref l) = pair.constructor_value {
             Self(
@@ -644,7 +785,12 @@ impl<M: AstInfo> FromPairs<M> for CharacterClass<M> {
 }
 impl<M: AstInfo> FromPairs<M> for StringChar<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "string-char");
+        assert!(
+            vec!["string-char"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["string-char"]
+        );
         let info = generator.generate(&pair);
         match pair.constructor_name {
             "escaped" => {
@@ -680,7 +826,12 @@ impl<M: AstInfo> FromPairs<M> for StringChar<M> {
 }
 impl<M: AstInfo> FromPairs<M> for CharacterClassItem<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "character-class-item");
+        assert!(
+            vec!["character-class-item"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["character-class-item"]
+        );
         let info = generator.generate(&pair);
         match pair.constructor_name {
             "range" => {
@@ -721,7 +872,12 @@ impl<M: AstInfo> FromPairs<M> for CharacterClassItem<M> {
 }
 impl<M: AstInfo> FromPairs<M> for EscapeClosingBracket<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "escape-closing-bracket");
+        assert!(
+            vec!["escape-closing-bracket"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["escape-closing-bracket"]
+        );
         let info = generator.generate(&pair);
         match pair.constructor_name {
             "escaped" => {
@@ -757,7 +913,12 @@ impl<M: AstInfo> FromPairs<M> for EscapeClosingBracket<M> {
 }
 impl<M: AstInfo> FromPairs<M> for Layout<M> {
     fn from_pairs<G: GenerateAstInfo<Result = M>>(pair: &ParsePairSort, generator: &mut G) -> Self {
-        assert_eq!(pair.sort, "layout");
+        assert!(
+            vec!["layout"].contains(&pair.sort),
+            "{} not in {:?}",
+            pair.sort,
+            vec!["layout"]
+        );
         let info = generator.generate(&pair);
         match pair.constructor_name {
             "simple" => {
